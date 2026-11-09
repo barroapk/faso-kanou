@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b66e8prl0ptuc"
-path="res://.godot/imported/herbe_relief.jpg-725451de3cc014b4f3179b771b31e179.ctex"
+path.etc2="res://.godot/imported/herbe_relief.jpg-725451de3cc014b4f3179b771b31e179.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/sol/herbe_relief.jpg"
-dest_files=["res://.godot/imported/herbe_relief.jpg-725451de3cc014b4f3179b771b31e179.ctex"]
+dest_files=["res://.godot/imported/herbe_relief.jpg-725451de3cc014b4f3179b771b31e179.etc2.ctex"]
 
 [params]
 

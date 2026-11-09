@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://drb1rh7gtex1c"
-path="res://.godot/imported/roche_relief.jpg-ce49b134c8f81477afef2f5e9474d878.ctex"
+path.etc2="res://.godot/imported/roche_relief.jpg-ce49b134c8f81477afef2f5e9474d878.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/sol/roche_relief.jpg"
-dest_files=["res://.godot/imported/roche_relief.jpg-ce49b134c8f81477afef2f5e9474d878.ctex"]
+dest_files=["res://.godot/imported/roche_relief.jpg-ce49b134c8f81477afef2f5e9474d878.etc2.ctex"]
 
 [params]
 

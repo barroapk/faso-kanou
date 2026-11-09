@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cfly5apks1pqu"
-path="res://.godot/imported/herbe_couleur.jpg-6a58cee8308b00046b1829a922ec3a2a.ctex"
+path.etc2="res://.godot/imported/herbe_couleur.jpg-6a58cee8308b00046b1829a922ec3a2a.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/sol/herbe_couleur.jpg"
-dest_files=["res://.godot/imported/herbe_couleur.jpg-6a58cee8308b00046b1829a922ec3a2a.ctex"]
+dest_files=["res://.godot/imported/herbe_couleur.jpg-6a58cee8308b00046b1829a922ec3a2a.etc2.ctex"]
 
 [params]
 

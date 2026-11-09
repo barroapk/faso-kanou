@@ -119,6 +119,7 @@ func _creer_interface() -> void:
     _ajouter_bouton(boutons, "Ciel HDR", _changer_ciel)
     _ajouter_bouton(boutons, "Sol réaliste", func(actif): terrain.material_override = materiau_sol if actif else materiau_simple)
     _ajouter_bouton(boutons, "Vitesse normale", func(actif): Civilisation.temps.vitesse = 1 if actif else 3)
+    _ajouter_bouton(boutons, "Nouvelle partie", func(_actif): Civilisation.nouvelle_partie())
     var res := Button.new()
     res.text = "Résolution 70%"
     res.add_theme_font_size_override("font_size", 32)

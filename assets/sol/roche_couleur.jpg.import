@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://vhx0f40bob6w"
-path="res://.godot/imported/roche_couleur.jpg-c6b4787a4ea2f9e97037b073bfcf8beb.ctex"
+path.etc2="res://.godot/imported/roche_couleur.jpg-c6b4787a4ea2f9e97037b073bfcf8beb.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/sol/roche_couleur.jpg"
-dest_files=["res://.godot/imported/roche_couleur.jpg-c6b4787a4ea2f9e97037b073bfcf8beb.ctex"]
+dest_files=["res://.godot/imported/roche_couleur.jpg-c6b4787a4ea2f9e97037b073bfcf8beb.etc2.ctex"]
 
 [params]
 

@@ -105,3 +105,16 @@ func jour_passe(faim: bool, soif: bool) -> void:
     for h in morts:
         habitants.erase(h)
         deces.emit(h)
+
+func vers_dict() -> Dictionary:
+    return {"habitants": habitants, "prochain_id": prochain_id, "graine": str(rng.seed), "etat": str(rng.state)}
+
+func depuis_dict(d: Dictionary) -> void:
+    habitants = []
+    for h in d.get("habitants", []):
+        for cle in ["id", "naissance", "famille", "sante"]:
+            h[cle] = int(h[cle])
+        habitants.append(h)
+    prochain_id = int(d.get("prochain_id", 1))
+    rng.seed = int(d.get("graine", "2026"))
+    rng.state = int(d.get("etat", "0"))
