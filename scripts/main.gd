@@ -56,10 +56,8 @@ func _creer_ile() -> void:
     add_child(ile)
 
 func _creer_camera() -> void:
-    var camera := Camera3D.new()
+    var camera = preload("res://scripts/camera_strategie.gd").new()
     add_child(camera)
-    camera.position = Vector3(0, 12, 16)
-    camera.look_at(Vector3.ZERO)
 
 func _creer_habitants(nombre: int) -> void:
     for i in nombre:
