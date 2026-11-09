@@ -1,9 +1,13 @@
 extends Node3D
 
+var terrain
+
 func _ready() -> void:
     _creer_ciel()
     _creer_soleil()
-    _creer_ile()
+    _creer_mer()
+    terrain = preload("res://scripts/terrain.gd").new()
+    add_child(terrain)
     _creer_camera()
     _creer_habitants(10)
 
@@ -33,27 +37,18 @@ func _creer_soleil() -> void:
     soleil.shadow_enabled = true
     add_child(soleil)
 
-func _creer_ile() -> void:
+func _creer_mer() -> void:
     var mer := MeshInstance3D.new()
     var plan := PlaneMesh.new()
     plan.size = Vector2(3000, 3000)
     mer.mesh = plan
     var mat_mer := StandardMaterial3D.new()
-    mat_mer.albedo_color = Color(0.05, 0.25, 0.4)
+    mat_mer.albedo_color = Color(0.05, 0.3, 0.42)
     mat_mer.metallic = 0.3
     mat_mer.roughness = 0.1
     mer.material_override = mat_mer
     mer.position.y = -0.2
     add_child(mer)
-
-    var ile := MeshInstance3D.new()
-    var forme := CylinderMesh.new()
-    forme.top_radius = 40
-    forme.bottom_radius = 45
-    forme.height = 1.0
-    ile.mesh = forme
-    ile.material_override = _materiau_laterite()
-    add_child(ile)
 
 func _creer_camera() -> void:
     var camera = preload("res://scripts/camera_strategie.gd").new()
@@ -70,42 +65,7 @@ func _creer_habitants(nombre: int) -> void:
         mat.albedo_color = Color(0.36, 0.22, 0.13)
         habitant.material_override = mat
         var angle := TAU * i / nombre
-        habitant.position = Vector3(cos(angle) * 4, 1.35, sin(angle) * 4)
+        var x := cos(angle) * 4
+        var z := sin(angle) * 4
+        habitant.position = Vector3(x, terrain.hauteur(x, z) + 0.85, z)
         add_child(habitant)
-
-func _materiau_laterite() -> StandardMaterial3D:
-    var bruit := FastNoiseLite.new()
-    bruit.frequency = 0.01
-    bruit.fractal_octaves = 5
-
-    var couleurs := Gradient.new()
-    couleurs.set_color(0, Color(0.66, 0.40, 0.22))
-    couleurs.set_color(1, Color(0.85, 0.58, 0.35))
-    couleurs.add_point(0.5, Color(0.70, 0.38, 0.20))
-
-    var couleur_sol := NoiseTexture2D.new()
-    couleur_sol.width = 1024
-    couleur_sol.height = 1024
-    couleur_sol.seamless = true
-    couleur_sol.noise = bruit
-    couleur_sol.color_ramp = couleurs
-
-    var cailloux := FastNoiseLite.new()
-    cailloux.frequency = 0.03
-    cailloux.noise_type = FastNoiseLite.TYPE_CELLULAR
-
-    var relief := NoiseTexture2D.new()
-    relief.width = 1024
-    relief.height = 1024
-    relief.seamless = true
-    relief.as_normal_map = true
-    relief.bump_strength = 1.5
-    relief.noise = cailloux
-
-    var mat := StandardMaterial3D.new()
-    mat.albedo_texture = couleur_sol
-    mat.normal_enabled = true
-    mat.normal_texture = relief
-    mat.roughness = 1.0
-    mat.uv1_scale = Vector3(4, 4, 1)
-    return mat
