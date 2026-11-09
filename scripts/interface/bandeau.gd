@@ -7,6 +7,7 @@ var message: Label
 var temps_message := 0.0
 var panneau: PanelContainer
 var liste: VBoxContainer
+var panneau_fin: PanelContainer
 
 func _ready() -> void:
     var barre := HBoxContainer.new()
@@ -70,6 +71,7 @@ func _ready() -> void:
     Civilisation.population.naissance.connect(func(h): _afficher_message("Naissance : %s %s" % [h["prenom"], h["nom"]]))
     Civilisation.population.deces.connect(func(h): _afficher_message("Décès : %s %s" % [h["prenom"], h["nom"]]))
     Civilisation.ressources.penurie.connect(func(r): _afficher_message("Pénurie de %s !" % r))
+    _creer_panneau_fin()
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()
@@ -106,8 +108,30 @@ func _process(delta: float) -> void:
     etiquette_pop.text = "Habitants : %d" % Civilisation.population.habitants.size()
     etiquette_date.text = Civilisation.temps.texte()
     etiquette_res.text = Civilisation.ressources.texte()
-    if Civilisation.population.habitants.is_empty(): message.text = "Le clan a disparu. Touche Nouvelle partie pour recommencer."
+    panneau_fin.visible = Civilisation.population.habitants.is_empty()
     if temps_message > 0.0:
         temps_message -= delta
         if temps_message <= 0.0:
             message.text = ""
+
+func _creer_panneau_fin() -> void:
+    panneau_fin = PanelContainer.new()
+    panneau_fin.anchor_left = 0.3
+    panneau_fin.anchor_right = 0.7
+    panneau_fin.anchor_top = 0.35
+    panneau_fin.anchor_bottom = 0.65
+    panneau_fin.visible = false
+    add_child(panneau_fin)
+    var boite := VBoxContainer.new()
+    boite.alignment = BoxContainer.ALIGNMENT_CENTER
+    panneau_fin.add_child(boite)
+    var texte := Label.new()
+    texte.text = "Le clan a disparu."
+    texte.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    texte.add_theme_font_size_override("font_size", 40)
+    boite.add_child(texte)
+    var bouton := Button.new()
+    bouton.text = "Recommencer"
+    bouton.add_theme_font_size_override("font_size", 36)
+    bouton.pressed.connect(Civilisation.nouvelle_partie)
+    boite.add_child(bouton)
