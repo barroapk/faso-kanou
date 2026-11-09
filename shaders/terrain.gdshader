@@ -9,12 +9,12 @@ uniform vec3 laterite : source_color = vec3(0.62, 0.34, 0.20);
 
 varying vec3 pos_monde;
 varying vec3 normale_monde;
-varying vec3 biome;
+varying vec4 biome;
 
 void vertex() {
     pos_monde = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
     normale_monde = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
-    biome = COLOR.rgb;
+    biome = COLOR;
 }
 
 void fragment() {
@@ -24,7 +24,8 @@ void fragment() {
     vec3 sol = herbe * vec3(1.1, 1.0, 0.8);
     sol = mix(sol, herbe * vec3(0.35, 0.65, 0.25), biome.y);
     sol = mix(sol, sable * (0.75 + 0.5 * grain), biome.x);
-    sol = mix(sol, sol * vec3(0.75, 0.9, 0.65), biome.z * 0.5);
+    sol = mix(sol, sol * vec3(0.55, 0.85, 0.40), biome.z * 0.7);
+    sol *= 0.82 + 0.36 * biome.w;
 
     float lat = smoothstep(14.0, 30.0, pos_monde.y) * (1.0 - biome.x) * (1.0 - biome.y);
     sol = mix(sol, laterite * (0.5 + grain), lat * 0.6);
