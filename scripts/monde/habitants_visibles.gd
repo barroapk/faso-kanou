@@ -45,7 +45,7 @@ func _creer_corps(h: Dictionary, enfant: bool) -> MeshInstance3D:
     return m
 
 func _placer(m: MeshInstance3D, i: int) -> void:
-    var r := 3.0 + 0.35 * i
+    var r := 2.0 + 0.25 * i
     var angle := i * 2.4
     var x := cos(angle) * r
     var z := sin(angle) * r
