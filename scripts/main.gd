@@ -49,10 +49,7 @@ func _creer_ile() -> void:
     forme.bottom_radius = 45
     forme.height = 1.0
     ile.mesh = forme
-    var mat_ile := StandardMaterial3D.new()
-    mat_ile.albedo_color = Color(0.76, 0.6, 0.35)
-    mat_ile.roughness = 1.0
-    ile.material_override = mat_ile
+    ile.material_override = _materiau_laterite()
     add_child(ile)
 
 func _creer_camera() -> void:
@@ -72,3 +69,40 @@ func _creer_habitants(nombre: int) -> void:
         var angle := TAU * i / nombre
         habitant.position = Vector3(cos(angle) * 4, 1.35, sin(angle) * 4)
         add_child(habitant)
+
+func _materiau_laterite() -> StandardMaterial3D:
+    var bruit := FastNoiseLite.new()
+    bruit.frequency = 0.01
+    bruit.fractal_octaves = 5
+
+    var couleurs := Gradient.new()
+    couleurs.set_color(0, Color(0.50, 0.24, 0.12))
+    couleurs.set_color(1, Color(0.85, 0.58, 0.35))
+    couleurs.add_point(0.5, Color(0.70, 0.38, 0.20))
+
+    var couleur_sol := NoiseTexture2D.new()
+    couleur_sol.width = 1024
+    couleur_sol.height = 1024
+    couleur_sol.seamless = true
+    couleur_sol.noise = bruit
+    couleur_sol.color_ramp = couleurs
+
+    var cailloux := FastNoiseLite.new()
+    cailloux.frequency = 0.08
+    cailloux.noise_type = FastNoiseLite.TYPE_CELLULAR
+
+    var relief := NoiseTexture2D.new()
+    relief.width = 1024
+    relief.height = 1024
+    relief.seamless = true
+    relief.as_normal_map = true
+    relief.bump_strength = 6.0
+    relief.noise = cailloux
+
+    var mat := StandardMaterial3D.new()
+    mat.albedo_texture = couleur_sol
+    mat.normal_enabled = true
+    mat.normal_texture = relief
+    mat.roughness = 1.0
+    mat.uv1_scale = Vector3(8, 8, 1)
+    return mat
