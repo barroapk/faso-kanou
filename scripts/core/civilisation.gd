@@ -2,25 +2,33 @@ extends Node
 
 const DOSSIER := "user://"
 const FICHIER := "partie.json"
-const VERSION := 1
+const VERSION := 2
 const TEMPS = preload("res://scripts/core/temps.gd")
 const POPULATION = preload("res://scripts/core/population.gd")
 const RESSOURCES = preload("res://scripts/core/ressources.gd")
+const CONSTRUCTION = preload("res://scripts/core/construction.gd")
 
 var temps
 var population
 var ressources
+var construction
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
         _nouvelle()
     _brancher()
 
-func _nouvelle() -> void:
+func _creer_modules() -> void:
     temps = TEMPS.new()
     population = POPULATION.new()
     ressources = RESSOURCES.new()
+    construction = CONSTRUCTION.new()
+    ressources.construction = construction
+
+func _nouvelle() -> void:
+    _creer_modules()
     population.creer_clan_initial(temps.jour_total)
+    construction.etat_initial()
 
 func _brancher() -> void:
     temps.nouveau_jour.connect(_jour_passe)
@@ -32,13 +40,24 @@ func nouvelle_partie() -> void:
     sauvegarder()
     get_tree().reload_current_scene()
 
+func travail_batisseurs() -> float:
+    var t := 0.0
+    for h in population.habitants:
+        if h["metier"] == "bâtisseur":
+            t += 0.6 + float(h["competence"]) / 100.0 * 0.8
+    return t
+
 func _jour_passe() -> void:
-    ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies())
+    var chantier_actif: bool = not construction.chantiers.is_empty()
+    ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
+    construction.jour_passe(travail_batisseurs())
     population.jour_passe(ressources.faim, ressources.soif)
     if population.habitants.is_empty(): temps.vitesse = 0
 
 func _mois_passe() -> void:
-    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0 and population.habitants.size() < ressources.batiments["hutte"] * 5)
+    construction.mois_passe(ressources)
+    var logement: float = construction.effet_total("logement")
+    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0 and population.habitants.size() < logement)
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -55,6 +74,7 @@ func sauvegarder() -> void:
         "temps": temps.vers_dict(),
         "population": population.vers_dict(),
         "ressources": ressources.vers_dict(),
+        "construction": construction.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -74,11 +94,10 @@ func _charger(nom: String) -> bool:
     var donnees = JSON.parse_string(FileAccess.get_file_as_string(chemin))
     if typeof(donnees) != TYPE_DICTIONARY:
         return false
-    temps = TEMPS.new()
-    population = POPULATION.new()
-    ressources = RESSOURCES.new()
+    _creer_modules()
     temps.depuis_dict(donnees.get("temps", {}))
     population.depuis_dict(donnees.get("population", {}))
     ressources.depuis_dict(donnees.get("ressources", {}))
+    construction.depuis_dict(donnees.get("construction", {}))
     temps.vitesse = 1
     return true

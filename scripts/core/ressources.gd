@@ -12,43 +12,36 @@ const PRODUCTION := {
 }
 const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
+const BASE := {"nourriture": 300.0, "eau": 600.0, "bois": 500.0}
 const UNITES := {"nourriture": "kg", "eau": "L", "bois": "kg"}
 
+var construction
 var stocks := {"nourriture": 300.0, "eau": 120.0, "bois": 100.0}
 var bilan := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0}
-var batiments := {"hutte": 4, "grenier": 0, "jarres": 0, "puits": 0, "abri_bois": 0}
 var outils := 1.0
 var faim := false
 var soif := false
 
 func capacite(r: String) -> float:
-    match r:
-        "nourriture":
-            return 300.0 + 1000.0 * batiments["grenier"]
-        "eau":
-            return 600.0 + 200.0 * batiments["jarres"] + 2000.0 * batiments["puits"]
-        "bois":
-            return 500.0 + 2000.0 * batiments["abri_bois"]
-    return 0.0
+    return BASE[r] + construction.effet_total("stock_" + r)
 
 func taux_pertes() -> float:
-    return 0.0003 if batiments["grenier"] > 0 else 0.002
+    return 0.0003 if construction.effet_total("conservation") > 0.0 else 0.002
 
-func jour_passe(population, jour: int, pluie: bool) -> void:
+func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> void:
     var s := 1 if pluie else 0
     var variation := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0}
     for h in population.habitants:
-        var p = PRODUCTION.get(h["metier"], {})
-        var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils
-        for r in p:
-            var q: float = p[r][s] * efficacite
-            if r == "eau" and batiments["puits"] > 0:
-                q *= 1.5
-            variation[r] += q
         var enfant: bool = population.age(h, jour) < 14
         var conso: Dictionary = CONSO_ENFANT if enfant else CONSO_ADULTE
         for r in conso:
             variation[r] -= conso[r]
+        if h["metier"] == "bâtisseur" and chantier_actif:
+            continue
+        var p = PRODUCTION.get(h["metier"], {})
+        var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils
+        for r in p:
+            variation[r] += p[r][s] * efficacite
     if pluie:
         variation["eau"] += 20.0
     variation["nourriture"] -= stocks["nourriture"] * taux_pertes()
@@ -76,15 +69,12 @@ func texte() -> String:
     return "   ".join(morceaux)
 
 func vers_dict() -> Dictionary:
-    return {"stocks": stocks, "batiments": batiments, "outils": outils, "faim": faim, "soif": soif}
+    return {"stocks": stocks, "outils": outils, "faim": faim, "soif": soif}
 
 func depuis_dict(d: Dictionary) -> void:
     var st: Dictionary = d.get("stocks", {})
     for r in stocks:
         stocks[r] = float(st.get(r, stocks[r]))
-    var bt: Dictionary = d.get("batiments", {})
-    for b in batiments:
-        batiments[b] = int(bt.get(b, batiments[b]))
     outils = float(d.get("outils", 1.0))
     faim = bool(d.get("faim", false))
     soif = bool(d.get("soif", false))

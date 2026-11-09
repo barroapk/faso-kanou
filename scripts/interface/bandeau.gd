@@ -9,6 +9,7 @@ var panneau: PanelContainer
 var liste: VBoxContainer
 var panneau_fin: PanelContainer
 var panneau_travail: PanelContainer
+var panneau_construction: PanelContainer
 
 func _ready() -> void:
     var barre := HBoxContainer.new()
@@ -33,6 +34,12 @@ func _ready() -> void:
     travail.add_theme_font_size_override("font_size", 30)
     travail.pressed.connect(_basculer_travail)
     barre.add_child(travail)
+
+    var construire := Button.new()
+    construire.text = "Construire"
+    construire.add_theme_font_size_override("font_size", 30)
+    construire.pressed.connect(_basculer_construction)
+    barre.add_child(construire)
 
     var groupe := ButtonGroup.new()
     var noms := ["Pause", "Jouer"]
@@ -82,6 +89,10 @@ func _ready() -> void:
     panneau_travail = preload("res://scripts/interface/panneau_travail.gd").new()
     panneau_travail.visible = false
     add_child(panneau_travail)
+    panneau_construction = preload("res://scripts/interface/panneau_construction.gd").new()
+    panneau_construction.visible = false
+    add_child(panneau_construction)
+    Civilisation.construction.evenement.connect(_afficher_message)
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()
@@ -181,3 +192,10 @@ func _basculer_travail() -> void:
     panneau_travail.visible = not panneau_travail.visible
     if panneau_travail.visible:
         panneau.visible = false
+
+func _basculer_construction() -> void:
+    panneau_construction.visible = not panneau_construction.visible
+    if panneau_construction.visible:
+        panneau.visible = false
+        panneau_travail.visible = false
+        panneau_construction.remplir()
