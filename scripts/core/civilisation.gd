@@ -57,6 +57,17 @@ func travail_batisseurs() -> float:
             t += 0.6 + float(h["competence"]) / 100.0 * 0.8
     return t
 
+# Décisions du joueur sur les propositions du chef (écran du chef, v0.3.4).
+func appliquer_proposition(cle: String, index: int) -> String:
+    besoins.actualiser(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
+    var raison: String = chef.appliquer_proposition(cle, index, besoins, temps.jour_total)
+    if raison == "":
+        population.repartir(temps.jour_total)
+    return raison
+
+func ignorer_alerte(cle: String) -> String:
+    return chef.ignorer(cle, temps.jour_total)
+
 func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)

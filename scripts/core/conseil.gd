@@ -209,8 +209,8 @@ func _installer(h: Dictionary, pop) -> void:
         var ancien := habitant(pop, chef_id)
         if not ancien.is_empty() and ancien["metier"] == "chef":
             ancien["metier"] = "sans métier"
-    if pop.postes.has(h["metier"]):
-        pop.postes[h["metier"]] = maxi(0, int(pop.postes[h["metier"]]) - 1)
+    # Les postes ne changent pas : son ancien poste reste ouvert et sera repris
+    # par un autre adulte (population.repartir). Seul le joueur décide des postes.
     h["metier"] = "chef"
     chef_id = int(h["id"])
 

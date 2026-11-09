@@ -1,6 +1,7 @@
 extends RefCounted
 
-# Le chef : superviseur nommé par le joueur (v0.3.3.1 : missions et alertes).
+# Le chef : superviseur nommé par le joueur.
+# v0.3.3.1 : missions et alertes. v0.3.3.2 : propositions de solutions.
 # Il lit les problèmes calculés par besoins.gd et ne garde que ceux
 # qu'il est capable de voir, selon ses missions et ses notes :
 #   prévoyance -> combien de jours à l'avance il voit un danger (5 à 45)
@@ -8,7 +9,10 @@ extends RefCounted
 # Ordre de suivi : d'abord les urgences (danger dans 10 jours ou moins), de la
 # plus proche à la plus lointaine ; ensuite la mission principale ; puis le reste.
 # S'il y a plus d'urgences que de places, il le dit au joueur (débordé).
+#   intelligence -> combien de solutions il propose par alerte (1 à 3), jamais
+#                   plus que les solutions faisables calculées par besoins.gd
 # Il ne change jamais rien dans le jeu : il alerte, le joueur décide.
+# Une proposition acceptée passe par besoins.appliquer(), qui revérifie tout.
 # Il fait sa revue tous les 5 jours (REVUE_JOURS).
 
 signal evenement(texte)
@@ -36,8 +40,43 @@ var hors_mission := 0
 var debordes := 0
 var _manques := {}
 var _deborde_signale := 0
+var decisions: Array = []
+const DECISIONS_MAX := 20
 
 # ---------- Choix du joueur ----------
+
+# Accepter la proposition n° index de l'alerte cle. Renvoie "" si c'est fait,
+# sinon la raison du refus (donnée par besoins.appliquer()).
+func appliquer_proposition(cle: String, index: int, besoins, jour: int) -> String:
+    var a := _trouver(cle)
+    if a.is_empty():
+        return "Cette alerte n'existe plus."
+    if index < 0 or index >= a["propositions"].size():
+        return "Proposition inconnue."
+    var sol: Dictionary = a["propositions"][index]["solution"]
+    var raison: String = besoins.appliquer(sol)
+    _noter(jour, cle, sol["action"], "appliquée" if raison == "" else "refusée : " + raison)
+    if raison == "":
+        alertes.erase(a)
+    return raison
+
+func ignorer(cle: String, jour: int) -> String:
+    var a := _trouver(cle)
+    if a.is_empty():
+        return "Cette alerte n'existe plus."
+    _noter(jour, cle, "", "ignorée")
+    return ""
+
+func _noter(jour: int, cle: String, action: String, resultat: String) -> void:
+    decisions.append({"jour": jour, "cle": cle, "action": action, "resultat": resultat})
+    while decisions.size() > DECISIONS_MAX:
+        decisions.pop_front()
+
+func _trouver(cle: String) -> Dictionary:
+    for a in alertes:
+        if a["cle"] == cle:
+            return a
+    return {}
 
 # Renvoie "" si c'est fait, sinon la raison du refus.
 func definir_missions(p: String, s: Array) -> String:
@@ -65,6 +104,9 @@ static func horizon(prevoyance: float) -> float:
 static func suivis_max(gestion: float) -> int:
     return 1 + mini(2, int(clampf(gestion, 0.0, 100.0) / 34.0))
 
+static func nb_propositions(intelligence: float) -> int:
+    return 1 + mini(2, int(clampf(intelligence, 0.0, 100.0) / 34.0))
+
 static func delai_danger(p: Dictionary) -> float:
     if p["type"] == "deficit":
         return maxf(0.0, float(p["jours_rupture"])) if float(p["jours_rupture"]) >= 0.0 else 999.0
@@ -80,7 +122,10 @@ func revue(conseil, pop, besoins, jour: int) -> void:
     if h.is_empty():
         alertes = []
         return
-    analyser(besoins.problemes, conseil.notes(h, pop, jour), jour)
+    var n: Dictionary = conseil.notes(h, pop, jour)
+    analyser(besoins.problemes, n, jour)
+    for a in alertes:
+        proposer(a, besoins, n["intelligence"])
     for a in alertes:
         var cle: String = a["cle"]
         if int(_deja_signale.get(cle, -1)) < int(a["niveau"]):
@@ -148,6 +193,26 @@ func analyser(problemes: Array, notes: Dictionary, jour: int) -> void:
                 hors_mission += 1
     _manques = encore
 
+# Prépare les propositions d'une alerte : seulement des solutions de besoins.gd,
+# faisables maintenant, et au plus nb_propositions(intelligence).
+func proposer(a: Dictionary, besoins, intelligence: float) -> void:
+    var quota := nb_propositions(intelligence)
+    var props := []
+    var raisons: PackedStringArray = []
+    for sol in a["probleme"]["solutions"]:
+        if props.size() >= quota:
+            break
+        var e: Dictionary = besoins.estimer(sol)
+        if e["faisable"]:
+            props.append({"solution": sol, "cout": e["cout"], "effet": e["effet"], "risque": e["risque"]})
+        elif not raisons.has(e["raison"]):
+            raisons.append(e["raison"])
+    a["propositions"] = props
+    if props.is_empty():
+        a["sans_solution"] = " ".join(raisons) if raisons.size() > 0 else "Aucune solution possible avec nos moyens actuels."
+    else:
+        a["sans_solution"] = ""
+
 func _mission_de(p: Dictionary) -> String:
     for m in [principale] + secondaires:
         var def: Dictionary = MISSIONS[m]
@@ -167,6 +232,15 @@ func _alerte(cle: String) -> bool:
 const DE := {"eau": "d'eau", "nourriture": "de nourriture", "bois": "de bois"}
 
 func texte_alerte(a: Dictionary, prenom: String) -> String:
+    var suite := ""
+    if a.has("propositions"):
+        if a["propositions"].size() > 0:
+            suite = " (%d solution(s) proposée(s))" % a["propositions"].size()
+        else:
+            suite = " " + a["sans_solution"]
+    return _texte_probleme(a, prenom) + suite
+
+func _texte_probleme(a: Dictionary, prenom: String) -> String:
     var r: String = DE.get(a["ressource"], "de " + a["ressource"])
     match a["type"]:
         "deficit":
@@ -192,6 +266,7 @@ func vers_dict() -> Dictionary:
         "deborde_signale": _deborde_signale,
         "manquees": manquees,
         "hors_mission": hors_mission,
+        "decisions": decisions,
     }
 
 func depuis_dict(d: Dictionary) -> void:
@@ -209,3 +284,6 @@ func depuis_dict(d: Dictionary) -> void:
     _deborde_signale = int(d.get("deborde_signale", 0))
     manquees = int(d.get("manquees", 0))
     hors_mission = int(d.get("hors_mission", 0))
+    decisions = []
+    for x in d.get("decisions", []):
+        decisions.append({"jour": int(x["jour"]), "cle": str(x["cle"]), "action": str(x["action"]), "resultat": str(x["resultat"])})

@@ -190,6 +190,73 @@ func appliquer(sol: Dictionary) -> String:
             return "Action inconnue."
     return ""
 
+# ---------- Estimation (pour les propositions du chef) ----------
+
+# Coût, effet et risque d'une solution. Ne change rien au jeu.
+# Renvoie : cout (texte), effet (texte), risque (texte), faisable, raison.
+const DE := {"eau": "d'eau", "nourriture": "de nourriture", "bois": "de bois"}
+
+func _de(r: String) -> String:
+    return DE.get(r, "de " + r)
+
+func estimer(sol: Dictionary) -> Dictionary:
+    var r: String = sol["ressource"]
+    var u: String = _res.UNITES.get(r, "")
+    var e := {"cout": "", "effet": "", "risque": "", "faisable": true, "raison": ""}
+    match sol["action"]:
+        "ouvrir":
+            var gain := _rendement(sol["metier"], r)
+            var perte := _rendement("sans métier", "nourriture")
+            e["cout"] = "1 adulte sans métier"
+            e["effet"] = "+%.0f %s %s par jour" % [gain, u, _de(r)]
+            e["risque"] = "Le nouveau %s débute : rendement plus faible s'il n'a pas été initié. Petite cueillette perdue : -%.1f kg de nourriture par jour." % [sol["metier"], perte]
+            if _libres() <= 0:
+                e["faisable"] = false
+                e["raison"] = "Aucun adulte disponible."
+        "transferer":
+            var gain := _rendement(sol["vers"], r)
+            var pertes: PackedStringArray = []
+            for r2 in ORDRE:
+                var p := _rendement(sol["de"], r2)
+                if p > 0.0:
+                    pertes.append("-%.0f %s %s" % [p, _res.UNITES.get(r2, ""), _de(r2)])
+            e["cout"] = "1 %s change de métier" % sol["de"]
+            e["effet"] = "+%.0f %s %s par jour" % [gain, u, _de(r)]
+            e["risque"] = "Par jour : %s. Compétence réduite de moitié dans son nouveau métier." % ", ".join(pertes)
+            if not _peut_ceder(sol["de"]):
+                e["faisable"] = false
+                e["raison"] = "Retirer un %s mettrait une autre ressource en danger." % sol["de"]
+        "fermer":
+            var perte := _rendement(sol["metier"], r)
+            e["cout"] = "aucun"
+            e["effet"] = "1 travailleur libéré"
+            e["risque"] = "-%.0f %s %s par jour ; à surveiller quand la saison change." % [perte, u, _de(r)]
+        "construire":
+            var niv: Dictionary = _cons.definitions[sol["batiment"]]["niveaux"][0]
+            var cout: Dictionary = niv["cout"]
+            var morceaux: PackedStringArray = []
+            for r2 in cout:
+                morceaux.append("%d %s %s" % [int(cout[r2]), _res.UNITES.get(r2, ""), _de(r2)])
+            var force := _travail_batisseurs()
+            var jours := ceili(float(niv["travail"]) / force) if force > 0.0 else -1
+            e["cout"] = ", ".join(morceaux)
+            e["effet"] = "%s : +%d %s de réserve %s" % [niv["nom"], int(niv["effet"].get("stock_" + r, 0)), u, _de(r)]
+            if jours > 0:
+                e["risque"] = "Bois payé tout de suite. Bâtisseurs occupés environ %d jours, sans couper de bois." % jours
+            else:
+                e["risque"] = "Aucun bâtisseur : le chantier n'avancera pas."
+            if not _cons.peut_payer(cout, _res):
+                e["faisable"] = false
+                e["raison"] = "Pas assez de matériaux (%s)." % ", ".join(morceaux)
+    return e
+
+func _travail_batisseurs() -> float:
+    var t := 0.0
+    for h in _pop.habitants:
+        if h["metier"] == "bâtisseur":
+            t += 0.6 + float(h["competence"]) / 100.0 * 0.8
+    return t
+
 # ---------- Calculs ----------
 
 func _metier_en_trop(r: String, besoin: float) -> String:
