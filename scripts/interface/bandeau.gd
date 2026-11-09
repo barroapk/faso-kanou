@@ -8,6 +8,7 @@ var temps_message := 0.0
 var panneau: PanelContainer
 var liste: VBoxContainer
 var panneau_fin: PanelContainer
+var panneau_travail: PanelContainer
 
 func _ready() -> void:
     var barre := HBoxContainer.new()
@@ -26,6 +27,12 @@ func _ready() -> void:
     clan.add_theme_font_size_override("font_size", 30)
     clan.pressed.connect(_basculer_panneau)
     barre.add_child(clan)
+
+    var travail := Button.new()
+    travail.text = "Travail"
+    travail.add_theme_font_size_override("font_size", 30)
+    travail.pressed.connect(_basculer_travail)
+    barre.add_child(travail)
 
     var groupe := ButtonGroup.new()
     var noms := ["Pause", "Jouer"]
@@ -72,6 +79,9 @@ func _ready() -> void:
     Civilisation.population.deces.connect(func(h): _afficher_message("Décès : %s %s" % [h["prenom"], h["nom"]]))
     Civilisation.ressources.penurie.connect(func(r): _afficher_message("Pénurie de %s !" % r))
     _creer_panneau_fin()
+    panneau_travail = preload("res://scripts/interface/panneau_travail.gd").new()
+    panneau_travail.visible = false
+    add_child(panneau_travail)
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()
@@ -166,3 +176,8 @@ func _process(delta: float) -> void:
         temps_message -= delta
         if temps_message <= 0.0:
             message.text = ""
+
+func _basculer_travail() -> void:
+    panneau_travail.visible = not panneau_travail.visible
+    if panneau_travail.visible:
+        panneau.visible = false

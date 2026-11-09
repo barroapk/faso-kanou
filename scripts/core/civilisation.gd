@@ -39,6 +39,7 @@ func _jour_passe() -> void:
 
 func _mois_passe() -> void:
     population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0 and population.habitants.size() < ressources.batiments["hutte"] * 5)
+    population.repartir(temps.jour_total)
     sauvegarder()
 
 func _process(delta: float) -> void:
