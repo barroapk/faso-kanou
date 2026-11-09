@@ -5,6 +5,9 @@ extends RefCounted
 # qu'il est capable de voir, selon ses missions et ses notes :
 #   prévoyance -> combien de jours à l'avance il voit un danger (5 à 45)
 #   gestion    -> combien de problèmes il suit en même temps (1 à 3)
+# Ordre de suivi : d'abord les urgences (danger dans 10 jours ou moins), de la
+# plus proche à la plus lointaine ; ensuite la mission principale ; puis le reste.
+# S'il y a plus d'urgences que de places, il le dit au joueur (débordé).
 # Il ne change jamais rien dans le jeu : il alerte, le joueur décide.
 # Il fait sa revue tous les 5 jours (REVUE_JOURS).
 
@@ -30,6 +33,9 @@ var alertes: Array = []
 var _deja_signale := {}
 var manquees := 0
 var hors_mission := 0
+var debordes := 0
+var _manques := {}
+var _deborde_signale := 0
 
 # ---------- Choix du joueur ----------
 
@@ -86,6 +92,9 @@ func revue(conseil, pop, besoins, jour: int) -> void:
     for cle in _deja_signale.keys():
         if not actives.has(cle):
             _deja_signale.erase(cle)
+    if debordes > _deborde_signale:
+        evenement.emit("%s est débordé : %d autre(s) urgence(s) sans suivi." % [h["prenom"], debordes])
+    _deborde_signale = debordes
 
 # Fonction pure (testable) : problèmes + notes du chef -> alertes retenues.
 func analyser(problemes: Array, notes: Dictionary, jour: int) -> void:
@@ -111,16 +120,33 @@ func analyser(problemes: Array, notes: Dictionary, jour: int) -> void:
             "jour": jour,
         })
     candidats.sort_custom(func(a, b):
-        if a["principale"] != b["principale"]:
+        var ua: bool = a["delai"] <= DANGER_IMMINENT
+        var ub: bool = b["delai"] <= DANGER_IMMINENT
+        if ua != ub:
+            return ua
+        if not ua and a["principale"] != b["principale"]:
             return a["principale"]
         return a["delai"] < b["delai"])
-    alertes = candidats.slice(0, suivis_max(notes["gestion"]))
+    var places := suivis_max(notes["gestion"])
+    alertes = candidats.slice(0, places)
+    # Débordé : urgences qu'il voit mais ne peut pas suivre (pas celles qu'il ne voit pas).
+    debordes = 0
+    for c in candidats.slice(places):
+        if c["delai"] <= DANGER_IMMINENT:
+            debordes += 1
+    var encore := {}
     for p in problemes:
-        if p["type"] == "deficit" and delai_danger(p) <= DANGER_IMMINENT and not _alerte(_cle(p)):
-            if _mission_de(p) != "":
+        if p["type"] != "deficit" or delai_danger(p) > DANGER_IMMINENT or _alerte(_cle(p)):
+            continue
+        var cle := _cle(p)
+        encore[cle] = true
+        var dans_mission := _mission_de(p) != ""
+        if not _manques.has(cle):
+            if dans_mission:
                 manquees += 1
             else:
                 hors_mission += 1
+    _manques = encore
 
 func _mission_de(p: Dictionary) -> String:
     for m in [principale] + secondaires:
