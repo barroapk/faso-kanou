@@ -22,7 +22,7 @@ void fragment() {
     float grain = dot(herbe, vec3(0.333));
 
     vec3 sol = herbe * vec3(1.1, 1.0, 0.8);
-    sol = mix(sol, herbe * vec3(0.55, 0.85, 0.45), biome.y);
+    sol = mix(sol, herbe * vec3(0.35, 0.65, 0.25), biome.y);
     sol = mix(sol, sable * (0.75 + 0.5 * grain), biome.x);
 
     float lat = smoothstep(4.0, 8.0, pos_monde.y) * (1.0 - biome.x) * (1.0 - biome.y);
