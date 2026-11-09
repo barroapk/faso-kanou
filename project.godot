@@ -9,6 +9,10 @@
 config_version=5
 
 [application]
+boot_splash/image="res://assets/ecran_demarrage.png"
+boot_splash/bg_color=Color(0.16, 0.06, 0.05, 1)
+boot_splash/show_image=true
+boot_splash/fullsize=true
 
 config/name="FasoKanou"
 run/main_scene="res://scenes/main.tscn"
