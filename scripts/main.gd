@@ -21,7 +21,7 @@ func _ready() -> void:
     materiau_sol = terrain.material_override
     materiau_simple.albedo_color = Color(0.55, 0.5, 0.3)
     _creer_camera()
-    _creer_habitants(10)
+    var habitants_visibles = preload("res://scripts/monde/habitants_visibles.gd").new(); habitants_visibles.terrain = terrain; add_child(habitants_visibles)
     _creer_cases(4)
     _creer_vegetation()
     _creer_interface()
