@@ -40,7 +40,7 @@ func _creer_soleil() -> void:
     soleil.light_color = Color(1.0, 0.85, 0.65)
     soleil.light_energy = 1.3
     soleil.shadow_enabled = true
-    soleil.directional_shadow_max_distance = 120.0
+    soleil.directional_shadow_max_distance = 60.0
     soleil.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
     add_child(soleil)
 

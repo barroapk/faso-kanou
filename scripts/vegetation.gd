@@ -57,4 +57,6 @@ func _ready() -> void:
             mm.set_instance_transform(i, places[i] * p[1])
         var mmi := MultiMeshInstance3D.new()
         mmi.multimesh = mm
+        mmi.visibility_range_end = 220.0
+        mmi.visibility_range_end_margin = 20.0
         add_child(mmi)
