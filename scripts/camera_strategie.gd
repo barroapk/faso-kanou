@@ -1,9 +1,9 @@
 extends Node3D
 
 const DIST_MIN := 6.0
-const DIST_MAX := 250.0
+const DIST_MAX := 1700.0
 const INCLINAISON := 55.0
-const LIMITE_ILE := 180.0
+const LIMITE_ILE := 950.0
 
 var distance := 20.0
 var camera: Camera3D
@@ -11,6 +11,7 @@ var doigts := {}
 
 func _ready() -> void:
     camera = Camera3D.new()
+    camera.far = 6000.0
     add_child(camera)
     _placer_camera()
 

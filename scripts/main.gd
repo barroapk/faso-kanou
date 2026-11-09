@@ -18,7 +18,7 @@ func _ready() -> void:
     _creer_mer()
     terrain = preload("res://scripts/terrain.gd").new()
     add_child(terrain)
-    materiau_sol = terrain.material_override
+    materiau_sol = terrain.materiau
     materiau_simple.albedo_color = Color(0.55, 0.5, 0.3)
     _creer_camera()
     var habitants_visibles = preload("res://scripts/monde/habitants_visibles.gd").new(); habitants_visibles.terrain = terrain; add_child(habitants_visibles)
@@ -39,7 +39,7 @@ func _creer_ciel() -> void:
     env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.tonemap_mode = Environment.TONE_MAPPER_ACES
     env.fog_enabled = true
-    env.fog_density = 0.0004
+    env.fog_density = 0.00012
     env.fog_light_color = Color(0.95, 0.8, 0.65)
     var monde := WorldEnvironment.new()
     monde.environment = env
@@ -58,7 +58,7 @@ func _creer_soleil() -> void:
 func _creer_mer() -> void:
     var mer := MeshInstance3D.new()
     var plan := PlaneMesh.new()
-    plan.size = Vector2(3000, 3000)
+    plan.size = Vector2(8000, 8000)
     mer.mesh = plan
     var mat_mer := StandardMaterial3D.new()
     mat_mer.albedo_color = Color(0.05, 0.3, 0.42)
@@ -117,7 +117,7 @@ func _creer_interface() -> void:
     _ajouter_bouton(boutons, "Arbres", func(actif): vegetation.visible = actif)
     _ajouter_bouton(boutons, "Ombres", func(actif): soleil.shadow_enabled = actif)
     _ajouter_bouton(boutons, "Ciel HDR", _changer_ciel)
-    _ajouter_bouton(boutons, "Sol réaliste", func(actif): terrain.material_override = materiau_sol if actif else materiau_simple)
+    _ajouter_bouton(boutons, "Sol réaliste", func(actif): terrain.utiliser_materiau(materiau_sol if actif else materiau_simple))
     _ajouter_vitesse_test(boutons)
     _ajouter_bouton(boutons, "Nouvelle partie", func(_actif): Civilisation.nouvelle_partie())
     var res := Button.new()

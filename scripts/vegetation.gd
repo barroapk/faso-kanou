@@ -36,6 +36,7 @@ func _ready() -> void:
         var h: float = terrain.hauteur(x, z)
         if h < 1.0 or h > 12.0:
             continue
+        if terrain.dans_eau(x, z): continue
         var pente := absf(terrain.hauteur(x + 1.0, z) - h) + absf(terrain.hauteur(x, z + 1.0) - h)
         if pente > 1.2:
             continue
