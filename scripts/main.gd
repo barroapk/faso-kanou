@@ -18,6 +18,9 @@ func _creer_ciel() -> void:
     env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
     env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.tonemap_mode = Environment.TONE_MAPPER_ACES
+    env.fog_enabled = true
+    env.fog_density = 0.004
+    env.fog_light_color = Color(0.95, 0.8, 0.65)
     var monde := WorldEnvironment.new()
     monde.environment = env
     add_child(monde)
@@ -76,7 +79,7 @@ func _materiau_laterite() -> StandardMaterial3D:
     bruit.fractal_octaves = 5
 
     var couleurs := Gradient.new()
-    couleurs.set_color(0, Color(0.50, 0.24, 0.12))
+    couleurs.set_color(0, Color(0.66, 0.40, 0.22))
     couleurs.set_color(1, Color(0.85, 0.58, 0.35))
     couleurs.add_point(0.5, Color(0.70, 0.38, 0.20))
 
@@ -88,7 +91,7 @@ func _materiau_laterite() -> StandardMaterial3D:
     couleur_sol.color_ramp = couleurs
 
     var cailloux := FastNoiseLite.new()
-    cailloux.frequency = 0.08
+    cailloux.frequency = 0.03
     cailloux.noise_type = FastNoiseLite.TYPE_CELLULAR
 
     var relief := NoiseTexture2D.new()
@@ -96,7 +99,7 @@ func _materiau_laterite() -> StandardMaterial3D:
     relief.height = 1024
     relief.seamless = true
     relief.as_normal_map = true
-    relief.bump_strength = 6.0
+    relief.bump_strength = 1.5
     relief.noise = cailloux
 
     var mat := StandardMaterial3D.new()
@@ -104,5 +107,5 @@ func _materiau_laterite() -> StandardMaterial3D:
     mat.normal_enabled = true
     mat.normal_texture = relief
     mat.roughness = 1.0
-    mat.uv1_scale = Vector3(8, 8, 1)
+    mat.uv1_scale = Vector3(4, 4, 1)
     return mat
