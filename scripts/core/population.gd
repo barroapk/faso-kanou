@@ -43,7 +43,7 @@ func _ajouter(prenom: String, nom: String, sexe: String, age_ans: int, famille: 
 func age(h: Dictionary, jour: int) -> int:
     return int((jour - int(h["naissance"])) / JOURS_PAR_AN)
 
-func mois_passe(jour: int) -> void:
+func mois_passe(jour: int, peut_naitre := true) -> void:
     var nes := []
     var familles := {}
     for h in habitants:
@@ -62,7 +62,7 @@ func mois_passe(jour: int) -> void:
                 pere = h
             if h["metier"] == "enfant":
                 plus_jeune = mini(plus_jeune, a)
-        if mere != null and pere != null and plus_jeune >= 2 and rng.randf() < 1.0 / 30.0:
+        if peut_naitre and mere != null and pere != null and plus_jeune >= 2 and rng.randf() < 1.0 / 30.0:
             nes.append([f, pere["nom"]])
 
     var morts := []
@@ -88,3 +88,20 @@ func mois_passe(jour: int) -> void:
     for h in habitants:
         if h["metier"] == "enfant" and age(h, jour) >= 14:
             h["metier"] = "sans métier"
+
+func jour_passe(faim: bool, soif: bool) -> void:
+    var morts := []
+    for h in habitants:
+        var s := int(h["sante"])
+        if soif:
+            s -= 4
+        elif faim:
+            s -= 2
+        else:
+            s += 1
+        h["sante"] = clampi(s, 0, 100)
+        if h["sante"] == 0:
+            morts.append(h)
+    for h in morts:
+        habitants.erase(h)
+        deces.emit(h)

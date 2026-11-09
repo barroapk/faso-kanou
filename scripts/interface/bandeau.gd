@@ -2,6 +2,7 @@ extends CanvasLayer
 
 var etiquette_date: Label
 var etiquette_pop: Label
+var etiquette_res: Label
 var message: Label
 var temps_message := 0.0
 var panneau: PanelContainer
@@ -15,6 +16,14 @@ func _ready() -> void:
     barre.offset_right = -20
     barre.add_theme_constant_override("separation", 16)
     add_child(barre)
+
+    etiquette_res = Label.new()
+    etiquette_res.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+    etiquette_res.offset_top = 90
+    etiquette_res.offset_right = -20
+    etiquette_res.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    etiquette_res.add_theme_font_size_override("font_size", 30)
+    add_child(etiquette_res)
 
     etiquette_pop = _etiquette(barre)
     etiquette_date = _etiquette(barre)
@@ -60,6 +69,7 @@ func _ready() -> void:
 
     Civilisation.population.naissance.connect(func(h): _afficher_message("Naissance : %s %s" % [h["prenom"], h["nom"]]))
     Civilisation.population.deces.connect(func(h): _afficher_message("Décès : %s %s" % [h["prenom"], h["nom"]]))
+    Civilisation.ressources.penurie.connect(func(r): _afficher_message("Pénurie de %s !" % r))
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()
@@ -95,6 +105,7 @@ func _remplir_liste() -> void:
 func _process(delta: float) -> void:
     etiquette_pop.text = "Habitants : %d" % Civilisation.population.habitants.size()
     etiquette_date.text = Civilisation.temps.texte()
+    etiquette_res.text = Civilisation.ressources.texte()
     if temps_message > 0.0:
         temps_message -= delta
         if temps_message <= 0.0:
