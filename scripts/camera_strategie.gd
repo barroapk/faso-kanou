@@ -1,9 +1,9 @@
 extends Node3D
 
 const DIST_MIN := 6.0
-const DIST_MAX := 80.0
+const DIST_MAX := 250.0
 const INCLINAISON := 55.0
-const LIMITE_ILE := 40.0
+const LIMITE_ILE := 180.0
 
 var distance := 20.0
 var camera: Camera3D
