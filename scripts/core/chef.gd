@@ -184,7 +184,15 @@ func texte_alerte(a: Dictionary, prenom: String) -> String:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"principale": principale, "secondaires": secondaires, "deja_signale": _deja_signale}
+    return {
+        "principale": principale,
+        "secondaires": secondaires,
+        "deja_signale": _deja_signale,
+        "manques": _manques.keys(),
+        "deborde_signale": _deborde_signale,
+        "manquees": manquees,
+        "hors_mission": hors_mission,
+    }
 
 func depuis_dict(d: Dictionary) -> void:
     principale = str(d.get("principale", "nourriture"))
@@ -195,3 +203,9 @@ func depuis_dict(d: Dictionary) -> void:
     var ds: Dictionary = d.get("deja_signale", {})
     for cle in ds:
         _deja_signale[cle] = int(ds[cle])
+    _manques = {}
+    for cle in d.get("manques", []):
+        _manques[str(cle)] = true
+    _deborde_signale = int(d.get("deborde_signale", 0))
+    manquees = int(d.get("manquees", 0))
+    hors_mission = int(d.get("hors_mission", 0))
