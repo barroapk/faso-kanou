@@ -39,8 +39,11 @@ func _creer_ciel() -> void:
     env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
     env.tonemap_mode = Environment.TONE_MAPPER_ACES
     env.fog_enabled = true
-    env.fog_density = 0.00012
+    env.fog_density = 0.00005
     env.fog_light_color = Color(0.95, 0.8, 0.65)
+    env.adjustment_enabled = true
+    env.adjustment_contrast = 1.1
+    env.adjustment_saturation = 1.15
     var monde := WorldEnvironment.new()
     monde.environment = env
     add_child(monde)

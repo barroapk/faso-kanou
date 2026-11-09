@@ -26,6 +26,9 @@ func _ecart_doigts() -> float:
     return p[0].distance_to(p[1])
 
 func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventScreenTouch and event.double_tap:
+        _vue_suivante()
+        return
     if event is InputEventScreenTouch:
         if event.pressed:
             doigts[event.index] = event.position
@@ -44,3 +47,20 @@ func _unhandled_input(event: InputEvent) -> void:
             var vitesse := distance * 0.0015
             position.x = clamp(position.x - event.relative.x * vitesse, -LIMITE_ILE, LIMITE_ILE)
             position.z = clamp(position.z - event.relative.y * vitesse, -LIMITE_ILE, LIMITE_ILE)
+
+const VUES := [25.0, 350.0, 1500.0]
+var tween_vue: Tween
+
+func _vue_suivante() -> void:
+    var i := 0
+    while i < VUES.size() and VUES[i] <= distance + 1.0:
+        i += 1
+    var cible: float = VUES[0] if i >= VUES.size() else VUES[i]
+    if tween_vue:
+        tween_vue.kill()
+    tween_vue = create_tween()
+    tween_vue.tween_method(_regler_distance, distance, cible, 0.6).set_trans(Tween.TRANS_SINE)
+
+func _regler_distance(d: float) -> void:
+    distance = d
+    _placer_camera()

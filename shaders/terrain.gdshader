@@ -1,9 +1,9 @@
 shader_type spatial;
 
-uniform sampler2D herbe_couleur : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D herbe_relief : hint_normal, filter_linear_mipmap, repeat_enable;
-uniform sampler2D roche_couleur : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D roche_relief : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform sampler2D herbe_couleur : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D herbe_relief : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D roche_couleur : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D roche_relief : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform vec3 sable : source_color = vec3(0.82, 0.70, 0.48);
 uniform vec3 laterite : source_color = vec3(0.62, 0.34, 0.20);
 

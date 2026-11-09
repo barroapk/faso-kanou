@@ -3,7 +3,7 @@ extends Node3D
 const TAILLE := 2000.0
 const MORCEAUX := 8
 const RES := 48
-const NIVEAUX := [[1, 0.0, 450.0], [2, 450.0, 1100.0], [4, 1100.0, 0.0]]
+const NIVEAUX := [[1, 0.0, 700.0], [2, 700.0, 1600.0], [4, 1600.0, 0.0]]
 const JUPE := 6.0
 const HAUTEUR_VILLAGE := 8.0
 const MARE := Vector2(-160.0, 90.0)
