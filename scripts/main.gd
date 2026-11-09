@@ -11,6 +11,7 @@ func _ready() -> void:
     _creer_camera()
     _creer_habitants(10)
     _creer_cases(4)
+    _creer_vegetation()
 
 func _creer_ciel() -> void:
     var env := Environment.new()
@@ -81,3 +82,8 @@ func _creer_cases(nombre: int) -> void:
         maison.position = Vector3(x, terrain.hauteur(x, z) - 0.1, z)
         maison.rotation.y = atan2(-x, -z)
         add_child(maison)
+
+func _creer_vegetation() -> void:
+    var vegetation = preload("res://scripts/vegetation.gd").new()
+    vegetation.terrain = terrain
+    add_child(vegetation)
