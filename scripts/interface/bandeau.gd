@@ -95,6 +95,7 @@ func _ready() -> void:
     Civilisation.construction.evenement.connect(_afficher_message)
     Civilisation.besoins.evenement.connect(_afficher_message)
     Civilisation.conseil.evenement.connect(_afficher_message)
+    Civilisation.chef.evenement.connect(_afficher_message)
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()

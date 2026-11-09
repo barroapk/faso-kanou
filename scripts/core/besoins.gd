@@ -56,6 +56,11 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
         elif p["type"] == "deficit" and p["solutions"].is_empty():
             _avis(p["ressource"] + "_bras", "Pas assez de bras pour produire assez de %s." % p["ressource"])
 
+# Diagnostic seul, sans action ni message : utilisé par le chef entre deux mois.
+func actualiser(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
+    _contexte(population, ressources, construction, jour, pluie, chantier_actif)
+    problemes = diagnostiquer()
+
 func _contexte(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
     _pop = population
     _res = ressources
