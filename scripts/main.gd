@@ -10,6 +10,7 @@ func _ready() -> void:
     add_child(terrain)
     _creer_camera()
     _creer_habitants(10)
+    _creer_cases(4)
 
 func _creer_ciel() -> void:
     var env := Environment.new()
@@ -69,3 +70,14 @@ func _creer_habitants(nombre: int) -> void:
         var z := sin(angle) * 4
         habitant.position = Vector3(x, terrain.hauteur(x, z) + 0.85, z)
         add_child(habitant)
+
+func _creer_cases(nombre: int) -> void:
+    var ScriptCase = preload("res://scripts/case.gd")
+    for i in nombre:
+        var maison = ScriptCase.new()
+        var angle := TAU * i / nombre + 0.4
+        var x := cos(angle) * 9
+        var z := sin(angle) * 9
+        maison.position = Vector3(x, terrain.hauteur(x, z) - 0.1, z)
+        maison.rotation.y = atan2(-x, -z)
+        add_child(maison)
