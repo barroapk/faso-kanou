@@ -14,15 +14,22 @@ const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
 const UNITES := {"nourriture": "kg", "eau": "L", "bois": "kg"}
 
-var stocks := {"nourriture": 400.0, "eau": 120.0, "bois": 100.0}
+var stocks := {"nourriture": 300.0, "eau": 120.0, "bois": 100.0}
 var bilan := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0}
-var batiments := {"hutte": 4, "grenier": 0, "puits": 0}
+var batiments := {"hutte": 4, "grenier": 0, "jarres": 0, "puits": 0, "abri_bois": 0}
 var outils := 1.0
 var faim := false
 var soif := false
 
-func capacite_eau() -> float:
-    return 600.0 + 2000.0 * batiments["puits"]
+func capacite(r: String) -> float:
+    match r:
+        "nourriture":
+            return 300.0 + 1000.0 * batiments["grenier"]
+        "eau":
+            return 600.0 + 200.0 * batiments["jarres"] + 2000.0 * batiments["puits"]
+        "bois":
+            return 500.0 + 2000.0 * batiments["abri_bois"]
+    return 0.0
 
 func taux_pertes() -> float:
     return 0.0003 if batiments["grenier"] > 0 else 0.002
@@ -46,15 +53,12 @@ func jour_passe(population, jour: int, pluie: bool) -> void:
         variation["eau"] += 20.0
     variation["nourriture"] -= stocks["nourriture"] * taux_pertes()
     for r in variation:
-        stocks[r] += variation[r]
+        stocks[r] = clampf(stocks[r] + variation[r], 0.0, capacite(r))
     bilan = variation
     var avait_faim := faim
     var avait_soif := soif
     faim = stocks["nourriture"] <= 0.0
     soif = stocks["eau"] <= 0.0
-    for r in stocks:
-        stocks[r] = maxf(stocks[r], 0.0)
-    stocks["eau"] = minf(stocks["eau"], capacite_eau())
     if faim and not avait_faim:
         penurie.emit("nourriture")
     if soif and not avait_soif:
@@ -63,8 +67,12 @@ func jour_passe(population, jour: int, pluie: bool) -> void:
 func texte() -> String:
     var morceaux: PackedStringArray = []
     for r in ["nourriture", "eau", "bois"]:
-        var signe := "+" if bilan[r] >= 0.0 else ""
-        morceaux.append("%s %d %s (%s%.1f/j)" % [r.capitalize(), int(stocks[r]), UNITES[r], signe, bilan[r]])
+        var etat := ""
+        if stocks[r] >= capacite(r):
+            etat = "plein"
+        else:
+            etat = "%s%.1f/j" % ["+" if bilan[r] >= 0.0 else "", bilan[r]]
+        morceaux.append("%s %d/%d %s (%s)" % [r.capitalize(), int(stocks[r]), int(capacite(r)), UNITES[r], etat])
     return "   ".join(morceaux)
 
 func vers_dict() -> Dictionary:
