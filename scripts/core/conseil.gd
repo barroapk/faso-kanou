@@ -19,6 +19,7 @@ var membres: Array = []
 var chef_id := -1
 var mandat_fin := 0
 var confiance := 70.0
+var interim := false
 var rng := RandomNumberGenerator.new()
 
 func etat_initial(pop, jour: int) -> void:
@@ -136,9 +137,14 @@ func mois_passe(pop, jour: int) -> void:
     if chef_id >= 0 and habitant(pop, chef_id).is_empty():
         chef_id = -1
         _interim(pop, jour)
-    if chef_id >= 0 and jour == mandat_fin:
+    if chef_id >= 0 and jour >= mandat_fin and (jour - mandat_fin) % 360 == 0:
         var c := habitant(pop, chef_id)
-        evenement.emit("Le mandat de %s se termine : renouvelez-le ou choisissez un autre chef." % c["prenom"])
+        if interim:
+            evenement.emit("L'intérim de %s est terminé : choisissez un chef." % c["prenom"])
+        elif jour == mandat_fin:
+            evenement.emit("Le mandat de %s se termine : renouvelez-le ou choisissez un autre chef." % c["prenom"])
+        else:
+            evenement.emit("Rappel : le mandat de %s est terminé depuis %d an(s)." % [c["prenom"], (jour - mandat_fin) / 360])
     if jour > mandat_fin:
         confiance = maxf(0.0, confiance - 1.0)
     elif confiance < 70.0:
@@ -158,7 +164,8 @@ func _interim(pop, jour: int) -> void:
     if meilleur.is_empty():
         return
     _installer(meilleur, pop)
-    mandat_fin = jour
+    interim = true
+    mandat_fin = jour + 360
     evenement.emit("Le chef est mort. %s assure l'intérim : choisissez un nouveau chef." % meilleur["prenom"])
 
 # ---------- Décisions du joueur ----------
@@ -170,14 +177,16 @@ func nommer(id: int, pop, jour: int) -> String:
     var h := habitant(pop, id)
     if h.is_empty():
         return "Cette personne n'est plus en vie."
-    if id == chef_id:
+    if id == chef_id and not interim:
         return "C'est déjà le chef. Utilisez Renouveler."
-    if chef_id >= 0 and jour < mandat_fin:
+    if chef_id >= 0 and jour < mandat_fin and not interim:
         confiance = maxf(0.0, confiance - 10.0)
         var ancien := habitant(pop, chef_id)
         if not ancien.is_empty():
             ancien["loyaute"] = maxf(0.0, float(ancien["loyaute"]) - 20.0)
-    _installer(h, pop)
+    if id != chef_id:
+        _installer(h, pop)
+    interim = false
     mandat_fin = jour + MANDAT_JOURS
     evenement.emit("%s %s est nommé chef pour 5 ans." % [h["prenom"], h["nom"]])
     return ""
@@ -185,6 +194,8 @@ func nommer(id: int, pop, jour: int) -> String:
 func renouveler(pop, jour: int) -> String:
     if chef_id < 0:
         return "Il n'y a pas de chef à renouveler."
+    if interim:
+        return "Un chef par intérim se nomme, il ne se renouvelle pas."
     if jour < mandat_fin - 360:
         return "On ne peut renouveler que pendant la dernière année du mandat."
     mandat_fin = maxi(jour, mandat_fin) + MANDAT_JOURS
@@ -209,7 +220,7 @@ func annees_restantes(jour: int) -> float:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"membres": membres, "chef_id": chef_id, "mandat_fin": mandat_fin, "confiance": confiance, "graine": str(rng.seed), "etat": str(rng.state)}
+    return {"membres": membres, "chef_id": chef_id, "mandat_fin": mandat_fin, "confiance": confiance, "interim": interim, "graine": str(rng.seed), "etat": str(rng.state)}
 
 func depuis_dict(d: Dictionary, pop, jour: int) -> void:
     if d.is_empty():
@@ -221,6 +232,7 @@ func depuis_dict(d: Dictionary, pop, jour: int) -> void:
     chef_id = int(d.get("chef_id", -1))
     mandat_fin = int(d.get("mandat_fin", jour + MANDAT_JOURS))
     confiance = float(d.get("confiance", 70.0))
+    interim = bool(d.get("interim", false))
     rng.seed = int(d.get("graine", "5050"))
     rng.state = int(d.get("etat", "0"))
     for h in pop.habitants:
