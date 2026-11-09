@@ -12,6 +12,7 @@ var doigts := {}
 func _ready() -> void:
     camera = Camera3D.new()
     camera.far = 6000.0
+    camera.near = 1.0
     add_child(camera)
     _placer_camera()
 

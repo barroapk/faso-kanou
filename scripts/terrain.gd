@@ -96,7 +96,7 @@ func hauteur(x: float, z: float) -> float:
 		h = minf(h, 5.0 + absf(z - MARE.y) * 0.4)
 
 	h = lerpf(h, HAUTEUR_VILLAGE, 1.0 - smoothstep(45.0, 90.0, Vector2(x, z).length()))
-	return h * m - 3.0 * (1.0 - m)
+	return h * m - 8.0 * (1.0 - m)
 
 func humide(x: float, z: float) -> float:
 	var dm := Vector2(x - MARE.x, z - MARE.y).length()
