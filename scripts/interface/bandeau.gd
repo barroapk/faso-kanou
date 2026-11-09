@@ -16,7 +16,7 @@ func _ready() -> void:
     barre.add_child(etiquette_date)
 
     var groupe := ButtonGroup.new()
-    var noms := ["Pause", "x1", "x3", "x8"]
+    var noms := ["Pause", "Jouer"]
     for i in noms.size():
         var b := Button.new()
         b.text = noms[i]
