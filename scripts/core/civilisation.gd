@@ -2,16 +2,18 @@ extends Node
 
 const DOSSIER := "user://"
 const FICHIER := "partie.json"
-const VERSION := 2
+const VERSION := 3
 const TEMPS = preload("res://scripts/core/temps.gd")
 const POPULATION = preload("res://scripts/core/population.gd")
 const RESSOURCES = preload("res://scripts/core/ressources.gd")
 const CONSTRUCTION = preload("res://scripts/core/construction.gd")
+const BESOINS = preload("res://scripts/core/besoins.gd")
 
 var temps
 var population
 var ressources
 var construction
+var besoins
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -23,6 +25,7 @@ func _creer_modules() -> void:
     population = POPULATION.new()
     ressources = RESSOURCES.new()
     construction = CONSTRUCTION.new()
+    besoins = BESOINS.new()
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -58,6 +61,7 @@ func _mois_passe() -> void:
     construction.mois_passe(ressources)
     var logement: float = construction.effet_total("logement")
     population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0 and population.habitants.size() < logement)
+    besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -75,6 +79,7 @@ func sauvegarder() -> void:
         "population": population.vers_dict(),
         "ressources": ressources.vers_dict(),
         "construction": construction.vers_dict(),
+        "besoins": besoins.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -99,5 +104,6 @@ func _charger(nom: String) -> bool:
     population.depuis_dict(donnees.get("population", {}))
     ressources.depuis_dict(donnees.get("ressources", {}))
     construction.depuis_dict(donnees.get("construction", {}))
+    besoins.depuis_dict(donnees.get("besoins", {}))
     temps.vitesse = 1
     return true

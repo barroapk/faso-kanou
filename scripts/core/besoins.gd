@@ -1,0 +1,302 @@
+extends RefCounted
+
+# Diagnostic des besoins du clan.
+# Chaque mois : calcule consommation, production prévue et réserves,
+# puis liste les problèmes avec leurs solutions possibles :
+#   deficit  : la production prévue ne couvre pas la consommation
+#   marge    : elle la couvre, mais sans la marge de sécurité
+#   stockage : la réserve maximale tient moins de 30 jours
+#   surplus  : un poste peut être libéré sans danger
+# Ce module ne change rien tout seul en mode "conseil".
+# Toute action passe par appliquer(), qui vérifie les règles du jeu
+# (même chemin pour le joueur, le chef et les tests).
+# Mode "auto" : temporaire, applique la première solution, en attendant
+# l'écran du chef (v0.3.3).
+
+signal evenement(texte)
+
+const ORDRE := ["eau", "nourriture", "bois"]
+const MARGES := [0.15, 0.25, 0.40, 0.60]
+const ACTIONS_MAX := [1, 1, 2, 3]
+const MOIS_VERROU := 6
+const MARGE_FERMETURE := 0.35
+
+var mode := "auto"
+var verrou := {}
+var problemes: Array = []
+var dernier_avis := {}
+
+var _pop
+var _res
+var _cons
+var _jour := 0
+var _s := 0
+var _chantier := false
+
+func verrouiller(m: String, jour: int) -> void:
+    verrou[m] = jour + MOIS_VERROU * 30
+
+func mois_passe(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
+    _contexte(population, ressources, construction, jour, pluie, chantier_actif)
+    if mode == "auto":
+        for r in ORDRE:
+            for i in 3:
+                var p := _diagnostic(r)
+                if p.is_empty() or i >= ACTIONS_MAX[p["niveau"]]:
+                    break
+                var sol := _premiere_action(p)
+                if sol.is_empty():
+                    break
+                if appliquer(sol) != "":
+                    break
+    problemes = diagnostiquer()
+    for p in problemes:
+        if p["type"] == "stockage":
+            _avis(p["ressource"], "Réserve de %s trop petite pour 30 jours : construisez du stockage." % p["ressource"])
+        elif p["type"] == "deficit" and p["solutions"].is_empty():
+            _avis(p["ressource"] + "_bras", "Pas assez de bras pour produire assez de %s." % p["ressource"])
+
+func _contexte(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
+    _pop = population
+    _res = ressources
+    _cons = construction
+    _jour = jour
+    _s = 1 if pluie else 0
+    _chantier = chantier_actif
+
+func diagnostiquer() -> Array:
+    var liste := []
+    for r in ORDRE:
+        var p := _diagnostic(r)
+        if not p.is_empty():
+            liste.append(p)
+    return liste
+
+# ---------- Diagnostic d'une ressource ----------
+
+func _diagnostic(r: String) -> Dictionary:
+    var conso := _conso(r)
+    if conso <= 0.0:
+        return {}
+    var stock: float = _res.stocks[r]
+    var capacite: float = _res.capacite(r)
+    var plein: bool = stock >= capacite * 0.9
+    var jours := stock / conso
+    var niveau := 0
+    if not plein:
+        if jours < 7.0:
+            niveau = 3
+        elif jours < 15.0:
+            niveau = 2
+        elif jours < 30.0:
+            niveau = 1
+    var besoin: float = conso * (1.0 + float(MARGES[niveau]))
+    var prod := _production(r)
+    var p := {
+        "ressource": r,
+        "type": "",
+        "niveau": niveau,
+        "conso": conso,
+        "production": prod,
+        "besoin": besoin,
+        "stock": stock,
+        "jours_reserve": jours,
+        "jours_rupture": stock / (conso - prod) if prod < conso else -1.0,
+        "solutions": [],
+    }
+    if prod < besoin:
+        p["type"] = "deficit" if prod < conso else "marge"
+        p["solutions"] = _solutions_deficit(r, niveau)
+        return p
+    if plein and capacite / conso < 30.0:
+        p["type"] = "stockage"
+        var b := _batiment_stockage(r)
+        if b != "":
+            p["solutions"] = [{"action": "construire", "ressource": r, "batiment": b}]
+        return p
+    if niveau == 0:
+        var m := _metier_en_trop(r, besoin)
+        if m != "":
+            p["type"] = "surplus"
+            p["solutions"] = [{"action": "fermer", "ressource": r, "metier": m}]
+            return p
+    return {}
+
+func _solutions_deficit(r: String, niveau: int) -> Array:
+    var sols := []
+    var m := _meilleur_metier(r, niveau)
+    if m == "":
+        return sols
+    if _libres() > 0:
+        sols.append({"action": "ouvrir", "ressource": r, "metier": m})
+    if niveau >= 2:
+        for m2 in _pop.postes:
+            if m2 == m or int(_pop.postes[m2]) <= 0:
+                continue
+            if niveau < 3 and _verrouille(m2):
+                continue
+            if _peut_ceder(m2):
+                sols.append({"action": "transferer", "ressource": r, "de": m2, "vers": m})
+                break
+    return sols
+
+func _premiere_action(p: Dictionary) -> Dictionary:
+    for sol in p["solutions"]:
+        if sol["action"] != "construire":
+            if sol.has("metier") and _verrouille(sol["metier"]) and p["niveau"] < 3:
+                continue
+            return sol
+    return {}
+
+# ---------- Application avec vérification ----------
+
+# Renvoie "" si l'action est faite, sinon la raison du refus.
+func appliquer(sol: Dictionary) -> String:
+    var r: String = sol["ressource"]
+    var p := _diagnostic(r)
+    match sol["action"]:
+        "ouvrir":
+            if p.is_empty() or not p["type"] in ["deficit", "marge"]:
+                return "Ce poste n'est plus nécessaire."
+            if _libres() <= 0:
+                return "Aucun adulte disponible."
+            _pop.postes[sol["metier"]] = int(_pop.postes[sol["metier"]]) + 1
+            evenement.emit("Poste de %s ouvert." % sol["metier"])
+        "transferer":
+            if p.is_empty() or not p["type"] in ["deficit", "marge"]:
+                return "Ce changement n'est plus nécessaire."
+            if int(_pop.postes.get(sol["de"], 0)) <= 0:
+                return "Aucun %s à déplacer." % sol["de"]
+            if not _peut_ceder(sol["de"]):
+                return "Retirer un %s mettrait une autre ressource en danger." % sol["de"]
+            _pop.postes[sol["de"]] = int(_pop.postes[sol["de"]]) - 1
+            _pop.postes[sol["vers"]] = int(_pop.postes[sol["vers"]]) + 1
+            evenement.emit("Un %s devient %s." % [sol["de"], sol["vers"]])
+        "fermer":
+            if p.is_empty() or p["type"] != "surplus" or _metier_en_trop(r, p["besoin"]) != sol["metier"]:
+                return "Ce poste est encore utile."
+            _pop.postes[sol["metier"]] = int(_pop.postes[sol["metier"]]) - 1
+            evenement.emit("Poste de %s fermé (surplus)." % sol["metier"])
+        "construire":
+            if not _cons.lancer(sol["batiment"], -1, _res):
+                return "Pas assez de matériaux pour construire."
+            evenement.emit("Chantier lancé : %s." % sol["batiment"])
+        _:
+            return "Action inconnue."
+    return ""
+
+# ---------- Calculs ----------
+
+func _metier_en_trop(r: String, besoin: float) -> String:
+    for m in _metiers(r):
+        if int(_pop.postes.get(m, 0)) <= 1 or _verrouille(m):
+            continue
+        if _production(r) - _rendement(m, r) >= besoin * (1.0 + MARGE_FERMETURE) and _peut_ceder(m):
+            return m
+    return ""
+
+func _peut_ceder(m2: String) -> bool:
+    for r2 in ORDRE:
+        var rend := _rendement(m2, r2)
+        if rend <= 0.0:
+            continue
+        if _production(r2) - rend < _conso(r2) * (1.0 + MARGES[0]):
+            return false
+    return true
+
+func _meilleur_metier(r: String, niveau: int) -> String:
+    var meilleur := ""
+    var max_rend := 0.0
+    for m in _metiers(r):
+        if not _pop.postes.has(m):
+            continue
+        if niveau < 3 and _verrouille(m):
+            continue
+        var rend := _rendement(m, r)
+        if rend > max_rend:
+            max_rend = rend
+            meilleur = m
+    return meilleur
+
+func _batiment_stockage(r: String) -> String:
+    for type in _cons.definitions:
+        var effet: Dictionary = _cons.definitions[type]["niveaux"][0].get("effet", {})
+        if effet.has("stock_" + r):
+            return type
+    return ""
+
+func _metiers(r: String) -> Array:
+    var liste := []
+    for m in _res.PRODUCTION:
+        if _res.PRODUCTION[m].has(r) and m != "chef" and m != "sans métier":
+            liste.append(m)
+    return liste
+
+func _verrouille(m: String) -> bool:
+    return _jour < int(verrou.get(m, -1))
+
+func _efficacite(m: String) -> float:
+    var total := 0.0
+    var n := 0
+    for h in _pop.habitants:
+        if h["metier"] == m:
+            total += 0.6 + float(h["competence"]) / 100.0 * 0.8
+            n += 1
+    return total / n if n > 0 else 0.7
+
+func _rendement(m: String, r: String) -> float:
+    var p: Dictionary = _res.PRODUCTION.get(m, {})
+    if not p.has(r):
+        return 0.0
+    if m == "bâtisseur" and _chantier:
+        return 0.0
+    return float(p[r][_s]) * _efficacite(m) * _res.outils
+
+func _adultes() -> int:
+    var n := 0
+    for h in _pop.habitants:
+        if _pop.age(h, _jour) >= _pop.AGE_ADULTE and h["metier"] != "chef" and h["metier"] != "ancien":
+            n += 1
+    return n
+
+func _libres() -> int:
+    var occupes := 0
+    for m in _pop.postes:
+        occupes += int(_pop.postes[m])
+    return maxi(0, _adultes() - occupes)
+
+func _conso(r: String) -> float:
+    var c := 0.0
+    for h in _pop.habitants:
+        var table: Dictionary = _res.CONSO_ENFANT if _pop.age(h, _jour) < _pop.AGE_ADULTE else _res.CONSO_ADULTE
+        c += float(table.get(r, 0.0))
+    if r == "nourriture":
+        c += float(_res.stocks[r]) * _res.taux_pertes()
+    return c
+
+func _production(r: String) -> float:
+    var total := 0.0
+    for m in _pop.postes:
+        total += int(_pop.postes[m]) * _rendement(m, r)
+    for h in _pop.habitants:
+        if h["metier"] == "chef":
+            total += _rendement("chef", r)
+    total += _libres() * _rendement("sans métier", r)
+    if r == "eau" and _s == 1:
+        total += 20.0
+    return total
+
+func _avis(cle: String, texte: String) -> void:
+    if _jour - int(dernier_avis.get(cle, -9999)) < 360:
+        return
+    dernier_avis[cle] = _jour
+    evenement.emit(texte)
+
+func vers_dict() -> Dictionary:
+    return {"mode": mode, "verrou": verrou}
+
+func depuis_dict(d: Dictionary) -> void:
+    mode = str(d.get("mode", "auto"))
+    verrou = {}
+    for m in d.get("verrou", {}):
+        verrou[m] = int(d["verrou"][m])

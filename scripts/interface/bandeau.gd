@@ -93,6 +93,7 @@ func _ready() -> void:
     panneau_construction.visible = false
     add_child(panneau_construction)
     Civilisation.construction.evenement.connect(_afficher_message)
+    Civilisation.besoins.evenement.connect(_afficher_message)
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()

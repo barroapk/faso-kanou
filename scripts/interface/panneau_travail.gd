@@ -39,6 +39,7 @@ func _ready() -> void:
 
 func _changer_postes(m: String, delta: int) -> void:
     Civilisation.population.changer_postes(m, delta, Civilisation.temps.jour_total)
+    Civilisation.besoins.verrouiller(m, Civilisation.temps.jour_total)
 
 func _process(_delta: float) -> void:
     if not visible:
