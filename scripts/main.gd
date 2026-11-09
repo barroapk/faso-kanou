@@ -25,6 +25,7 @@ func _ready() -> void:
     _creer_cases(4)
     _creer_vegetation()
     _creer_interface()
+    add_child(preload("res://scripts/interface/bandeau.gd").new())
 
 func _creer_ciel() -> void:
     env = Environment.new()
