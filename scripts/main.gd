@@ -3,6 +3,8 @@ extends Node3D
 var terrain
 
 func _ready() -> void:
+    get_viewport().scaling_3d_scale = 0.7
+    RenderingServer.directional_shadow_atlas_set_size(2048, true)
     _creer_ciel()
     _creer_soleil()
     _creer_mer()
