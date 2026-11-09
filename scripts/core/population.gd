@@ -88,7 +88,7 @@ func mois_passe(jour: int, peut_naitre := true) -> void:
 
     for h in habitants:
         if h["metier"] == "enfant" and age(h, jour) >= 14:
-            h["metier"] = "sans métier"
+            h["metier"] = "cueilleuse" if h["sexe"] == "F" else "chasseur"
 
 func jour_passe(faim: bool, soif: bool) -> void:
     var morts := []

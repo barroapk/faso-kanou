@@ -106,6 +106,7 @@ func _process(delta: float) -> void:
     etiquette_pop.text = "Habitants : %d" % Civilisation.population.habitants.size()
     etiquette_date.text = Civilisation.temps.texte()
     etiquette_res.text = Civilisation.ressources.texte()
+    if Civilisation.population.habitants.is_empty(): message.text = "Le clan a disparu. Touche Nouvelle partie pour recommencer."
     if temps_message > 0.0:
         temps_message -= delta
         if temps_message <= 0.0:

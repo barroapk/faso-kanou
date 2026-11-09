@@ -35,9 +35,10 @@ func nouvelle_partie() -> void:
 func _jour_passe() -> void:
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies())
     population.jour_passe(ressources.faim, ressources.soif)
+    if population.habitants.is_empty(): temps.vitesse = 0
 
 func _mois_passe() -> void:
-    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0)
+    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0 and population.habitants.size() < ressources.batiments["hutte"] * 5)
     sauvegarder()
 
 func _process(delta: float) -> void:
