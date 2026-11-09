@@ -4,10 +4,10 @@ signal penurie(ressource)
 
 const PRODUCTION := {
     "chasseur": {"nourriture": [3.0, 2.2]},
-    "cueilleuse": {"nourriture": [2.0, 3.5]},
+    "cueilleur": {"nourriture": [2.0, 3.5]},
     "chef": {"nourriture": [0.5, 0.5]},
     "sans métier": {"nourriture": [0.8, 1.2]},
-    "porteuse d'eau": {"eau": [50.0, 70.0]},
+    "porteur d'eau": {"eau": [50.0, 70.0]},
     "bâtisseur": {"bois": [12.0, 10.0]},
 }
 const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}

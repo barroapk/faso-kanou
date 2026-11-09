@@ -14,14 +14,14 @@ var rng := RandomNumberGenerator.new()
 func creer_clan_initial(jour: int) -> void:
     rng.seed = 2026
     _ajouter("Ousmane", "Ouédraogo", "H", 35, 1, "chef", jour)
-    _ajouter("Aminata", "Ouédraogo", "F", 30, 1, "cueilleuse", jour)
+    _ajouter("Aminata", "Ouédraogo", "F", 30, 1, "cueilleur", jour)
     _ajouter("Issa", "Ouédraogo", "H", 8, 1, "enfant", jour)
     _ajouter("Awa", "Ouédraogo", "F", 5, 1, "enfant", jour)
     _ajouter("Adama", "Kaboré", "H", 28, 2, "chasseur", jour)
-    _ajouter("Mariam", "Kaboré", "F", 24, 2, "cueilleuse", jour)
+    _ajouter("Mariam", "Kaboré", "F", 24, 2, "cueilleur", jour)
     _ajouter("Salif", "Kaboré", "H", 2, 2, "enfant", jour)
     _ajouter("Boukary", "Zongo", "H", 26, 3, "bâtisseur", jour)
-    _ajouter("Fatimata", "Zongo", "F", 22, 3, "porteuse d'eau", jour)
+    _ajouter("Fatimata", "Zongo", "F", 22, 3, "porteur d'eau", jour)
     _ajouter("Tenga", "Zongo", "H", 58, 3, "ancien", jour)
 
 func _ajouter(prenom: String, nom: String, sexe: String, age_ans: int, famille: int, metier: String, jour: int, decaler := true) -> Dictionary:
@@ -88,7 +88,7 @@ func mois_passe(jour: int, peut_naitre := true) -> void:
 
     for h in habitants:
         if h["metier"] == "enfant" and age(h, jour) >= 14:
-            h["metier"] = "cueilleuse" if h["sexe"] == "F" else "chasseur"
+            h["metier"] = "cueilleur" if h["sexe"] == "F" else "chasseur"
 
 func jour_passe(faim: bool, soif: bool) -> void:
     var morts := []
@@ -117,7 +117,35 @@ func depuis_dict(d: Dictionary) -> void:
         for cle in ["id", "naissance", "famille", "sante"]:
             h[cle] = int(h[cle])
         h["competence"] = float(h.get("competence", 50.0))
+        h["metier"] = _migrer_metier(h["metier"])
         habitants.append(h)
     prochain_id = int(d.get("prochain_id", 1))
     rng.seed = int(d.get("graine", "2026"))
     rng.state = int(d.get("etat", "0"))
+
+const FEMININ := {"chasseur": "chasseuse", "cueilleur": "cueilleuse", "porteur d'eau": "porteuse d'eau", "bâtisseur": "bâtisseuse"}
+const METIERS_CHOISIS := ["chasseur", "cueilleur", "porteur d'eau", "bâtisseur", "sans métier"]
+
+func metiers_choisis() -> Array:
+    return METIERS_CHOISIS
+
+func nom_metier(h: Dictionary) -> String:
+    var m: String = h["metier"]
+    return FEMININ.get(m, m) if h["sexe"] == "F" else m
+
+func peut_changer(h: Dictionary, jour: int) -> bool:
+    return age(h, jour) >= 14 and h["metier"] != "chef"
+
+func changer_metier(h: Dictionary, m: String) -> void:
+    if h["metier"] == m:
+        return
+    h["metier"] = m
+    h["competence"] = float(h["competence"]) * 0.5
+
+func _migrer_metier(m: String) -> String:
+    match m:
+        "cueilleuse":
+            return "cueilleur"
+        "porteuse d'eau":
+            return "porteur d'eau"
+    return m
