@@ -12,6 +12,7 @@ func _ready() -> void:
     _creer_habitants(10)
     _creer_cases(4)
     _creer_vegetation()
+    _creer_fps()
 
 func _creer_ciel() -> void:
     var env := Environment.new()
@@ -37,6 +38,8 @@ func _creer_soleil() -> void:
     soleil.light_color = Color(1.0, 0.85, 0.65)
     soleil.light_energy = 1.3
     soleil.shadow_enabled = true
+    soleil.directional_shadow_max_distance = 120.0
+    soleil.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
     add_child(soleil)
 
 func _creer_mer() -> void:
@@ -87,3 +90,17 @@ func _creer_vegetation() -> void:
     var vegetation = preload("res://scripts/vegetation.gd").new()
     vegetation.terrain = terrain
     add_child(vegetation)
+
+var etiquette_fps: Label
+
+func _creer_fps() -> void:
+    var couche := CanvasLayer.new()
+    add_child(couche)
+    etiquette_fps = Label.new()
+    etiquette_fps.position = Vector2(20, 20)
+    etiquette_fps.add_theme_font_size_override("font_size", 28)
+    couche.add_child(etiquette_fps)
+
+func _process(_delta: float) -> void:
+    if etiquette_fps:
+        etiquette_fps.text = "FPS : %d" % Engine.get_frames_per_second()

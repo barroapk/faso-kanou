@@ -9,11 +9,25 @@ var rng := RandomNumberGenerator.new()
 func _ready() -> void:
     rng.seed = 42
     var modele: PackedScene = load("res://assets/modeles/acacia.glb")
-    var boite := _mesurer(modele)
+    var test: Node3D = modele.instantiate()
+    add_child(test)
+    var inverse := test.global_transform.affine_inverse()
+    var parties := []
+    var boite := AABB()
+    var premier := true
+    for m in test.find_children("*", "MeshInstance3D", true, false):
+        var mi := m as MeshInstance3D
+        var t := inverse * mi.global_transform
+        parties.append([mi.mesh, t])
+        var b := t * mi.get_aabb()
+        boite = b if premier else boite.merge(b)
+        premier = false
+    test.queue_free()
+
     var echelle := HAUTEUR_ARBRE / boite.size.y
-    var places := 0
+    var places: Array[Transform3D] = []
     var essais := 0
-    while places < NOMBRE and essais < NOMBRE * 40:
+    while places.size() < NOMBRE and essais < NOMBRE * 40:
         essais += 1
         var x := rng.randf_range(-170.0, 170.0)
         var z := rng.randf_range(-170.0, 170.0)
@@ -29,23 +43,18 @@ func _ready() -> void:
             continue
         if rng.randf() > 0.3 + terrain.foret(x, z) * 0.7:
             continue
-        var arbre: Node3D = modele.instantiate()
         var taille := echelle * rng.randf_range(0.7, 1.3)
-        arbre.scale = Vector3.ONE * taille
-        arbre.rotation.y = rng.randf() * TAU
-        arbre.position = Vector3(x, h - boite.position.y * taille - 0.1, z)
-        add_child(arbre)
-        places += 1
+        var base := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * taille)
+        var pos := Vector3(x, h - boite.position.y * taille - 0.1, z)
+        places.append(Transform3D(base, pos))
 
-func _mesurer(modele: PackedScene) -> AABB:
-    var test: Node3D = modele.instantiate()
-    add_child(test)
-    var boite := AABB()
-    var premier := true
-    for m in test.find_children("*", "MeshInstance3D", true, false):
-        var mi := m as MeshInstance3D
-        var b := test.global_transform.affine_inverse() * mi.global_transform * mi.get_aabb()
-        boite = b if premier else boite.merge(b)
-        premier = false
-    test.queue_free()
-    return boite
+    for p in parties:
+        var mm := MultiMesh.new()
+        mm.transform_format = MultiMesh.TRANSFORM_3D
+        mm.mesh = p[0]
+        mm.instance_count = places.size()
+        for i in places.size():
+            mm.set_instance_transform(i, places[i] * p[1])
+        var mmi := MultiMeshInstance3D.new()
+        mmi.multimesh = mm
+        add_child(mmi)
