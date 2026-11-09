@@ -1,6 +1,14 @@
 extends Node3D
 
 var terrain
+var vegetation
+var soleil: DirectionalLight3D
+var env: Environment
+var materiau_sol: Material
+var materiau_simple := StandardMaterial3D.new()
+var etiquette_fps: Label
+var echelles := [0.5, 0.7, 1.0]
+var index_echelle := 1
 
 func _ready() -> void:
     get_viewport().scaling_3d_scale = 0.7
@@ -10,14 +18,16 @@ func _ready() -> void:
     _creer_mer()
     terrain = preload("res://scripts/terrain.gd").new()
     add_child(terrain)
+    materiau_sol = terrain.material_override
+    materiau_simple.albedo_color = Color(0.55, 0.5, 0.3)
     _creer_camera()
     _creer_habitants(10)
     _creer_cases(4)
     _creer_vegetation()
-    _creer_fps()
+    _creer_interface()
 
 func _creer_ciel() -> void:
-    var env := Environment.new()
+    env = Environment.new()
     env.background_mode = Environment.BG_SKY
     var mat_ciel := PanoramaSkyMaterial.new()
     mat_ciel.panorama = load("res://assets/ciel/kiara_8_sunset_4k.hdr")
@@ -35,7 +45,7 @@ func _creer_ciel() -> void:
     add_child(monde)
 
 func _creer_soleil() -> void:
-    var soleil := DirectionalLight3D.new()
+    soleil = DirectionalLight3D.new()
     soleil.rotation_degrees = Vector3(-25, 60, 0)
     soleil.light_color = Color(1.0, 0.85, 0.65)
     soleil.light_energy = 1.3
@@ -89,20 +99,55 @@ func _creer_cases(nombre: int) -> void:
         add_child(maison)
 
 func _creer_vegetation() -> void:
-    var vegetation = preload("res://scripts/vegetation.gd").new()
+    vegetation = preload("res://scripts/vegetation.gd").new()
     vegetation.terrain = terrain
     add_child(vegetation)
 
-var etiquette_fps: Label
-
-func _creer_fps() -> void:
+func _creer_interface() -> void:
     var couche := CanvasLayer.new()
     add_child(couche)
     etiquette_fps = Label.new()
     etiquette_fps.position = Vector2(20, 20)
-    etiquette_fps.add_theme_font_size_override("font_size", 28)
+    etiquette_fps.add_theme_font_size_override("font_size", 36)
     couche.add_child(etiquette_fps)
+    var boutons := VBoxContainer.new()
+    boutons.position = Vector2(20, 80)
+    couche.add_child(boutons)
+    _ajouter_bouton(boutons, "Arbres", func(actif): vegetation.visible = actif)
+    _ajouter_bouton(boutons, "Ombres", func(actif): soleil.shadow_enabled = actif)
+    _ajouter_bouton(boutons, "Ciel HDR", _changer_ciel)
+    _ajouter_bouton(boutons, "Sol réaliste", func(actif): terrain.material_override = materiau_sol if actif else materiau_simple)
+    var res := Button.new()
+    res.text = "Résolution 70%"
+    res.add_theme_font_size_override("font_size", 32)
+    res.pressed.connect(_changer_resolution.bind(res))
+    boutons.add_child(res)
+
+func _ajouter_bouton(parent: Control, texte: String, action: Callable) -> void:
+    var b := Button.new()
+    b.text = texte
+    b.toggle_mode = true
+    b.button_pressed = true
+    b.add_theme_font_size_override("font_size", 32)
+    b.toggled.connect(action)
+    parent.add_child(b)
+
+func _changer_ciel(actif: bool) -> void:
+    if actif:
+        env.background_mode = Environment.BG_SKY
+        env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+        env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+    else:
+        env.background_mode = Environment.BG_COLOR
+        env.background_color = Color(0.55, 0.7, 0.9)
+        env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+        env.ambient_light_color = Color(0.6, 0.6, 0.65)
+        env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+
+func _changer_resolution(bouton: Button) -> void:
+    index_echelle = (index_echelle + 1) % echelles.size()
+    get_viewport().scaling_3d_scale = echelles[index_echelle]
+    bouton.text = "Résolution %d%%" % int(echelles[index_echelle] * 100)
 
 func _process(_delta: float) -> void:
-    if etiquette_fps:
-        etiquette_fps.text = "FPS : %d" % Engine.get_frames_per_second()
+    etiquette_fps.text = "FPS : %d" % Engine.get_frames_per_second()
