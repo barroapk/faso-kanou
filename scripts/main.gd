@@ -118,7 +118,7 @@ func _creer_interface() -> void:
     _ajouter_bouton(boutons, "Ombres", func(actif): soleil.shadow_enabled = actif)
     _ajouter_bouton(boutons, "Ciel HDR", _changer_ciel)
     _ajouter_bouton(boutons, "Sol réaliste", func(actif): terrain.material_override = materiau_sol if actif else materiau_simple)
-    _ajouter_bouton(boutons, "Vitesse normale", func(actif): Civilisation.temps.vitesse = 1 if actif else 3)
+    _ajouter_vitesse_test(boutons)
     _ajouter_bouton(boutons, "Nouvelle partie", func(_actif): Civilisation.nouvelle_partie())
     var res := Button.new()
     res.text = "Résolution 70%"
@@ -154,3 +154,19 @@ func _changer_resolution(bouton: Button) -> void:
 
 func _process(_delta: float) -> void:
     etiquette_fps.text = "FPS : %d" % Engine.get_frames_per_second()
+
+var bouton_vitesse: Button
+
+func _ajouter_vitesse_test(parent: Control) -> void:
+    bouton_vitesse = Button.new()
+    bouton_vitesse.text = "Test : x1"
+    bouton_vitesse.add_theme_font_size_override("font_size", 32)
+    bouton_vitesse.pressed.connect(_vitesse_suivante)
+    parent.add_child(bouton_vitesse)
+
+func _vitesse_suivante() -> void:
+    var paliers := [1, 3, 4, 5]
+    var textes := ["x0", "x1", "x3", "x8", "x30", "x100"]
+    var i := paliers.find(Civilisation.temps.vitesse)
+    Civilisation.temps.vitesse = paliers[(i + 1) % paliers.size()]
+    bouton_vitesse.text = "Test : " + textes[Civilisation.temps.vitesse]

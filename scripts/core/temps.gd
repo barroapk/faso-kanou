@@ -7,7 +7,7 @@ signal nouvelle_annee
 const JOURS_PAR_MOIS := 30
 const MOIS_PAR_AN := 12
 const SECONDES_PAR_JOUR := 1.6
-const VITESSES := [0.0, 1.0, 3.0, 8.0]
+const VITESSES := [0.0, 1.0, 3.0, 8.0, 30.0, 100.0]
 const NOMS_MOIS := ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
 
 var jour_total := 0
