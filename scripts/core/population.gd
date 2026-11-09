@@ -35,6 +35,7 @@ func _ajouter(prenom: String, nom: String, sexe: String, age_ans: int, famille: 
         "famille": famille,
         "metier": metier,
         "sante": 100,
+        "competence": float(clampi(age_ans * 2, 0, 70)),
     }
     prochain_id += 1
     habitants.append(h)
@@ -100,6 +101,7 @@ func jour_passe(faim: bool, soif: bool) -> void:
         else:
             s += 1
         h["sante"] = clampi(s, 0, 100)
+        if h["metier"] != "enfant" and h["metier"] != "ancien": h["competence"] = minf(float(h["competence"]) + 0.02, 100.0)
         if h["sante"] == 0:
             morts.append(h)
     for h in morts:
@@ -114,6 +116,7 @@ func depuis_dict(d: Dictionary) -> void:
     for h in d.get("habitants", []):
         for cle in ["id", "naissance", "famille", "sante"]:
             h[cle] = int(h[cle])
+        h["competence"] = float(h.get("competence", 50.0))
         habitants.append(h)
     prochain_id = int(d.get("prochain_id", 1))
     rng.seed = int(d.get("graine", "2026"))

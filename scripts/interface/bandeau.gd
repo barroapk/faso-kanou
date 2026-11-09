@@ -98,7 +98,7 @@ func _remplir_liste() -> void:
     var jour: int = Civilisation.temps.jour_total
     for h in pop.habitants:
         var l := Label.new()
-        l.text = "%s %s · %d ans · %s" % [h["prenom"], h["nom"], pop.age(h, jour), h["metier"]]
+        l.text = "%s %s · %d ans · %s · santé %d · compétence %d" % [h["prenom"], h["nom"], pop.age(h, jour), h["metier"], int(h["sante"]), int(h["competence"])]
         l.add_theme_font_size_override("font_size", 28)
         liste.add_child(l)
 
