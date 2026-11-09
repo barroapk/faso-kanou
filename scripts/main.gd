@@ -33,7 +33,7 @@ func _creer_soleil() -> void:
 func _creer_ile() -> void:
     var mer := MeshInstance3D.new()
     var plan := PlaneMesh.new()
-    plan.size = Vector2(400, 400)
+    plan.size = Vector2(3000, 3000)
     mer.mesh = plan
     var mat_mer := StandardMaterial3D.new()
     mat_mer.albedo_color = Color(0.05, 0.25, 0.4)
