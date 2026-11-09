@@ -18,7 +18,7 @@ func _ready() -> void:
 
 func hauteur(x: float, z: float) -> float:
     var dist := Vector2(x, z).length() / (TAILLE * 0.45)
-    var forme := 1.0 - clamp(dist, 0.0, 1.0)
+    var forme := 1.0 - clampf(dist, 0.0, 1.0)
     forme = forme * forme * (3.0 - 2.0 * forme)
     var collines := (bruit.get_noise_2d(x, z) + 1.0) * 0.5
     return forme * (1.0 + collines * HAUTEUR_MAX) - 1.0
