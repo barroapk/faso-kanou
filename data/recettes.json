@@ -9,7 +9,8 @@
   "connue_au_depart": "le clan sait la faire dès le début ; sinon, il faut la découvrir ou l'apprendre",
   "competence": "savoir-faire nécessaire (vérifié à l'étape 4)",
   "repare": "réparation : rend sa solidité à l'outil le plus usé ; les matières remplacent des parties usées, jetées (pertes)",
-  "terrain": "extraction : quantité prise dans la nature (gisement, rivière, savane) ; compte comme une entrée dans le bilan de masse"
+  "terrain": "extraction : quantité prise dans la nature (gisement, rivière, savane) ; compte comme une entrée dans le bilan de masse",
+  "niveau_min": "niveau minimal du savoir (competence) pour qu'un habitant puisse faire ce travail ; un meilleur artisan travaille plus vite"
  },
  "recettes": {
   "cendres": {
@@ -31,7 +32,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "sel_vegetal": {
    "nom": "Sel végétal",
@@ -59,7 +61,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "canari": {
    "nom": "Canari (poterie)",
@@ -87,7 +90,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "brique_banco": {
    "nom": "Brique de banco",
@@ -119,7 +123,8 @@
     4,
     10,
     11
-   ]
+   ],
+   "niveau_min": 0
   },
   "charbon_bois": {
    "nom": "Charbon de bois",
@@ -142,7 +147,8 @@
    "batiment": "",
    "decouverte": "metallurgie",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 10
   },
   "fer_brut": {
    "nom": "Fonte du fer",
@@ -168,7 +174,8 @@
    "batiment": "fourneau",
    "decouverte": "metallurgie",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 25
   },
   "fil_coton": {
    "nom": "Filage du coton",
@@ -189,7 +196,8 @@
    "batiment": "",
    "decouverte": "tissage",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 5
   },
   "tissu_coton": {
    "nom": "Tissage d'un pagne",
@@ -210,7 +218,8 @@
    "batiment": "",
    "decouverte": "tissage",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 15
   },
   "farine_mil": {
    "nom": "Pilage du mil",
@@ -231,7 +240,8 @@
    "batiment": "",
    "decouverte": "agriculture",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "hache_pierre": {
    "nom": "Hache de pierre",
@@ -254,7 +264,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "arc": {
    "nom": "Arc et flèches",
@@ -277,7 +288,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "lance": {
    "nom": "Lance",
@@ -300,7 +312,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "houe_bois": {
    "nom": "Houe en bois",
@@ -321,7 +334,8 @@
    "batiment": "",
    "decouverte": "agriculture",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "moule_brique": {
    "nom": "Moule à briques",
@@ -342,7 +356,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 0
   },
   "meule": {
    "nom": "Meule de pierre",
@@ -363,7 +378,8 @@
    "batiment": "",
    "decouverte": "",
    "connue_au_depart": true,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 5
   },
   "metier_tisser": {
    "nom": "Métier à tisser",
@@ -384,7 +400,8 @@
    "batiment": "",
    "decouverte": "tissage",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 10
   },
   "hache_fer": {
    "nom": "Hache en fer",
@@ -409,7 +426,8 @@
    "batiment": "forge",
    "decouverte": "metallurgie",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 30
   },
   "houe_fer": {
    "nom": "Houe en fer",
@@ -434,7 +452,8 @@
    "batiment": "forge",
    "decouverte": "metallurgie",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 30
   },
   "pioche_fer": {
    "nom": "Pioche en fer",
@@ -459,7 +478,8 @@
    "batiment": "forge",
    "decouverte": "metallurgie",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 30
   },
   "couteau_fer": {
    "nom": "Couteau en fer",
@@ -484,7 +504,8 @@
    "batiment": "forge",
    "decouverte": "metallurgie",
    "connue_au_depart": false,
-   "saisons": []
+   "saisons": [],
+   "niveau_min": 30
   },
   "reparation_hache_pierre": {
    "nom": "Réparer : hache pierre",
@@ -505,7 +526,8 @@
    "decouverte": "",
    "connue_au_depart": true,
    "saisons": [],
-   "repare": "hache_pierre"
+   "repare": "hache_pierre",
+   "niveau_min": 0
   },
   "reparation_arc": {
    "nom": "Réparer : arc",
@@ -525,7 +547,8 @@
    "decouverte": "",
    "connue_au_depart": true,
    "saisons": [],
-   "repare": "arc"
+   "repare": "arc",
+   "niveau_min": 0
   },
   "reparation_lance": {
    "nom": "Réparer : lance",
@@ -545,7 +568,8 @@
    "decouverte": "",
    "connue_au_depart": true,
    "saisons": [],
-   "repare": "lance"
+   "repare": "lance",
+   "niveau_min": 0
   },
   "reparation_houe_bois": {
    "nom": "Réparer : houe bois",
@@ -565,7 +589,8 @@
    "decouverte": "agriculture",
    "connue_au_depart": false,
    "saisons": [],
-   "repare": "houe_bois"
+   "repare": "houe_bois",
+   "niveau_min": 0
   },
   "reparation_moule_brique": {
    "nom": "Réparer : moule brique",
@@ -585,7 +610,8 @@
    "decouverte": "",
    "connue_au_depart": true,
    "saisons": [],
-   "repare": "moule_brique"
+   "repare": "moule_brique",
+   "niveau_min": 0
   },
   "reparation_meule": {
    "nom": "Réparer : meule",
@@ -605,7 +631,8 @@
    "decouverte": "",
    "connue_au_depart": true,
    "saisons": [],
-   "repare": "meule"
+   "repare": "meule",
+   "niveau_min": 0
   },
   "reparation_metier_tisser": {
    "nom": "Réparer : metier tisser",
@@ -625,7 +652,8 @@
    "decouverte": "tissage",
    "connue_au_depart": false,
    "saisons": [],
-   "repare": "metier_tisser"
+   "repare": "metier_tisser",
+   "niveau_min": 0
   },
   "reparation_hache_fer": {
    "nom": "Réparer : hache fer",
@@ -647,7 +675,8 @@
    "decouverte": "metallurgie",
    "connue_au_depart": false,
    "saisons": [],
-   "repare": "hache_fer"
+   "repare": "hache_fer",
+   "niveau_min": 20
   },
   "reparation_houe_fer": {
    "nom": "Réparer : houe fer",
@@ -669,7 +698,8 @@
    "decouverte": "metallurgie",
    "connue_au_depart": false,
    "saisons": [],
-   "repare": "houe_fer"
+   "repare": "houe_fer",
+   "niveau_min": 20
   },
   "reparation_pioche_fer": {
    "nom": "Réparer : pioche fer",
@@ -691,7 +721,8 @@
    "decouverte": "metallurgie",
    "connue_au_depart": false,
    "saisons": [],
-   "repare": "pioche_fer"
+   "repare": "pioche_fer",
+   "niveau_min": 20
   },
   "reparation_couteau_fer": {
    "nom": "Réparer : couteau fer",
@@ -713,7 +744,8 @@
    "decouverte": "metallurgie",
    "connue_au_depart": false,
    "saisons": [],
-   "repare": "couteau_fer"
+   "repare": "couteau_fer",
+   "niveau_min": 20
   },
   "ramasser_pierre": {
    "nom": "Ramasser des pierres",
@@ -738,7 +770,8 @@
     "colline",
     "massif",
     "savane"
-   ]
+   ],
+   "niveau_min": 0
   },
   "creuser_argile": {
    "nom": "Creuser de l'argile",
@@ -770,7 +803,8 @@
    "terrains": [
     "humide",
     "riviere"
-   ]
+   ],
+   "niveau_min": 0
   },
   "ramasser_sable": {
    "nom": "Ramasser du sable",
@@ -794,7 +828,8 @@
    "terrains": [
     "riviere",
     "desert"
-   ]
+   ],
+   "niveau_min": 0
   },
   "couper_paille": {
    "nom": "Couper de la paille",
@@ -821,7 +856,8 @@
    ],
    "terrains": [
     "savane"
-   ]
+   ],
+   "niveau_min": 0
   }
  }
 }

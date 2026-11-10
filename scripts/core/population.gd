@@ -31,6 +31,28 @@ const MORTALITE_EN_COUCHES := 0.005
 const AUTORISER_COUSINS := true      # cousins germains de lignées différentes
 const RISQUE_COUSINS := 1.3          # mortalité avant 5 ans multipliée pour leurs enfants
 
+# ---------- Compétences individuelles (v0.3.11) ----------
+# Chaque habitant a des savoirs (0 à 100) : h["savoirs"] = {savoir: niveau}.
+# h["competence"] reste le niveau dans le savoir de son métier actuel
+# (c'est lui qu'utilisent la production et le chef).
+const SAVOIR_DU_METIER := {
+    "chasseur": "chasse",
+    "cueilleur": "cueillette",
+    "sans métier": "cueillette",
+    "chef": "cueillette",
+    "porteur d'eau": "portage",
+    "bâtisseur": "construction",
+    "cultivateur": "agriculture",
+    "mineur": "extraction",
+}
+const GAIN_PRATIQUE := 0.02        # par jour, de moins en moins vite près de 100 (10 -> ~50 en 10 ans)
+const COEF_APPRENTI := 1.5         # travailler à côté d'un maître (60 et plus)
+const NIVEAU_MAITRE := 60.0
+const OUBLI_JOUR := 0.003          # savoir non pratiqué : environ -1 point par an
+const PLANCHER_OUBLI := 0.5        # on n'oublie pas plus de la moitié de son meilleur niveau
+const APPRENTISSAGE_ENFANT := 0.01 # de 8 à 13 ans, l'enfant initié apprend le métier d'un parent
+const AGE_APPRENTISSAGE := 8
+
 var habitants: Array = []
 var prochain_id := 1
 var couples: Array = []
@@ -85,7 +107,17 @@ func _ajouter(prenom: String, nom: String, sexe: String, age_ans: int, famille: 
         "competence": float(clampi(age_ans * 2, 0, 70)),
         "pere": -1,
         "mere": -1,
+        "savoirs": {},
+        "savoirs_max": {},
     }
+    # Savoir de départ : celui de son métier (niveau = âge x 2, 70 au plus) ;
+    # tout adulte sait au moins un peu cueillir.
+    if age_ans >= AGE_ADULTE:
+        donner_savoir(h, "cueillette", float(clampi(int(age_ans * 1.5), 0, 50)))
+    var sv := savoir_du_metier(metier)
+    if sv != "":
+        donner_savoir(h, sv, float(clampi(age_ans * 2, 0, 70)))
+    maj_competence(h)
     prochain_id += 1
     habitants.append(h)
     return h
@@ -112,7 +144,7 @@ func mois_passe(jour: int, peut_naitre := true, logement := 1000000) -> void:
     for h in habitants:
         if h["metier"] == "enfant" and age(h, jour) >= AGE_ADULTE:
             h["metier"] = "sans métier"
-            h["competence"] = 25.0 if h.get("initie", "") != "" else 10.0
+            maj_competence(h)
 
 # ---------- Mortalité ----------
 
@@ -362,15 +394,15 @@ func repartir(jour: int) -> void:
         while travailleurs.size() > int(postes[m]):
             var h = travailleurs.pop_back()
             h["metier"] = "sans métier"
+            maj_competence(h)
     for m in postes:
         var manque := int(postes[m]) - nombre(m)
         while manque > 0:
             var candidat = _meilleur_candidat(m, jour)
             if candidat == null:
                 break
-            if candidat.get("initie", "") != m:
-                candidat["competence"] = float(candidat["competence"]) * 0.5
             candidat["metier"] = m
+            maj_competence(candidat)
             manque -= 1
 
 func _meilleur_candidat(m: String, jour: int):
@@ -379,7 +411,7 @@ func _meilleur_candidat(m: String, jour: int):
     for h in habitants:
         if h["metier"] != "sans métier" or age(h, jour) < AGE_ADULTE:
             continue
-        var score := float(h["competence"]) + (100.0 if h.get("initie", "") == m else 0.0)
+        var score := savoir(h, savoir_du_metier(m)) + (100.0 if h.get("initie", "") == m else 0.0)
         if score > score_max:
             score_max = score
             meilleur = h
@@ -394,7 +426,8 @@ func changer_postes(m: String, delta: int, jour: int) -> void:
 static func plafond_sante(jours_sans_sel: int) -> int:
     return 100 - clampi((jours_sans_sel - 30) / 6, 0, 40)
 
-func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0) -> void:
+func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0, jour := -1) -> void:
+    pratiquer(jour)
     var morts := []
     var plafond := plafond_sante(jours_sans_sel)
     for h in habitants:
@@ -408,11 +441,95 @@ func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0) -> void:
         if s > plafond:
             s = maxi(plafond, int(h["sante"]) - 1) if int(h["sante"]) > plafond else plafond
         h["sante"] = clampi(s, 0, 100)
-        if h["metier"] != "enfant" and h["metier"] != "ancien": h["competence"] = minf(float(h["competence"]) + 0.02, 100.0)
         if h["sante"] == 0:
             morts.append(h)
     for h in morts:
         _mourir(h)
+
+# ---------- Savoirs ----------
+
+static func savoir_du_metier(m: String) -> String:
+    return SAVOIR_DU_METIER.get(m, "")
+
+func savoir(h: Dictionary, s: String) -> float:
+    if s == "":
+        return 0.0
+    return float(h.get("savoirs", {}).get(s, 0.0))
+
+func donner_savoir(h: Dictionary, s: String, niveau: float) -> void:
+    if not h.has("savoirs"):
+        h["savoirs"] = {}
+        h["savoirs_max"] = {}
+    h["savoirs"][s] = clampf(niveau, 0.0, 100.0)
+    h["savoirs_max"][s] = maxf(float(h["savoirs_max"].get(s, 0.0)), h["savoirs"][s])
+
+# Niveau dans le savoir du métier ; pour un enfant ou un ancien : son meilleur savoir.
+func maj_competence(h: Dictionary) -> void:
+    var s := savoir_du_metier(h["metier"])
+    if s != "":
+        h["competence"] = savoir(h, s)
+        return
+    var m := 0.0
+    for x in h.get("savoirs", {}):
+        m = maxf(m, float(h["savoirs"][x]))
+    h["competence"] = m
+
+# Ce que chaque personne pratique aujourd'hui : la tâche d'une recette (h["tache"]),
+# sinon le savoir de son métier. Les enfants initiés apprennent dès 8 ans.
+func pratiquer(jour: int) -> void:
+    var maitres := {}
+    for h in habitants:
+        var s: String = h.get("tache", savoir_du_metier(h["metier"]))
+        if s != "" and savoir(h, s) >= NIVEAU_MAITRE:
+            maitres[s] = true
+    for h in habitants:
+        if h["metier"] == "ancien":
+            continue
+        var pratique := ""
+        if h["metier"] == "enfant":
+            var ini: String = h.get("initie", "")
+            if ini != "" and jour >= 0 and age(h, jour) >= AGE_APPRENTISSAGE:
+                var si := savoir_du_metier(ini)
+                if si != "" and savoir(h, si) < 25.0:
+                    donner_savoir(h, si, savoir(h, si) + APPRENTISSAGE_ENFANT)
+                pratique = si
+        else:
+            pratique = h.get("tache", savoir_du_metier(h["metier"]))
+            if pratique != "":
+                var n := savoir(h, pratique)
+                var gain := GAIN_PRATIQUE * (1.0 - n / 100.0)
+                if maitres.has(pratique) and n < NIVEAU_MAITRE:
+                    gain *= COEF_APPRENTI
+                donner_savoir(h, pratique, n + gain)
+        for s in h.get("savoirs", {}).keys():
+            if s == pratique:
+                continue
+            var plancher := float(h["savoirs_max"].get(s, 0.0)) * PLANCHER_OUBLI
+            if float(h["savoirs"][s]) > plancher:
+                h["savoirs"][s] = maxf(plancher, float(h["savoirs"][s]) - OUBLI_JOUR)
+        if h["metier"] != "enfant":
+            maj_competence(h)
+
+# Ancienne sauvegarde : le niveau connu devient le savoir du métier.
+func _migrer_savoirs(h: Dictionary) -> void:
+    if h.has("savoirs") and typeof(h["savoirs"]) == TYPE_DICTIONARY:
+        var sv := {}
+        var mx := {}
+        for s in h["savoirs"]:
+            sv[str(s)] = float(h["savoirs"][s])
+        for s in h.get("savoirs_max", {}):
+            mx[str(s)] = float(h["savoirs_max"][s])
+        h["savoirs"] = sv
+        h["savoirs_max"] = mx
+        return
+    h["savoirs"] = {}
+    h["savoirs_max"] = {}
+    var s := savoir_du_metier(h["metier"])
+    if s != "":
+        donner_savoir(h, s, float(h["competence"]))
+    if not h["savoirs"].has("cueillette") and h["metier"] != "enfant":
+        donner_savoir(h, "cueillette", minf(float(h["competence"]), 50.0))
+    maj_competence(h)
 
 func metiers_choisis() -> Array:
     return METIERS_CHOISIS
@@ -433,7 +550,7 @@ func changer_metier(h: Dictionary, m: String) -> void:
     if postes.has(m):
         postes[m] = int(postes[m]) + 1
     h["metier"] = m
-    h["competence"] = float(h["competence"]) * 0.5
+    maj_competence(h)
 
 func vers_dict() -> Dictionary:
     return {"habitants": habitants, "prochain_id": prochain_id, "postes": postes, "couples": couples, "prochain_couple": prochain_couple, "archives": _archives.values(), "graine": str(rng.seed), "etat": str(rng.state)}
@@ -450,6 +567,7 @@ func depuis_dict(d: Dictionary) -> void:
         h["competence"] = float(h.get("competence", 50.0))
         h["metier"] = _migrer_metier(h["metier"])
         h["initie"] = _migrer_metier(h.get("initie", ""))
+        _migrer_savoirs(h)
         habitants.append(h)
     prochain_id = int(d.get("prochain_id", 1))
     couples = []

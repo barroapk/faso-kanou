@@ -6,9 +6,11 @@ extends RefCounted
 # doit tomber juste. Rien n'est produit gratuitement.
 # Pour lancer une recette, il faut à la fois :
 #   recette connue, matières et combustible en stock, outil, bâtiment,
-#   bonne saison, et un adulte libre ("sans métier") pour travailler.
+#   bonne saison, et un adulte libre ("sans métier") qui a le savoir-faire
+#   demandé (niveau_min). Le plus habile est choisi : il travaille plus vite
+#   (0,5 à 1,5 jour de travail par jour) et progresse en pratiquant.
 # Les matières sont réservées (retirées) au lancement ; le produit arrive
-# quand le travail est fini. Le savoir-faire individuel viendra à l'étape 4.
+# quand le travail est fini.
 
 signal evenement(texte)
 
@@ -103,9 +105,18 @@ func etat(id: String, pop, res, cons, jour: int, nombre := 1) -> Dictionary:
     if not saisons.is_empty() and not saisons.has((jour / 30) % 12):
         e["saison"] = false
         e["raisons"].append("Pas en cette saison.")
-    if _libres(pop, jour).is_empty():
+    var libres := _libres(pop, jour)
+    if libres.is_empty():
         e["travailleur"] = false
         e["raisons"].append("Aucun adulte libre pour ce travail.")
+    elif int(r.get("niveau_min", 0)) > 0:
+        var capable := false
+        for h in libres:
+            if pop.savoir(h, r["competence"]) >= float(r["niveau_min"]):
+                capable = true
+        if not capable:
+            e["travailleur"] = false
+            e["raisons"].append("Personne de libre n'a le savoir-faire : %s (niveau %d)." % [r["competence"], int(r["niveau_min"])])
     e["possible"] = e["raisons"].is_empty()
     return e
 
@@ -128,18 +139,29 @@ func commander(id: String, pop, res, cons, jour: int, nombre := 1) -> String:
 func jour_passe(pop, res, jour: int) -> void:
     for h in pop.habitants:
         h.erase("occupe")
+        h.erase("tache")
     if commandes.is_empty():
         return
     var ouvriers := _libres(pop, jour)
-    for h in ouvriers:
-        if commandes.is_empty():
-            break
+    while not ouvriers.is_empty() and not commandes.is_empty():
         var c: Dictionary = commandes[0]
-        h["occupe"] = true
-        var outil: String = definitions[c["recette"]]["outil"]
-        if outil != "" and res.equipement != null:
-            res.equipement.user(outil)
-        c["reste"] = float(c["reste"]) - 1.0
+        var r: Dictionary = definitions[c["recette"]]
+        var comp: String = r["competence"]
+        var meilleur := {}
+        for h in ouvriers:
+            if pop.savoir(h, comp) < float(r.get("niveau_min", 0)):
+                continue
+            if meilleur.is_empty() or pop.savoir(h, comp) > pop.savoir(meilleur, comp):
+                meilleur = h
+        if meilleur.is_empty():
+            break
+        ouvriers.erase(meilleur)
+        meilleur["occupe"] = true
+        if comp != "":
+            meilleur["tache"] = comp
+        if r["outil"] != "" and res.equipement != null:
+            res.equipement.user(r["outil"])
+        c["reste"] = float(c["reste"]) - (0.5 + pop.savoir(meilleur, comp) / 100.0)
         if float(c["reste"]) <= 0.000001:
             commandes.pop_front()
             _livrer(c, res)

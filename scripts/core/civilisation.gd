@@ -89,7 +89,7 @@ func _jour_passe() -> void:
     equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
-    population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel)
+    population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     if temps.jour_total % chef.REVUE_JOURS == 0:
         besoins.actualiser(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
         chef.revue(conseil, population, besoins, temps.jour_total)
