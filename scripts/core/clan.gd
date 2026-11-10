@@ -19,11 +19,11 @@ const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 const ECONOMIE = preload("res://scripts/core/economie.gd")
 const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 const PRESSION = preload("res://scripts/core/pression.gd")
+const TERRITOIRE = preload("res://scripts/core/territoire.gd")
 
 var id := ""
 var nom := ""
 var origine := ""
-var territoire := {}
 var chef_fixe := {}
 var regne := 0
 var outils_voulus := {}
@@ -39,6 +39,7 @@ var decouvertes
 var economie
 var agriculture
 var pression
+var territoire
 
 func _modules() -> void:
     population = POPULATION.new()
@@ -55,13 +56,14 @@ func _modules() -> void:
     economie = ECONOMIE.new()
     agriculture = AGRICULTURE.new()
     pression = PRESSION.new()
+    territoire = TERRITOIRE.new()
+    agriculture.territoire = territoire
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
     id = cle
     nom = fiche.get("nom", cle)
     origine = fiche.get("origine", "")
-    territoire = fiche.get("territoire", {})
     chef_fixe = fiche.get("chef_fixe", {})
     outils_voulus = fiche.get("outils", {})
     agriculture.choisir_ile(fiche.get("ile", "kossi"))
@@ -96,6 +98,8 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
         for r in decouvertes.definitions[d]["debloque"]:
             if not recettes.connues.has(r):
                 recettes.connues.append(r)
+    # Territoire acquis au fil des années (1 parcelle + 1 par décennie), assez pour ses champs.
+    territoire.installer(agriculture.ile_id, agriculture.ile, 1 + int(float(fiche.get("anciennete", 0)) / 10.0) + int(ceil(float(fiche.get("champs_ha", 0.0)) / 30.0)), jour)
     # Champs déjà défrichés d'un clan ancien qui cultive.
     if float(fiche.get("champs_ha", 0.0)) > 0.0:
         agriculture.creer_champ(float(fiche["champs_ha"]))
@@ -146,6 +150,8 @@ func mois_passe(jour: int, pluie: bool) -> void:
     besoins.mois_passe(population, ressources, construction, jour, pluie, not construction.chantiers.is_empty())
     _gerer(jour)
     agriculture.gerer_auto(population, ressources, jour, decouvertes.connait)
+    if decouvertes.connait("agriculture"):
+        territoire.gerer_auto(agriculture, ressources, jour, 4.0)
     if agriculture.prochaine_recolte() > jour:
         besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     pression.mois_passe(population, ressources, equipement, jour)
@@ -215,7 +221,7 @@ func _gerer(jour: int) -> void:
             if p["type"] == "logement" and p["solutions"].size() > 0:
                 besoins.appliquer(p["solutions"][0])
                 break
-    if ressources.quantite("pierre") < 5.0:
+    if ressources.quantite("pierre") < 20.0:
         recettes.commander("ramasser_pierre", population, ressources, construction, jour)
     for o in outils_voulus:
         if equipement.nombre(o) < int(outils_voulus[o]):
@@ -234,7 +240,7 @@ func _gerer(jour: int) -> void:
 
 func vers_dict() -> Dictionary:
     return {
-        "id": id, "nom": nom, "origine": origine, "territoire": territoire,
+        "id": id, "nom": nom, "origine": origine,
         "chef_fixe": chef_fixe, "regne": regne, "outils_voulus": outils_voulus,
         "population": population.vers_dict(),
         "ressources": ressources.vers_dict(),
@@ -247,6 +253,7 @@ func vers_dict() -> Dictionary:
         "economie": economie.vers_dict(),
         "agriculture": agriculture.vers_dict(),
         "pression": pression.vers_dict(),
+        "territoire": territoire.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -254,7 +261,6 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     id = str(d.get("id", ""))
     nom = str(d.get("nom", id))
     origine = str(d.get("origine", ""))
-    territoire = d.get("territoire", {})
     chef_fixe = d.get("chef_fixe", {})
     regne = int(d.get("regne", 0))
     outils_voulus = {}
@@ -271,4 +277,6 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     economie.depuis_dict(d.get("economie", {}), ressources)
     agriculture.depuis_dict(d.get("agriculture", {}))
     pression.depuis_dict(d.get("pression", {}))
+    territoire.depuis_dict(d.get("territoire", {}))
+    territoire.installer(agriculture.ile_id, agriculture.ile, 1 + int(ceil(agriculture.surface_cultivee() / 30.0)), jour)
     ressources.richesse = agriculture.ile.get("richesse", {})

@@ -22,6 +22,7 @@ const CARAVANES = preload("res://scripts/core/caravanes.gd")
 const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 const MONDE = preload("res://scripts/core/monde.gd")
 const PRESSION = preload("res://scripts/core/pression.gd")
+const TERRITOIRE = preload("res://scripts/core/territoire.gd")
 
 var temps
 var population
@@ -41,6 +42,7 @@ var marche
 var caravanes
 var agriculture
 var pression
+var territoire
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -71,6 +73,8 @@ func _creer_modules() -> void:
     caravanes = CARAVANES.new()
     agriculture = AGRICULTURE.new()
     pression = PRESSION.new()
+    territoire = TERRITOIRE.new()
+    agriculture.territoire = territoire
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -151,6 +155,8 @@ func iles_au_choix() -> Array:
 
 func _installer_ile() -> void:
     agriculture.choisir_ile(ile_joueur)
+    # Le village de départ : 1 parcelle, plus ce qu'il faut pour les champs d'une ancienne sauvegarde.
+    territoire.installer(ile_joueur, agriculture.ile, 1 + int(ceil(agriculture.surface_cultivee() / 30.0)), temps.jour_total)
     ressources.richesse = agriculture.ile.get("richesse", {})
 
 # Expériences du joueur : ce qu'il peut essayer, et lancer un essai.
@@ -159,6 +165,10 @@ func experiences_possibles() -> Array:
 
 func lancer_experience(id: String) -> String:
     return decouvertes.lancer(id, population, ressources, recettes, temps.jour_total, pression, "joueur")
+
+# Territoire du joueur : acquérir une parcelle voisine.
+func acquerir_parcelle(x: int, z: int) -> String:
+    return territoire.acheter(Vector2i(x, z), ressources, temps.jour_total)
 
 # Agriculture du joueur : créer un champ (hectares) et le semer.
 func creer_champ(ha: float) -> String:
@@ -235,6 +245,8 @@ func _mois_passe() -> void:
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
     if besoins.mode == "auto":
         agriculture.gerer_auto(population, ressources, temps.jour_total, decouvertes.connait)
+        if decouvertes.connait("agriculture"):
+            territoire.gerer_auto(agriculture, ressources, temps.jour_total, 4.0)
     if agriculture.prochaine_recolte() > temps.jour_total:
         besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     migration.mois_passe(population, ressources, construction, temps.jour_total)
@@ -276,6 +288,7 @@ func sauvegarder() -> void:
         "caravanes": caravanes.vers_dict(),
         "agriculture": agriculture.vers_dict(),
         "pression": pression.vers_dict(),
+        "territoire": territoire.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -315,6 +328,7 @@ func _charger(nom: String) -> bool:
     caravanes.depuis_dict(donnees.get("caravanes", {}))
     agriculture.depuis_dict(donnees.get("agriculture", {}))
     pression.depuis_dict(donnees.get("pression", {}))
+    territoire.depuis_dict(donnees.get("territoire", {}))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
     ile_confirmee = bool(donnees.get("ile_confirmee", true))
     graine_monde = int(donnees.get("graine_monde", 0))

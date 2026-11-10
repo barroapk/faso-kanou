@@ -65,6 +65,7 @@ func remplir() -> void:
     _section_conseil(C, jour)
     _section_alertes(C)
     _section_experiences(C, jour)
+    _section_territoire(C)
     _section_agriculture(C, jour)
     _section_mode(C)
 
@@ -132,6 +133,18 @@ func _section_experiences(C, jour: int) -> void:
         if float(p[k]) >= 1.0:
             parts.append("%s %d" % [k, int(p[k])])
     boite.add_child(_label("Pression des difficultés : %s" % (", ".join(parts) if parts.size() > 0 else "aucune"), 21))
+
+# ---------- Territoire ----------
+
+func _section_territoire(C) -> void:
+    var t = C.territoire
+    boite.add_child(_label("Territoire", 30))
+    boite.add_child(_label("%d parcelle(s) de 100 ha : %d ha à nous, dont %d ha cultivables. L'île fait %d ha." % [t.possedees.size(), int(t.surface_possedee()), int(t.cultivable_possede()), int(float(t.ile.get("surface_ha", 0)))], 22))
+    for p in t.meilleures(3):
+        var x: int = p.x
+        var z: int = p.y
+        var txt := "Parcelle (%d, %d) : %d ha cultivables, à %.1f km du village — %s" % [x, z, int(t.cultivable(p)), t._distance(p), t.texte_cout(t.cout(p))]
+        boite.add_child(_ligne([_label(txt, 21), _bouton("Acquérir", true, func(): _faire(C.acquerir_parcelle(x, z), "Parcelle acquise."))]))
 
 # ---------- 4. Agriculture ----------
 

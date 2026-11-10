@@ -23,6 +23,7 @@ var champs: Array = []
 var prochain_id := 1
 var eau_retenue := 0.0                # m³ gardés par les retenues
 var semences := {}                    # réserve de semences, mise à part : on ne la mange pas
+var territoire = null                 # territoire.gd : on ne cultive que ses propres parcelles
 
 func _init() -> void:
     var c = JSON.parse_string(FileAccess.get_file_as_string("res://data/cultures.json"))
@@ -50,13 +51,16 @@ func surface_cultivee() -> float:
     return s
 
 func terre_libre() -> float:
-    return maxf(0.0, float(ile.get("cultivable_ha", 0.0)) - surface_cultivee())
+    var limite: float = float(ile.get("cultivable_ha", 0.0))
+    if territoire != null:
+        limite = minf(limite, territoire.cultivable_possede())
+    return maxf(0.0, limite - surface_cultivee())
 
 # Un nouveau champ : il faudra le défricher (travail) avant la première récolte.
 func creer_champ(ha: float) -> String:
     ha = minf(ha, terre_libre())
     if ha < 0.1:
-        return "Plus de terre cultivable libre sur l'île."
+        return "Plus de terre cultivable libre sur notre territoire : acquérez une parcelle."
     champs.append({"id": prochain_id, "ha": ha, "culture": "", "etat": "friche",
         "fertilite": float(ile.get("fertilite", 1.0)), "defriche": false,
         "semis": -1, "jours": 0, "eau": 0.0, "travail": 0.0, "irrigue": false})
