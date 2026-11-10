@@ -21,7 +21,11 @@ const RISQUE_MORT_JOUR := 0.003  # chance par jour en mer de perdre un membre
 const CHANCE_DECOUVERTE := 0.6   # une exploration trouve une île 6 fois sur 10
 const AMITIE_VISITE := 8.0       # points d'amitié d'une visite (divisés si visites rapprochées)
 const DELAI_PLEIN := 180         # jours entre deux visites pour le gain complet
-const MEMBRES := {"exploration": 3, "visite": 2}
+const MEMBRES := {"exploration": 2, "visite": 2}
+const GARDER_AU_VILLAGE := 2     # adultes qui restent au travail (on ne vide pas le village)
+# Bateau égaré (v0.3.27) : risque par jour en mer, selon le bateau, son état et la saison.
+const RISQUE_EGARE_JOUR := 0.004
+const SOLIDITE := {"pirogue": 1.0, "boutre": 0.6, "navire": 0.3}
 
 var connues := {}                # ile_id -> niveau de connaissance (1 = vue, 2+ = visitée)
 var visites := {}                # clan_id -> {"nb": n, "dernier": jour}
@@ -65,6 +69,8 @@ func lancer(type: String, cible: String, maison: String, pop, res, jour: int) ->
     var membres := _choisir(pop, jour, int(MEMBRES[type]))
     if membres.size() < int(MEMBRES[type]):
         return "Pas assez d'adultes disponibles (%d nécessaires)." % int(MEMBRES[type])
+    if _choisir(pop, jour, 99).size() - membres.size() < GARDER_AU_VILLAGE:
+        return "Il faut garder au moins %d adultes au travail au village." % GARDER_AU_VILLAGE
     if flotte != null:
         var v: float = flotte.vitesse_libre(jour, membres.size(), 0.0)
         if v <= 0.0:
@@ -75,13 +81,16 @@ func lancer(type: String, cible: String, maison: String, pop, res, jour: int) ->
     if res.total_aliments() < vivres:
         return "Il faut %d kg de vivres pour le voyage." % int(vivres)
     _payer_vivres(res, vivres)
+    var bateau := {}
     if flotte != null:
-        flotte.reserver(jour, jour + duree, membres.size(), 0.0, type)
+        bateau = flotte.reserver(jour, jour + duree, membres.size(), 0.0, type)
     var ids: Array = []
     for h in membres:
         h["expedition"] = true
+        h["metier"] = "sans métier"     # son poste est repris par un autre adulte
         ids.append(int(h["id"]))
-    en_cours = {"type": type, "cible": cible, "membres": ids, "depart": jour, "retour": jour + duree, "jours_mer": duree - SEJOUR}
+    pop.repartir(jour)
+    en_cours = {"type": type, "cible": cible, "membres": ids, "depart": jour, "retour": jour + duree, "jours_mer": duree - SEJOUR, "bateau": int(bateau.get("id", -1))}
     evenement.emit("Expédition (%s) partie avec %s, retour dans %d jours." % [type, ", ".join(membres.map(func(h): return h["prenom"])), duree])
     return ""
 
@@ -132,7 +141,19 @@ func jour_passe(pop, jour: int, maison: String, clans: Dictionary, moi_id: Strin
         evenement.emit("Tempête en mer : %s %s a péri pendant l'expédition." % [perdu["prenom"], perdu["nom"]])
         pop.faire_sortir(perdu, jour)
         en_cours["membres"].erase(int(perdu["id"]))
+    if en_cours.get("disparu", false):
+        _attendre_disparu(pop, membres, jour, moi_id, diplomatie)
+        return
+    _risque_mer(jour)
     if jour < int(en_cours["retour"]):
+        return
+    if en_cours.get("egare", false):
+        en_cours["disparu"] = true
+        en_cours["disparu_le"] = jour
+        var b := _bateau()
+        if not b.is_empty():
+            b["occupe_jusqu"] = 999999
+        evenement.emit("Le bateau de l'expédition n'est pas revenu à la date prévue !")
         return
     for h in membres:
         h.erase("expedition")
@@ -152,6 +173,66 @@ func jour_passe(pop, jour: int, maison: String, clans: Dictionary, moi_id: Strin
         evenement.emit(t)
     else:
         _visiter(cible, clans, moi_id, moi, diplomatie, jour)
+# --- Bateau disparu (v0.3.27) ---
+func _bateau() -> Dictionary:
+    if flotte == null:
+        return {}
+    for b in flotte.bateaux:
+        if int(b["id"]) == int(en_cours.get("bateau", -1)):
+            return b
+    return {}
+# Personne ne le sait encore : le bateau s'égare (tempête, courant, avarie).
+func _risque_mer(jour: int) -> void:
+    if en_cours.get("egare", false) or jour >= int(en_cours["retour"]) - SEJOUR / 2:
+        return
+    var b := _bateau()
+    var mois := (jour / 30) % 12
+    var r := RISQUE_EGARE_JOUR * (1.6 if mois >= 5 and mois <= 9 else 1.0)
+    if not b.is_empty():
+        r *= float(SOLIDITE.get(b["type"], 1.0)) * (1.5 - float(b["etat"]))
+    if rng.randf() < r:
+        en_cours["egare"] = true
+# Le joueur choisit les secours (defis.gd) ; sans choix, on attend.
+func secourir(jusqu_a: int, chance: float, aide: String) -> void:
+    en_cours["secours"] = jusqu_a
+    en_cours["chance"] = chance
+    en_cours["aide"] = aide
+# Attente des secours, puis issue : retrouvé ou perdu.
+func _attendre_disparu(pop, membres: Array, jour: int, moi_id: String, diplomatie) -> void:
+    if not en_cours.has("secours"):
+        if jour < int(en_cours["disparu_le"]) + 15:
+            return
+        secourir(jour + 15, 0.25, "")
+    if jour < int(en_cours["secours"]):
+        return
+    var b := _bateau()
+    var aide: String = en_cours.get("aide", "")
+    for h in membres:
+        h.erase("expedition")
+    if rng.randf() < float(en_cours["chance"]):
+        if not b.is_empty():
+            b["occupe_jusqu"] = jour
+            b["etat"] = minf(float(b["etat"]), 0.3)
+        var t := "Le bateau disparu est retrouvé : l'équipage rentre épuisé, le bateau est très abîmé."
+        if aide != "":
+            diplomatie.noter(moi_id, aide, "secours", 6.0, "sauvetage en mer", jour)
+            t += " Nos amis ont participé au sauvetage (relation +6)."
+        evenement.emit(t)
+    else:
+        if not b.is_empty():
+            flotte.bateaux.erase(b)
+        var perdus: PackedStringArray = []
+        for h in membres:
+            if rng.randf() < 0.25:
+                perdus.append(h["prenom"])
+                pop.faire_sortir(h, jour)
+        var t := "Le bateau est perdu en mer."
+        if perdus.is_empty():
+            t += " L'équipage a pu regagner la côte sur une épave."
+        else:
+            t += " Portés disparus : %s." % ", ".join(perdus)
+        evenement.emit(t)
+    en_cours = {}
 
 const OBSERVATION := {"hostilité": 0.0, "rivalité": 0.5, "neutralité": 1.0, "amitié": 1.5, "alliance": 2.0}
 

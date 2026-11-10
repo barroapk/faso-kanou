@@ -438,7 +438,7 @@ func _meilleur_candidat(m: String, jour: int):
     var meilleur = null
     var score_max := -1.0
     for h in habitants:
-        if h["metier"] != "sans métier" or age(h, jour) < AGE_ADULTE:
+        if h["metier"] != "sans métier" or age(h, jour) < AGE_ADULTE or h.has("expedition"):
             continue
         var score := savoir(h, savoir_du_metier(m)) + (100.0 if h.get("initie", "") == m else 0.0)
         if score > score_max:

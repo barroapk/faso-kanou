@@ -256,6 +256,31 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
         else:
             C.pression.noter("nourriture", 20.0)
             evenement.emit("Le clan attend la pluie en espérant que les réserves suffiront.")
+    elif cle.begins_with("disparu_"):
+        if not C.expeditions.en_cours.get("disparu", false):
+            return ""
+        if option == 0:
+            var gens: Array = C.population.habitants.filter(func(h): return C.population.age(h, jour) >= 14 and not h["metier"] in ["chef", "ancien"] and not h.has("expedition") and not occupes.has(int(h["id"])))
+            if gens.size() < 2:
+                return "Il faut 2 adultes disponibles."
+            if C.flotte.reserver(jour, jour + 10, 2, 0.0, "secours").is_empty():
+                return "Aucun bateau libre pour les secours."
+            for h in gens.slice(0, 2):
+                occupes[int(h["id"])] = jour + 10
+            C.expeditions.secourir(jour + 10, 0.7, "")
+            evenement.emit("Les secours prennent la mer.")
+        elif option == 1:
+            var ami := ""
+            for v in C.voisins:
+                if v.vivant() and C.diplomatie.etat("joueur", v.id) in ["amitié", "alliance"]:
+                    ami = v.id
+                    break
+            if ami == "":
+                return "Aucun clan ami ne peut nous aider."
+            C.expeditions.secourir(jour + 15, 0.5, ami)
+            evenement.emit("Le %s envoie ses pêcheurs fouiller la mer." % C.voisin(ami).nom)
+        else:
+            C.expeditions.secourir(jour + 20, 0.25, "")
     elif cle == "marchand":
         if option == 0:
             if C.ressources.total_aliments() < float(d["donnees"]["prix"]):
@@ -289,6 +314,12 @@ func jour_passe(C) -> void:
                 occupes.erase(int(h["id"]))
             else:
                 h["occupe"] = true
+    # Bateau disparu (v0.3.27) : naît d'une vraie expédition qui ne revient pas.
+    var ex: Dictionary = C.expeditions.en_cours
+    if ex.get("disparu", false) and not ex.has("secours"):
+        _proposer("disparu_%d" % int(ex["depart"]), "Le bateau de l'expédition a disparu",
+            "Il devait rentrer il y a peu. Tempête ? Avarie ? L'équipage attend peut-être sur une côte.",
+            ["Envoyer des secours (un bateau libre et 2 adultes, 10 jours)", "Demander l'aide d'un clan ami", "Attendre et espérer"], 12, jour)
     # Sans réponse à temps : le clan subit la dernière option.
     for i in range(decisions.size() - 1, -1, -1):
         if jour > int(decisions[i]["fin"]):
