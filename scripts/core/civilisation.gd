@@ -18,6 +18,7 @@ const ECONOMIE = preload("res://scripts/core/economie.gd")
 const CLAN = preload("res://scripts/core/clan.gd")
 const DIPLOMATIE = preload("res://scripts/core/diplomatie.gd")
 const MARCHE = preload("res://scripts/core/marche.gd")
+const CARAVANES = preload("res://scripts/core/caravanes.gd")
 
 var temps
 var population
@@ -34,6 +35,7 @@ var economie
 var voisins: Array = []
 var diplomatie
 var marche
+var caravanes
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -58,6 +60,8 @@ func _creer_modules() -> void:
     economie = ECONOMIE.new()
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
+    caravanes = CARAVANES.new()
+    marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
 
@@ -155,6 +159,7 @@ func _jour_passe() -> void:
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     for c in voisins:
         c.jour_passe(temps.jour_total, temps.saison_des_pluies())
+    caravanes.jour_passe(_clan, temps.jour_total)
     if temps.jour_total % chef.REVUE_JOURS == 0:
         besoins.actualiser(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
         chef.revue(conseil, population, besoins, temps.jour_total)
@@ -201,6 +206,7 @@ func sauvegarder() -> void:
         "voisins": voisins.map(func(c): return c.vers_dict()),
         "diplomatie": diplomatie.vers_dict(),
         "marche": marche.vers_dict(),
+        "caravanes": caravanes.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -234,6 +240,7 @@ func _charger(nom: String) -> bool:
     decouvertes.depuis_dict(donnees.get("decouvertes", {}))
     economie.depuis_dict(donnees.get("economie", {}), ressources)
     marche.depuis_dict(donnees.get("marche", {}))
+    caravanes.depuis_dict(donnees.get("caravanes", {}))
     if donnees.has("voisins"):
         voisins = []
         var ids := ["joueur"]

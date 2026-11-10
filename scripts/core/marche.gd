@@ -24,6 +24,7 @@ const MONNAIE := "cauris"
 
 var valeurs := {}              # prix de référence (kg de mil)
 var compteur := 0              # numéro des transactions
+var caravanes = null           # si présent, la marchandise voyage (v0.3.15 B)
 
 func _init() -> void:
     valeurs = ECONOMIE.new().valeurs
@@ -152,8 +153,11 @@ func conclure(a, id_a: String, b, id_b: String, d: Dictionary, jour: int, diplom
         return d.get("raison", "Échange impossible.")
     compteur += 1
     var num := "T%d-%d" % [jour, compteur]
-    var recu := {d["produit"]: d["quantite"]}
-    var err: String = ECONOMIE.echanger(a.economie, a.ressources, b.economie, b.ressources, d["paiement"], recu, jour, num)
+    var err := ""
+    if caravanes != null:
+        err = caravanes.envoyer(a, id_a, b, id_b, d, jour, num)
+    else:
+        err = ECONOMIE.echanger(a.economie, a.ressources, b.economie, b.ressources, d["paiement"], {d["produit"]: d["quantite"]}, jour, num)
     if err != "":
         compteur -= 1
         return err
@@ -186,6 +190,10 @@ func mois_passe(clans: Array, ids_ordinateur: Array, jour: int, diplomatie) -> v
                     continue
                 var conso: float = ca[1].ressources._conso_jour(ca[1].population, jour, v)
                 var q := conso * (SEUIL_ACHAT - j)
+                if caravanes != null:
+                    q -= caravanes.en_attente(ca[0], id)
+                if q <= 0.0:
+                    break
                 var d := devis(ca[1], cb[1], id, q, jour)
                 if conclure(ca[1], ca[0], cb[1], cb[0], d, jour, diplomatie) == "":
                     break
