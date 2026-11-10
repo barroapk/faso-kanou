@@ -69,6 +69,7 @@ func remplir() -> void:
     _section_agriculture(C, jour)
     _section_clotures(C)
     _section_routes(C)
+    _section_archipel(C)
     _section_mode(C)
 
 # ---------- 1. Chef et conseil ----------
@@ -248,6 +249,40 @@ func _section_routes(C) -> void:
             var de: String = dest
             enfants.append(_bouton("%s (%s)" % [ro.DEF[niv]["nom"], ro.texte_cout(ro.cout(dest, niv))], true, func(): _faire(C.construire_route(de, niv), "Travaux commencés.")))
         boite.add_child(_ligne(enfants))
+
+# ---------- Archipel : explorer, visiter, connaître les autres îles ----------
+
+var _ile_vue := ""
+
+func _section_archipel(C) -> void:
+    var ex = C.expeditions
+    boite.add_child(_label("Archipel", 30))
+    if not ex.en_cours.is_empty():
+        boite.add_child(_label("Expédition en mer (%s) : retour dans %d jours." % [ex.en_cours["type"], int(ex.en_cours["retour"]) - C.temps.jour_total], 22))
+    boite.add_child(_ligne([_label("Partir vers l'inconnu (3 adultes, vivres, risques en mer) : 6 chances sur 10 de trouver une île.", 21),
+        _bouton("Explorer", ex.en_cours.is_empty(), func(): _faire(C.lancer_expedition("exploration"), "Expédition partie."))]))
+    var par_ile: Dictionary = C._clans_par_ile()
+    var iles: Dictionary = C.agriculture.catalogue_iles()
+    for id in iles:
+        if id == C.ile_joueur or int(ex.connues.get(id, 0)) < 1:
+            continue
+        var t := "%s" % iles[id]["nom"]
+        if par_ile.has(id):
+            var cid: String = par_ile[id][0]
+            t += " — %s, relation : %s (%d), %d visite(s)" % [par_ile[id][1].nom, C.diplomatie.etat("joueur", cid), int(C.diplomatie.relation("joueur", cid)["score"]), int(ex.visites.get(cid, {}).get("nb", 0))]
+        t += " — %d jours de mer" % ex.jours_mer(C.ile_joueur, id)
+        var i: String = id
+        boite.add_child(_ligne([_label(t, 21),
+            _bouton("Voir", true, func():
+                _ile_vue = "" if _ile_vue == i else i
+                remplir()),
+            _bouton("Visiter", ex.en_cours.is_empty(), func(): _faire(C.lancer_expedition("visite", i), "Délégation partie."))]))
+        if _ile_vue == id:
+            boite.add_child(_label(ex.fiche(id, par_ile, C.temps.jour_total), 21))
+    var obs: PackedStringArray = []
+    for d in C.decouvertes.observees:
+        obs.append("%s (niveau %.1f)" % [C.decouvertes.definitions[d]["nom"], float(C.decouvertes.observees[d])])
+    boite.add_child(_label("Techniques observées chez les autres : %s" % (", ".join(obs) if obs.size() > 0 else "aucune"), 21))
 
 # ---------- 5. Mode de gestion ----------
 

@@ -25,6 +25,7 @@ const PRESSION = preload("res://scripts/core/pression.gd")
 const TERRITOIRE = preload("res://scripts/core/territoire.gd")
 const CLOTURES = preload("res://scripts/core/clotures.gd")
 const ROUTES = preload("res://scripts/core/routes.gd")
+const EXPEDITIONS = preload("res://scripts/core/expeditions.gd")
 
 var temps
 var population
@@ -47,6 +48,7 @@ var pression
 var territoire
 var clotures
 var routes
+var expeditions
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -84,6 +86,7 @@ func _creer_modules() -> void:
     routes = ROUTES.new()
     agriculture.routes = routes
     ressources.routes = routes
+    expeditions = EXPEDITIONS.new()
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -165,6 +168,7 @@ func iles_au_choix() -> Array:
 func _installer_ile() -> void:
     agriculture.choisir_ile(ile_joueur)
     routes.installer(agriculture.ile)
+    expeditions.depart(ile_joueur)
     # Le village de départ : 1 parcelle, plus ce qu'il faut pour les champs d'une ancienne sauvegarde.
     territoire.installer(ile_joueur, agriculture.ile, 1 + int(ceil(agriculture.surface_cultivee() / 30.0)), temps.jour_total)
     ressources.richesse = agriculture.ile.get("richesse", {})
@@ -190,6 +194,36 @@ func cloturer(cible: String, niveau: String) -> String:
 
 func changer_portes(cible: String, delta: int) -> String:
     return clotures.changer_portes(cible, delta, ressources)
+
+# ---------- Expéditions et visites ----------
+
+func _clans_par_ile() -> Dictionary:
+    var d := {}
+    for c in voisins:
+        if c.vivant():
+            d[c.agriculture.ile_id] = [c.id, c]
+    return d
+
+func lancer_expedition(type: String, cible := "") -> String:
+    return expeditions.lancer(type, cible, ile_joueur, population, ressources, temps.jour_total)
+
+# Les clans de l'ordinateur se rendent aussi visite (environ une fois tous les
+# 3 ans, quand ils ont des vivres) : même règle d'amitié et d'observation.
+func _visites_ordinateur() -> void:
+    var par_ile := _clans_par_ile()
+    for c in voisins:
+        if not c.vivant() or randf() > 0.03 or c.ressources.total_aliments() < 100.0:
+            continue
+        var autres: Array = par_ile.keys().filter(func(i): return i != c.agriculture.ile_id)
+        if autres.is_empty():
+            continue
+        var cible: String = autres[randi() % autres.size()]
+        var autre = par_ile[cible][1]
+        c.expeditions_vivres(60.0)
+        diplomatie.noter(c.id, autre.id, "visite", 4.0, "visite d'une délégation", temps.jour_total)
+        var niveau: float = expeditions.OBSERVATION.get(diplomatie.etat(c.id, autre.id), 1.0)
+        for t in autre.decouvertes.connues:
+            c.decouvertes.observer(t, niveau)
 
 # Routes du joueur : destination = "eau", "foret", "carriere", "mine", "port" ou "parcelle_x,z".
 func construire_route(dest: String, niveau: String) -> String:
@@ -247,6 +281,7 @@ func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, temps.jour_total)
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
+    expeditions.jour_passe(population, temps.jour_total, ile_joueur, _clans_par_ile(), "joueur", self, diplomatie)
     equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
@@ -288,6 +323,7 @@ func _mois_passe() -> void:
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
     diplomatie.mois_passe()
+    _visites_ordinateur()
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()
@@ -323,6 +359,7 @@ func sauvegarder() -> void:
         "territoire": territoire.vers_dict(),
         "clotures": clotures.vers_dict(),
         "routes": routes.vers_dict(),
+        "expeditions": expeditions.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -365,6 +402,7 @@ func _charger(nom: String) -> bool:
     territoire.depuis_dict(donnees.get("territoire", {}))
     clotures.depuis_dict(donnees.get("clotures", {}))
     routes.depuis_dict(donnees.get("routes", {}))
+    expeditions.depuis_dict(donnees.get("expeditions", {}))
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))

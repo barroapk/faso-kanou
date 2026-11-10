@@ -41,6 +41,13 @@ const PART_MATIERES := 0.2       # part des matières de la découverte consomm�
 var en_cours := {}               # {id, essayeurs: [id habitant], fin, par}
 var essais := {}                 # id -> nombre d'échecs
 var annoncees := {}              # id -> déjà signalée comme possible
+var observees := {}              # id -> niveau d'observation chez un autre clan (0 à 3)
+
+# Une technique vue chez un autre clan devient une idée d'expérience, et l'essai
+# a plus de chances (+7 % par niveau d'observation). Observer n'est pas maîtriser.
+func observer(id: String, gain: float) -> void:
+    if definitions.has(id) and not connait(id):
+        observees[id] = minf(3.0, float(observees.get(id, 0.0)) + gain)
 
 func _init() -> void:
     var d = JSON.parse_string(FileAccess.get_file_as_string(FICHIER))
@@ -120,7 +127,7 @@ func possibles(pop, res, recettes, jour: int, pression) -> Array:
             continue
         if not manque(id, pop, res, recettes, jour).is_empty():
             continue
-        if _domaine(id) != "" and _pression(id, pression) < SEUIL_POSSIBLE:
+        if _domaine(id) != "" and _pression(id, pression) < SEUIL_POSSIBLE and float(observees.get(id, 0.0)) < 1.0:
             continue
         l.append(id)
     return l
@@ -130,7 +137,7 @@ func _essayeurs(id: String, pop, jour: int) -> Array:
     var cond: Dictionary = definitions[id]["conditions"].get("savoirs", {})
     var candidats: Array = []
     for h in pop.habitants:
-        if pop.age(h, jour) >= pop.AGE_ADULTE and not h["metier"] in ["chef", "ancien"] and not h.has("experience"):
+        if pop.age(h, jour) >= pop.AGE_ADULTE and not h["metier"] in ["chef", "ancien"] and not h.has("experience") and not h.has("expedition"):
             candidats.append(h)
     candidats.sort_custom(func(a, b):
         var sa := 0.0
@@ -149,7 +156,7 @@ func chance(id: String, pop, pression) -> float:
         for k in cond:
             s += pop.savoir(h, k)
         savoir = maxf(savoir, s / maxf(1.0, cond.size()))
-    var c := 0.10 + savoir / 250.0 + _pression(id, pression) / 250.0 + 0.08 * int(essais.get(id, 0))
+    var c := 0.10 + savoir / 250.0 + _pression(id, pression) / 250.0 + 0.08 * int(essais.get(id, 0)) + 0.07 * float(observees.get(id, 0.0))
     return clampf(c, 0.05, 0.8) * float(DIFFICULTE.get(_epoque(id), 1.0))
 
 # Lance une expérience. Renvoie "" si elle commence.
@@ -252,7 +259,7 @@ func _entretenir(pop, recettes) -> void:
             evenement.emit("Savoir perdu : plus personne ne pratique %s." % definitions[id]["nom"])
 
 func vers_dict() -> Dictionary:
-    return {"connues": connues, "graine": str(rng.seed), "etat": str(rng.state), "en_cours": en_cours, "essais": essais, "annoncees": annoncees}
+    return {"connues": connues, "graine": str(rng.seed), "etat": str(rng.state), "en_cours": en_cours, "essais": essais, "annoncees": annoncees, "observees": observees}
 
 func depuis_dict(d: Dictionary) -> void:
     en_cours = d.get("en_cours", {})
@@ -262,6 +269,7 @@ func depuis_dict(d: Dictionary) -> void:
     for k in d.get("essais", {}):
         essais[str(k)] = int(d["essais"][k])
     annoncees = d.get("annoncees", {})
+    observees = d.get("observees", {})
     connues = {}
     for id in d.get("connues", {}):
         var x: Dictionary = d["connues"][id]

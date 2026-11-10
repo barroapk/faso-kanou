@@ -133,6 +133,13 @@ func nom_du_chef() -> String:
         return "aucun"
     return "%s %s" % [h["nom"], h["prenom"]]
 
+# Vivres d'une délégation envoyée en visite (prélevés sur la nourriture).
+func expeditions_vivres(kgem: float) -> void:
+    var total: float = ressources.total_aliments()
+    for a in ressources.aliments.keys():
+        var part: float = float(ressources.aliments[a]) * ressources.facteur(a) / total
+        ressources.retirer(a, kgem * part / ressources.facteur(a), "expedition")
+
 func travail_batisseurs() -> float:
     var t := 0.0
     for h in population.habitants:
