@@ -34,6 +34,11 @@ var _res
 var _cons
 var _jour := 0
 var _s := 0
+# Stabilité (v0.3.33) : pas de changement de métier ordinaire moins de 60 jours
+# après le précédent ; exception : urgence vitale (danger à moins de 20 jours).
+const DELAI_CHANGEMENT := 60
+const URGENCE_JOURS := 20.0
+var dernier_changement := -9999
 var _chantier := false
 
 func verrouiller(m: String, jour: int) -> void:
@@ -43,17 +48,22 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
     _contexte(population, ressources, construction, jour, pluie, chantier_actif)
     if mode == "auto":
         _ajuster_postes()
-        _equilibrer()
-        for r in ORDRE:
-            for i in 3:
-                var p := _diagnostic(r)
-                if p.is_empty() or i >= ACTIONS_MAX[p["niveau"]]:
-                    break
-                var sol := _premiere_action(p)
-                if sol.is_empty():
-                    break
-                if appliquer(sol) != "":
-                    break
+        var calme := jour - dernier_changement < DELAI_CHANGEMENT and not _urgence()
+        if not calme:
+            var avant: Dictionary = population.postes.duplicate()
+            _equilibrer()
+            for r in ORDRE:
+                for i in 3:
+                    var p := _diagnostic(r)
+                    if p.is_empty() or i >= ACTIONS_MAX[p["niveau"]]:
+                        break
+                    var sol := _premiere_action(p)
+                    if sol.is_empty():
+                        break
+                    if appliquer(sol) != "":
+                        break
+            if population.postes != avant:
+                dernier_changement = jour
     problemes = diagnostiquer()
     for p in problemes:
         if p["type"] == "stockage":
@@ -348,14 +358,29 @@ func _ajuster_postes() -> void:
 # ({métier: +1 ou -1}). Réserve / déficit, plus le temps qu'on survit sans
 # (la soif tue plus vite que la faim). 99999 = la production suffit.
 const SURVIE := {"eau": 25.0, "nourriture": 50.0, "bois": 60.0}
+# Prévision (v0.3.33) : on prend la pire des deux saisons, celle d'aujourd'hui
+# et celle dans 45 jours (saison sèche / saison des pluies).
 func _jours(r: String, delta: Dictionary) -> float:
-    var prod := _production(r)
-    for m in delta:
-        prod += float(delta[m]) * _rendement(m, r)
-    var net := prod - _conso(r)
+    var s_maintenant := _s
+    var mois := ((_jour + 45) / 30) % 12
+    var s_futur := 1 if mois >= 5 and mois <= 9 else 0
+    var net := 1.0e9
+    for s in [s_maintenant, s_futur]:
+        _s = s
+        var prod := _production(r)
+        for m in delta:
+            prod += float(delta[m]) * _rendement(m, r)
+        net = minf(net, prod - _conso(r))
+    _s = s_maintenant
     if net >= 0.0:
         return 99999.0
     return float(_res.stocks[r]) / -net + float(SURVIE[r])
+# Urgence vitale : une réserve (eau, nourriture, bois) vide dans moins de 20 jours.
+func _urgence() -> bool:
+    for r in ORDRE:
+        if _jours(r, {}) - float(SURVIE[r]) < URGENCE_JOURS:
+            return true
+    return false
 # Le besoin le plus menacé décide.
 func _pire(delta: Dictionary) -> float:
     var j := 99999.0
@@ -519,9 +544,10 @@ func _avis(cle: String, texte: String) -> void:
     evenement.emit(texte)
 
 func vers_dict() -> Dictionary:
-    return {"mode": mode, "verrou": verrou}
+    return {"mode": mode, "verrou": verrou, "dernier_changement": dernier_changement}
 
 func depuis_dict(d: Dictionary) -> void:
+    dernier_changement = int(d.get("dernier_changement", -9999))
     mode = str(d.get("mode", "auto"))
     verrou = {}
     for m in d.get("verrou", {}):

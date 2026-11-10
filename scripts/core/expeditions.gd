@@ -82,6 +82,11 @@ func lancer(type: String, cible: String, maison: String, pop, res, jour: int) ->
     var vivres := VIVRES_JOUR * membres.size() * duree
     if res.total_aliments() < vivres:
         return "Il faut %d kg de vivres pour le voyage." % int(vivres)
+    # Réserve de sécurité (v0.3.33), en jours : après les vivres, le village
+    # doit tenir toute l'absence + 30 jours, même sans rien produire.
+    var conso: float = res._conso_jour(pop, jour, "nourriture")
+    if conso > 0.0 and (res.total_aliments() - vivres) / conso < duree + 30:
+        return "Réserve trop faible : il faut garder %d jours de nourriture au village (absence + 30 jours)." % (duree + 30)
     _payer_vivres(res, vivres)
     var bateau := {}
     if flotte != null:
