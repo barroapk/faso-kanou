@@ -364,6 +364,8 @@ func _jour_passe() -> void:
             clotures.jour_passe(travail_batisseurs())
         elif routes.en_travaux():
             routes.jour_passe(travail_batisseurs())
+        elif routes.a_reparer() != "":
+            routes.reparer(travail_batisseurs(), ressources)
         else:
             flotte.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())

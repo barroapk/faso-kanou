@@ -135,6 +135,8 @@ func jour_passe(pop, res, routes, jour: int, rng: RandomNumberGenerator) -> void
         var eff: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
         var r: float = 0.5 + 0.5 * float(ile["richesse"].get(t, 1.0))
         var q: float = float(TYPES[t]["base"]) * eff * r * teneur(t)
+        if routes != null:
+            q *= routes.acces(TYPES[t]["route"])
         res.ajouter(TYPES[t]["produit"], q, "extraction")
         connus[t]["extrait"] = float(connus[t]["extrait"]) + q
 

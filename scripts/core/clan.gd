@@ -175,6 +175,8 @@ func jour_passe(jour: int, pluie: bool) -> void:
             clotures.jour_passe(travail_batisseurs())
         elif routes.en_travaux():
             routes.jour_passe(travail_batisseurs())
+        elif routes.a_reparer() != "":
+            routes.reparer(travail_batisseurs(), ressources)
         else:
             flotte.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, jour, pluie)

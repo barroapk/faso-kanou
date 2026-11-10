@@ -276,6 +276,8 @@ func _recolter(c: Dictionary, res, pop, jour: int) -> void:
     var part_travail := clampf(float(c["travail"]) / travail_requis(c), 0.0, 1.0)
     var part_eau := clampf(float(c["eau"]) / float(f["cycle"]), 0.0, 1.0)
     var kg: float = float(f["rendement"]) * float(c["ha"]) * float(c["fertilite"]) * pow(part_travail, 0.7) * part_eau
+    if routes != null and territoire != null:
+        kg *= routes.acces_parcelle(str(c.get("parcelle", "")), territoire)   # chemin en mauvais état
     if clotures != null:
         kg *= 1.0 - clotures.perte_champ(int(c["id"]))   # bêtes, oiseaux, vols
     kg *= 1.0 - float(c.get("degats", 0.0))              # ravages d'un événement

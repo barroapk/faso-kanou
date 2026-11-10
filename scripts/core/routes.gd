@@ -21,7 +21,16 @@ const DEF := {
     "boulevard": {"nom": "Boulevard", "cout_km": {"pierre": 800.0, "bois": 100.0}, "travail_km": 300.0, "bonus": 0.50},
 }
 const NOMS := {"eau": "le point d'eau", "foret": "la forêt", "carriere": "la carrière", "mine": "la mine de fer", "port": "le port"}
-const ENTRETIEN := 0.05          # entretien annuel : 5 % du coût de départ
+const ENTRETIEN := 0.05          # (ancien entretien annuel, remplacé par l'état v0.3.32b)
+# État des routes (v0.3.32b) : de 1 (bon) à 0. Il baisse chaque mois (pluies +50 %).
+# Une seule formule d'accès pour tout ce qui dépend d'une route : acces(dest).
+#   bon état : 1 ; dégradé : jusqu'à 0,5 ; sous 0,2 : inutilisable (0).
+# La réparation prend le travail des bâtisseurs libres et des matériaux :
+# remettre à neuf coûte 20 % du travail et des matériaux de construction.
+const USURE_MOIS := {"sentier": 0.04, "chemin": 0.03, "route": 0.015, "boulevard": 0.01}
+const INUTILISABLE := 0.2
+const PART_REPARATION := 0.2
+const PRIORITE := ["eau", "parcelle_", "foret", "carriere", "mine", "port"]
 
 var ile := {}
 var troncons := {}               # destination -> {niveau, km, travail_restant, cout}
@@ -50,7 +59,16 @@ func nom(dest: String) -> String:
 func relie(dest: String) -> bool:
     if dest == "village":
         return true
-    return troncons.has(dest) and float(troncons[dest]["travail_restant"]) <= 0.0
+    return troncons.has(dest) and float(troncons[dest]["travail_restant"]) <= 0.0 and etat(dest) >= INUTILISABLE
+func etat(dest: String) -> float:
+    return float(troncons[dest].get("etat", 1.0)) if troncons.has(dest) else 0.0
+# Formule commune d'accessibilité : champs, mines, carrière, forêt, eau, port.
+func acces(dest: String) -> float:
+    if dest == "village":
+        return 1.0
+    if not relie(dest):
+        return 0.0
+    return 0.5 + 0.5 * etat(dest)
 
 func niveau(dest: String) -> int:
     if not relie(dest):
@@ -60,13 +78,17 @@ func niveau(dest: String) -> int:
 # Gain d'efficacité du travail vers une destination (0 sans route).
 func bonus(dest: String) -> float:
     var n := niveau(dest)
-    return 0.0 if n < 0 else float(DEF[NIVEAUX[n]]["bonus"])
+    return 0.0 if n < 0 else float(DEF[NIVEAUX[n]]["bonus"]) * etat(dest)
 
 # Parcelle : reliée si c'est celle du village, ou si une route y mène.
 func parcelle_reliee(cle: String, territoire) -> bool:
     if territoire == null or cle == territoire.cle(territoire.centre):
         return true
     return relie("parcelle_" + cle)
+func acces_parcelle(cle: String, territoire) -> float:
+    if territoire == null or cle == "" or cle == territoire.cle(territoire.centre):
+        return 1.0
+    return acces("parcelle_" + cle)
 
 # Peut-on commencer une route vers cette parcelle ? Il faut une voisine déjà reliée.
 func _parcelle_atteignable(cle: String, territoire) -> bool:
@@ -147,24 +169,44 @@ func jour_passe(travail: float) -> void:
             evenement.emit("%s vers %s terminé." % [DEF[t["niveau"]]["nom"], nom(d)])
         return
 
-# Entretien en début d'année ; sans entretien, la route redescend d'un niveau.
+# Usure chaque mois (plus forte en saison des pluies).
 func mois_passe(res, mois: int) -> void:
-    if mois != 0:
-        return
+    var pluie := mois >= 5 and mois <= 9
     for d in troncons:
         var t: Dictionary = troncons[d]
-        if float(t["travail_restant"]) > 0.0 or t["niveau"] == "sentier":
+        if float(t["travail_restant"]) > 0.0:
             continue
-        var ok := true
-        for r in t["cout"]:
-            if res.quantite(r) < float(t["cout"][r]) * ENTRETIEN:
-                ok = false
-        if ok:
-            for r in t["cout"]:
-                res.retirer(r, float(t["cout"][r]) * ENTRETIEN, "entretien")
-        else:
-            t["niveau"] = NIVEAUX[NIVEAUX.find(t["niveau"]) - 1]
-            evenement.emit("Faute d'entretien, la route vers %s se dégrade (%s)." % [nom(d), DEF[t["niveau"]]["nom"]])
+        var avant := etat(d)
+        t["etat"] = maxf(0.0, avant - float(USURE_MOIS[t["niveau"]]) * (1.5 if pluie else 1.0))
+        if avant >= INUTILISABLE and float(t["etat"]) < INUTILISABLE:
+            evenement.emit("La route vers %s est impraticable : il faut la réparer." % nom(d))
+# Tronçon à réparer en priorité (eau, champs, forêt, carrière, mine, port, reste).
+func a_reparer() -> String:
+    for p in PRIORITE + [""]:
+        for d in troncons:
+            if float(troncons[d]["travail_restant"]) <= 0.0 and etat(d) < 0.8 and str(d).begins_with(p):
+                return d
+    return ""
+# Réparation par les bâtisseurs libres : travail ET matériaux réels.
+func reparer(travail: float, res) -> void:
+    var d := a_reparer()
+    if d == "" or travail <= 0.0:
+        return
+    var t: Dictionary = troncons[d]
+    var plein: float = float(DEF[t["niveau"]]["travail_km"]) * float(t["km"]) * PART_REPARATION
+    var gain := minf(1.0 - etat(d), travail / maxf(1.0, plein))
+    for r in t.get("cout", {}):
+        var besoin: float = float(t["cout"][r]) * PART_REPARATION * gain
+        if besoin > 0.0:
+            gain = minf(gain, res.quantite(r) / (float(t["cout"][r]) * PART_REPARATION))
+    if gain <= 0.0:
+        return
+    for r in t.get("cout", {}):
+        res.retirer(r, float(t["cout"][r]) * PART_REPARATION * gain, "entretien")
+    var avant := etat(d)
+    t["etat"] = avant + gain
+    if avant < INUTILISABLE and float(t["etat"]) >= INUTILISABLE:
+        evenement.emit("La route vers %s est de nouveau praticable." % nom(d))
 
 # Ordinateur : sentiers vers l'eau, la forêt et les parcelles de ses champs.
 func gerer_auto(res, territoire, agriculture) -> void:
