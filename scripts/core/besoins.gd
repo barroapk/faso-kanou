@@ -43,6 +43,7 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
     _contexte(population, ressources, construction, jour, pluie, chantier_actif)
     if mode == "auto":
         _ajuster_postes()
+        _equilibrer()
         for r in ORDRE:
             for i in 3:
                 var p := _diagnostic(r)
@@ -324,23 +325,75 @@ func _metier_en_trop(r: String, besoin: float) -> String:
 # dans une autre réserve tant qu'elle garde au moins 15 jours.
 # Plus de postes que d'adultes (enfants morts, adultes devenus anciens) :
 # on ferme le poste dont la ressource a la plus grande réserve.
+# Trop de postes pour les adultes présents (expédition, décès...) : on ferme
+# le poste dont la perte met le moins le clan en danger (v0.3.28).
+# Pour chaque poste, on calcule combien de jours chaque besoin vital tiendrait
+# SANS lui (production restante contre consommation, avec la réserve).
+# Les postes qui ne produisent rien de vital partent en premier.
 func _ajuster_postes() -> void:
     while _adultes() - _occupes() < 0:
         var choix := ""
         var max_jours := -1.0
         for m in _pop.postes:
-            if int(_pop.postes[m]) <= 0 or not _res.PRODUCTION.has(m):
+            if int(_pop.postes[m]) <= 0:
                 continue
-            var jours := 99999.0
-            for r2 in ORDRE:
-                if _rendement(m, r2) > 0.0 and _conso(r2) > 0.0:
-                    jours = minf(jours, float(_res.stocks[r2]) / _conso(r2))
+            var jours := _pire({m: -1})
             if jours > max_jours:
                 max_jours = jours
                 choix = m
         if choix == "":
             return
         _pop.postes[choix] = int(_pop.postes[choix]) - 1
+# Jours avant le danger pour un besoin vital, si on change les postes de "delta"
+# ({métier: +1 ou -1}). Réserve / déficit, plus le temps qu'on survit sans
+# (la soif tue plus vite que la faim). 99999 = la production suffit.
+const SURVIE := {"eau": 25.0, "nourriture": 50.0, "bois": 60.0}
+func _jours(r: String, delta: Dictionary) -> float:
+    var prod := _production(r)
+    for m in delta:
+        prod += float(delta[m]) * _rendement(m, r)
+    var net := prod - _conso(r)
+    if net >= 0.0:
+        return 99999.0
+    return float(_res.stocks[r]) / -net + float(SURVIE[r])
+# Le besoin le plus menacé décide.
+func _pire(delta: Dictionary) -> float:
+    var j := 99999.0
+    for r in ORDRE:
+        j = minf(j, _jours(r, delta))
+    return j
+# Règle générale du chef automatique (v0.3.28) : chaque mois, il déplace un
+# travailleur si cela éloigne le danger le plus proche (eau, nourriture, bois).
+# Il ne retire jamais quelqu'un d'un poste vital si cela rapproche un autre danger.
+func _equilibrer() -> void:
+    for i in 3:
+        var base := _pire({})
+        if base >= 120.0:
+            return
+        var meilleur := {}
+        var gain := base
+        for de in _pop.postes:
+            if int(_pop.postes[de]) <= 0 or (_verrouille(de) and base > 40.0):
+                continue
+            for vers in _pop.postes:
+                if vers == de or not _res.PRODUCTION.has(vers):
+                    continue
+                var d := {de: -1, vers: 1}
+                var v := _pire(d)
+                if v > gain + 1.0:
+                    gain = v
+                    meilleur = d
+        if meilleur.is_empty():
+            return
+        var de2: String = ""
+        var vers2: String = ""
+        for m in meilleur:
+            _pop.postes[m] = int(_pop.postes[m]) + int(meilleur[m])
+            if int(meilleur[m]) < 0:
+                de2 = m
+            else:
+                vers2 = m
+        evenement.emit("Le chef réorganise : un %s devient %s." % [de2, vers2])
 
 func _occupes() -> int:
     var n := 0
@@ -355,7 +408,8 @@ func _peut_ceder(m2: String, urgence := 0) -> bool:
             continue
         var c := _conso(r2)
         if _production(r2) - rend < c * (1.0 + MARGES[0]):
-            var visee := 15.0 if urgence >= 3 else float(AUTONOMIE_VISEE.get(r2, 30.0))
+            # En grande urgence (l'eau va manquer), on accepte une réserve courte ailleurs.
+            var visee := 7.0 if urgence >= 3 else float(AUTONOMIE_VISEE.get(r2, 30.0))
             if c <= 0.0 or float(_res.stocks[r2]) / c < visee:
                 return false
     return true
@@ -418,7 +472,8 @@ func _rendement(m: String, r: String) -> float:
 func _adultes() -> int:
     var n := 0
     for h in _pop.habitants:
-        if _pop.age(h, _jour) >= _pop.AGE_ADULTE and h["metier"] != "chef" and h["metier"] != "ancien":
+        # Un adulte parti en expédition ne travaille pas au village.
+        if _pop.age(h, _jour) >= _pop.AGE_ADULTE and h["metier"] != "chef" and h["metier"] != "ancien" and not h.has("expedition"):
             n += 1
     return n
 
