@@ -23,6 +23,7 @@ var champs: Array = []
 var prochain_id := 1
 var eau_retenue := 0.0                # m³ gardés par les retenues
 var semences := {}                    # réserve de semences, mise à part : on ne la mange pas
+var recoltes := 0                     # nombre de récoltes réussies (pour les époques)
 var territoire = null                 # territoire.gd : on ne cultive que ses propres parcelles
 var clotures = null                   # clotures.gd : un champ clôturé perd moins de récolte
 var routes = null                     # routes.gd : un champ hors du village doit être relié par la route
@@ -276,6 +277,10 @@ func _recolter(c: Dictionary, res, pop, jour: int) -> void:
     var kg: float = float(f["rendement"]) * float(c["ha"]) * float(c["fertilite"]) * pow(part_travail, 0.7) * part_eau
     if clotures != null:
         kg *= 1.0 - clotures.perte_champ(int(c["id"]))   # bêtes, oiseaux, vols
+    kg *= 1.0 - float(c.get("degats", 0.0))              # ravages d'un événement
+    c["degats"] = 0.0
+    if kg > 0.0:
+        recoltes += 1
     res.ajouter(f["produit"], kg, "production")
     # Le paysan garde de quoi ressemer le même champ (+20 % de sécurité).
     garder_semences(f["produit"], float(f["semence_ha"]) * float(c["ha"]) * 1.2, res)
@@ -349,7 +354,7 @@ func _postes_cultivateurs(pop, jour: int) -> void:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"ile": ile_id, "champs": champs, "prochain_id": prochain_id, "eau_retenue": eau_retenue, "semences": semences}
+    return {"recoltes": recoltes, "ile": ile_id, "champs": champs, "prochain_id": prochain_id, "eau_retenue": eau_retenue, "semences": semences}
 
 func depuis_dict(d: Dictionary) -> void:
     if d.is_empty():
@@ -364,6 +369,7 @@ func depuis_dict(d: Dictionary) -> void:
             c["defriche"] = bool(c.get("defriche", false)) or c["etat"] != "friche"
     prochain_id = int(d.get("prochain_id", 1))
     eau_retenue = float(d.get("eau_retenue", 0.0))
+    recoltes = int(d.get("recoltes", 0))
     semences = {}
     for k in d.get("semences", {}):
         semences[str(k)] = float(d["semences"][k])

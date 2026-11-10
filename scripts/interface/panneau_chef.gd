@@ -62,6 +62,7 @@ func remplir() -> void:
     message = _label("", 24)
     message.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
     boite.add_child(message)
+    _section_ascension(C)
     _section_conseil(C, jour)
     _section_alertes(C)
     _section_experiences(C, jour)
@@ -73,6 +74,29 @@ func remplir() -> void:
     _section_flotte(C)
     _section_archipel(C)
     _section_mode(C)
+
+# ---------- Ascension : décisions, défis, époque ----------
+
+func _section_ascension(C) -> void:
+    var df = C.defis
+    for i in df.decisions.size():
+        var d: Dictionary = df.decisions[i]
+        boite.add_child(_label("DÉCISION : %s" % d["titre"], 28))
+        boite.add_child(_label("%s (réponse avant %d jours)" % [d["texte"], int(d["fin"]) - C.temps.jour_total], 21))
+        var enfants: Array = [_label("", 21)]
+        for o in d["options"].size():
+            var di: int = i
+            var oi: int = o
+            enfants.append(_bouton(d["options"][o], true, func(): _faire(C.choisir_decision(di, oi), "Décision prise.")))
+        boite.add_child(_ligne(enfants))
+    boite.add_child(_label("Époque : %s — renommée %d" % [df.EPOQUES[df.epoque], df.renommee], 30))
+    if df.epoque < df.EPOQUES.size() - 1:
+        var l: PackedStringArray = []
+        for c in df.conditions(C):
+            l.append(("[x] " if c[1] else "[  ] ") + c[0])
+        boite.add_child(_label("Pour atteindre « %s » :\n%s" % [df.EPOQUES[df.epoque + 1], "\n".join(l)], 22))
+    for d in df.defis:
+        boite.add_child(_label("Défi (%s terme) : %s — encore %d jours" % [d["horizon"], d["texte"], int(d["fin"]) - C.temps.jour_total], 22))
 
 # ---------- 1. Chef et conseil ----------
 

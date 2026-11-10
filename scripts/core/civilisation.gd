@@ -28,6 +28,7 @@ const ROUTES = preload("res://scripts/core/routes.gd")
 const EXPEDITIONS = preload("res://scripts/core/expeditions.gd")
 const GISEMENTS = preload("res://scripts/core/gisements.gd")
 const FLOTTE = preload("res://scripts/core/flotte.gd")
+const DEFIS = preload("res://scripts/core/defis.gd")
 
 var temps
 var population
@@ -53,6 +54,7 @@ var routes
 var expeditions
 var gisements
 var flotte
+var defis
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -95,6 +97,7 @@ func _creer_modules() -> void:
     flotte = FLOTTE.new()
     flotte.depart()
     expeditions.flotte = flotte
+    defis = DEFIS.new()
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -213,6 +216,10 @@ func _clans_par_ile() -> Dictionary:
             d[c.agriculture.ile_id] = [c.id, c]
     return d
 
+# Décisions du joueur face aux situations imprévues.
+func choisir_decision(index: int, option: int) -> String:
+    return defis.choisir(self, index, option)
+
 # Port et flotte du joueur.
 func construire_bateau(type: String) -> String:
     return flotte.commander(type, ressources, construction, routes)
@@ -302,6 +309,7 @@ func _jour_passe() -> void:
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
     expeditions.jour_passe(population, temps.jour_total, ile_joueur, _clans_par_ile(), "joueur", self, diplomatie)
     gisements.jour_passe(population, ressources, routes, temps.jour_total, expeditions.rng)
+    defis.jour_passe(self)
     equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
@@ -347,6 +355,7 @@ func _mois_passe() -> void:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
     diplomatie.mois_passe()
     _visites_ordinateur()
+    defis.mois_passe(self)
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()
@@ -385,6 +394,7 @@ func sauvegarder() -> void:
         "expeditions": expeditions.vers_dict(),
         "gisements": gisements.vers_dict(),
         "flotte": flotte.vers_dict(),
+        "defis": defis.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -430,6 +440,7 @@ func _charger(nom: String) -> bool:
     expeditions.depuis_dict(donnees.get("expeditions", {}))
     gisements.depuis_dict(donnees.get("gisements", {}))
     flotte.depuis_dict(donnees.get("flotte", {}))
+    defis.depuis_dict(donnees.get("defis", {}))
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
