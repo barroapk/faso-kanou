@@ -413,7 +413,7 @@ func _rendement(m: String, r: String) -> float:
         return 0.0
     if m == "bâtisseur" and _chantier:
         return 0.0
-    return float(p[r][_s]) * _efficacite(m) * _res.outils
+    return float(p[r][_s]) * _efficacite(m) * _res.outils * _res._richesse(m, r)
 
 func _adultes() -> int:
     var n := 0

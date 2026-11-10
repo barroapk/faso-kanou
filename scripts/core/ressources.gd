@@ -21,8 +21,16 @@ const PRODUCTION := {
     # Enfants de 8 à 13 ans : ils aident (cueillette, corvée d'eau), comme
     # dans les villages sahéliens. Environ un quart d'un adulte.
     "aide": {"nourriture": [0.5, 0.8], "eau": [12.0, 16.0]},
+    # Pêche à la pirogue et au filet (multipliée par le poisson de l'île).
+    "pêcheur": {"nourriture": [3.0, 2.5]},   # + sel marin, voir SEL_MARIN
+    # Hors des travaux des champs (saison sèche), le cultivateur cueille et
+    # entretient son jardin ; en saison des pluies, il est aux champs.
+    "cultivateur": {"nourriture": [1.5, 0.3]},
 }
 const AGE_AIDE := 8
+# Les pêcheurs font aussi du sel marin (eau de mer évaporée sur la plage) :
+# kg par pêcheur et par jour, multiplié par le sel de l'île (amorti).
+const SEL_MARIN := 0.03
 const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
 const SEL_PAR_PERSONNE := 0.005         # kg par jour (5 g)
@@ -190,15 +198,22 @@ func _lieu(id: String) -> String:
         return "aliments"
     return "objets"
 
-# Ce que l'île donne : forêts (bois), gibier (chasse), fruits et graines (cueillette).
+# Ce que l'île donne : forêts (bois), gibier (chasse), poisson (pêche), fruits
+# et graines (cueillette). L'effet est amorti (0,5 + 0,5 × richesse) : une île
+# pauvre rend la vie plus dure, sans la rendre impossible.
 func _richesse(metier: String, r: String) -> float:
+    var cle := ""
     if r == "bois":
-        return float(richesse.get("bois", 1.0))
-    if metier == "chasseur":
-        return float(richesse.get("chasse", 1.0))
-    if r == "nourriture":
-        return float(richesse.get("cueillette", 1.0))
-    return 1.0
+        cle = "bois"
+    elif metier == "chasseur":
+        cle = "chasse"
+    elif metier == "pêcheur":
+        cle = "poisson"
+    elif r == "nourriture":
+        cle = "cueillette"
+    if cle == "":
+        return 1.0
+    return 0.5 + 0.5 * float(richesse.get(cle, 1.0))
 
 func quantite(id: String) -> float:
     match _lieu(id):
@@ -329,7 +344,13 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         for r in p:
             var q: float = p[r][s] * efficacite * _richesse(h["metier"], r)
             if r == "nourriture":
-                _recolter(q, CHASSE if h["metier"] == "chasseur" else CUEILLETTE[mois])
+                if h["metier"] == "pêcheur":
+                    _recolter(q, {"poisson": 1.0})
+                    var sel_jour := SEL_MARIN * efficacite * (0.5 + 0.5 * float(richesse.get("sel", 1.0)))
+                    stocks["sel"] = minf(float(stocks["sel"]) + sel_jour, capacite("sel"))
+                    noter("production", "sel", sel_jour)
+                else:
+                    _recolter(q, CHASSE if h["metier"] == "chasseur" else CUEILLETTE[mois])
                 noter("production", "nourriture", q)
                 if h["metier"] == "chasseur":
                     var viande := q / facteur("gibier")

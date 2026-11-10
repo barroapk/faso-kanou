@@ -43,6 +43,7 @@ const SAVOIR_DU_METIER := {
     "porteur d'eau": "portage",
     "bâtisseur": "construction",
     "cultivateur": "agriculture",
+    "pêcheur": "peche",
     "mineur": "extraction",
 }
 const GAIN_PRATIQUE := 0.02        # par jour, de moins en moins vite près de 100 (10 -> ~50 en 10 ans)

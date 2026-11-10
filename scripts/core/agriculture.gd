@@ -208,21 +208,32 @@ func gerer_auto(pop, res, jour: int, connait: Callable) -> void:
         return
     _postes_cultivateurs(pop, jour)
     var n: int = int(pop.postes.get("cultivateur", 0))
-    var voulu := maxf(1.0, n * float(regle.get("ha_par_cultivateur", 1.5)))
+    var voulu := maxf(1.0, n * float(regle.get("ha_par_cultivateur", 2.0)))
     if surface_cultivee() < voulu:
         creer_champ(voulu - surface_cultivee())
     for c in champs:
         if c["etat"] == "seme":
             continue
         for culture in ["sorgho", "mil", "fonio"]:
+            # Pas assez de semences pour tout le champ : on sème ce qu'on peut,
+            # le reste du champ retourne à la friche (terre libre).
+            var dispo := 0.0
+            for s in cultures[culture]["semences"]:
+                dispo = maxf(dispo, float(semences.get(s, 0.0)) + res.quantite(s))
+            var ha_possible := dispo / float(cultures[culture]["semence_ha"])
+            if ha_possible < 0.1:
+                continue
+            if ha_possible < float(c["ha"]):
+                c["ha"] = ha_possible
             if semer(int(c["id"]), culture, res, jour, connait) == "":
                 break
 
-# Un cultivateur pour 5 habitants (une famille nourrie par champ). Un adulte
+# Un cultivateur pour 4 habitants (2 ha par cultivateur, aidé par sa famille :
+# environ 0,5 ha cultivé par habitant, comme au Sahel). Un adulte
 # libre d'abord ; sinon un cueilleur devient cultivateur (le champ remplace la
 # cueillette), jamais un porteur d'eau ni un chasseur.
 func _postes_cultivateurs(pop, jour: int) -> void:
-    var voulu := int(ceil(pop.habitants.size() / 5.0))
+    var voulu := int(ceil(pop.habitants.size() / float(regle.get("habitants_par_cultivateur", 4.0))))
     var adultes := 0
     for h in pop.habitants:
         if pop.age(h, jour) >= pop.AGE_ADULTE and h["metier"] != "chef" and h["metier"] != "ancien":

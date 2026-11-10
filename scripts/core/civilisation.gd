@@ -20,6 +20,7 @@ const DIPLOMATIE = preload("res://scripts/core/diplomatie.gd")
 const MARCHE = preload("res://scripts/core/marche.gd")
 const CARAVANES = preload("res://scripts/core/caravanes.gd")
 const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
+const MONDE = preload("res://scripts/core/monde.gd")
 
 var temps
 var population
@@ -40,6 +41,7 @@ var caravanes
 var agriculture
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
+var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -88,11 +90,26 @@ func _creer_voisins() -> void:
     if typeof(d) != TYPE_DICTIONARY:
         return
     var ids := ["joueur"]
+    var noms_pris := ["BARRO", "KONATÉ"]
     for cle in d.get("clans", {}):
         var c = CLAN.new()
         c.creer(cle, d["clans"][cle], temps.jour_total)
         voisins.append(c)
         ids.append(cle)
+    # Toutes les autres îles sont déjà habitées (aucune île vide).
+    if graine_monde == 0:
+        graine_monde = randi_range(1, 999999)
+    var rng := RandomNumberGenerator.new()
+    rng.seed = graine_monde
+    var iles: Dictionary = AGRICULTURE.catalogue_iles()
+    for ile_id in iles:
+        if ile_id == ile_joueur or str(iles[ile_id].get("clan", "")) != "":
+            continue
+        var fiche: Dictionary = MONDE.generer(ile_id, iles[ile_id], rng, noms_pris)
+        var c = CLAN.new()
+        c.creer("clan_" + ile_id, fiche, temps.jour_total)
+        voisins.append(c)
+        ids.append(c.id)
     diplomatie.etat_initial(ids)
 
 # Tous les clans pour le marché : [id, objet]. Le joueur, c'est Civilisation.
@@ -153,6 +170,7 @@ func _brancher() -> void:
 # Le joueur choisit son île parmi les îles libres (les rivaux ont déjà la leur).
 func nouvelle_partie(ile := "") -> void:
     ile_joueur = ile
+    graine_monde = 0
     ile_confirmee = ile != ""
     _nouvelle()
     _brancher()
@@ -246,6 +264,7 @@ func sauvegarder() -> void:
         "agriculture": agriculture.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
+        "graine_monde": graine_monde,
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -283,6 +302,7 @@ func _charger(nom: String) -> bool:
     agriculture.depuis_dict(donnees.get("agriculture", {}))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
     ile_confirmee = bool(donnees.get("ile_confirmee", true))
+    graine_monde = int(donnees.get("graine_monde", 0))
     _installer_ile()
     if donnees.has("voisins"):
         voisins = []

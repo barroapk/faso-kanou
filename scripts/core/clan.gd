@@ -73,6 +73,8 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
     construction.chantiers = []
     for i in int(fiche.get("huttes", 4)):
         construction.batiments.append({"type": "hutte", "niveau": 1, "etat": 100})
+    for i in int(fiche.get("greniers", 0)):
+        construction.batiments.append({"type": "grenier", "niveau": 1, "etat": 100})
     var st: Dictionary = fiche.get("stocks", {})
     for r in ["eau", "bois", "sel"]:
         ressources.stocks[r] = float(st.get(r, ressources.stocks[r]))
@@ -91,6 +93,11 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
         for r in decouvertes.definitions[d]["debloque"]:
             if not recettes.connues.has(r):
                 recettes.connues.append(r)
+    # Champs déjà défrichés d'un clan ancien qui cultive.
+    if float(fiche.get("champs_ha", 0.0)) > 0.0:
+        agriculture.creer_champ(float(fiche["champs_ha"]))
+        for ch in agriculture.champs:
+            ch["defriche"] = true
     conseil.etat_initial(population, jour, graine + 1)
     _appliquer_chef_fixe(false)
     economie.commencer(ressources)
@@ -189,6 +196,14 @@ func _appliquer_chef_fixe(annoncer: bool) -> void:
 
 # Logement, outils, sel : comme un joueur prudent, avec les mêmes règles.
 func _gerer(jour: int) -> void:
+    # Avant la récolte : un grenier si la récolte attendue ne tiendra pas.
+    if construction.chantiers.is_empty() and agriculture.prochaine_recolte() > jour:
+        var attendu := 0.0
+        for ch in agriculture.champs:
+            if ch["etat"] == "seme":
+                attendu += float(agriculture.cultures[ch["culture"]]["rendement"]) * float(ch["ha"]) * float(ch["fertilite"])
+        if ressources.stocks["nourriture"] + attendu > ressources.capacite("nourriture"):
+            construction.lancer("grenier", -1, ressources)
     if construction.chantiers.is_empty():
         for p in besoins.problemes:
             if p["type"] == "logement" and p["solutions"].size() > 0:

@@ -34,7 +34,9 @@ func _ready() -> void:
     boite.add_theme_constant_override("separation", 14)
     defil.add_child(boite)
     boite.add_child(_label("Choisis l'île de ton clan", 40))
-    boite.add_child(_label("Chaque clan vit sur son île. Les autres îles se rejoignent par bateau.", 22))
+    var info := _label("Chaque clan vit sur son île ; on rejoint les autres par bateau. Les îles que tu ne choisis pas sont déjà habitées par des clans arrivés avant toi.", 22)
+    info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    boite.add_child(info)
     carte = Control.new()
     carte.custom_minimum_size = Vector2(0, 520)
     carte.draw.connect(_dessiner_carte)

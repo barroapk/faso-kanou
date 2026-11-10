@@ -6,6 +6,7 @@
     "sorgho": {"nom": "Sorgho", "produit": "sorgho", "semences": ["sorgho"], "semence_ha": 8.0, "rendement": 700.0, "cycle": 120, "travail": 65.0, "mois_semis": [5], "eau_m3_ha_jour": 40.0, "epuisement": 0.05}
   },
   "defrichage": 20.0,
-  "ha_par_cultivateur": 1.5,
+  "ha_par_cultivateur": 2.0,
+  "habitants_par_cultivateur": 4.0,
   "recuperation_jachere_an": 0.08
 }
