@@ -343,6 +343,14 @@ func _section_flotte(C) -> void:
             ab.append(_bouton("1 %s" % str(C.elevage.especes[e2]["nom"]).to_lower(), true, func(): _faire(C.abattre(e2), "Bête abattue.")))
     if ab.size() > 1:
         boite.add_child(_ligne(ab))
+    var ac: Array = [_label("Acheter un couple :", 21)]
+    for esp in C.elevage.especes:
+        var e3: String = esp
+        var vid: String = C.vendeur_animaux(e3)
+        if vid != "":
+            ac.append(_bouton("%s (%s, %d kg de grain)" % [str(C.elevage.especes[e3]["nom"]).to_lower(), C.voisin(vid).nom, int(C.PRIX_BETE[e3] * 2)], true, func(): _faire(C.acheter_animaux(e3), "Bétail acheté : il arrive par bateau.")))
+    if ac.size() > 1:
+        boite.add_child(_ligne(ac))
 
 # ---------- Archipel : explorer, visiter, connaître les autres îles ----------
 

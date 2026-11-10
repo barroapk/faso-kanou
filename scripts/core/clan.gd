@@ -24,6 +24,7 @@ const CLOTURES = preload("res://scripts/core/clotures.gd")
 const ROUTES = preload("res://scripts/core/routes.gd")
 const GISEMENTS = preload("res://scripts/core/gisements.gd")
 const FLOTTE = preload("res://scripts/core/flotte.gd")
+const ELEVAGE = preload("res://scripts/core/elevage.gd")
 
 var id := ""
 var nom := ""
@@ -50,6 +51,7 @@ var clotures
 var routes
 var gisements
 var flotte
+var elevage
 var _rng_sol := RandomNumberGenerator.new()
 
 func _modules() -> void:
@@ -77,6 +79,8 @@ func _modules() -> void:
     gisements = GISEMENTS.new()
     flotte = FLOTTE.new()
     flotte.depart()
+    elevage = ELEVAGE.new()
+    besoins.elevage = elevage
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -131,10 +135,24 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
     # Un clan installé avant le joueur a déjà ses sentiers (eau, forêt, champs).
     if int(fiche.get("anciennete", 0)) > 0 or not chef_fixe.is_empty():
         routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c["parcelle"])))
+    # Troupeau d'un clan qui élève depuis longtemps : [mâles, femelles] adultes.
+    var tr: Dictionary = fiche.get("troupeau", {})
+    elevage.rng.seed = graine + 3
+    for esp in tr:
+        for i in int(tr[esp][0]):
+            elevage.ajouter(esp, "m", jour)
+        for i in int(tr[esp][1]):
+            elevage.ajouter(esp, "f", jour)
+    if not tr.is_empty():
+        population.postes["éleveur"] = 1
+        population.repartir(jour)
     conseil.etat_initial(population, jour, graine + 1)
     _appliquer_chef_fixe(false)
     economie.commencer(ressources)
 
+# Même règle que le joueur : la pâture = nos parcelles qui ne sont pas des champs.
+func paturage_ha() -> float:
+    return maxf(0.0, territoire.surface_possedee() - agriculture.surface_cultivee())
 func vivant() -> bool:
     return not population.habitants.is_empty()
 
@@ -180,6 +198,9 @@ func jour_passe(jour: int, pluie: bool) -> void:
         else:
             flotte.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, jour, pluie)
+    elevage.elevage_connu = decouvertes.connait("elevage")
+    besoins.paturage_ha = paturage_ha()
+    elevage.jour_passe(ressources, population, jour, pluie, besoins.paturage_ha)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, jour)
     pression.jour_passe(ressources)
 
@@ -195,6 +216,7 @@ func mois_passe(jour: int, pluie: bool) -> void:
     _gouverner(jour)
     besoins.mois_passe(population, ressources, construction, jour, pluie, not construction.chantiers.is_empty())
     _gerer(jour)
+    elevage.mois_passe(ressources, population, jour)
     agriculture.gerer_auto(population, ressources, jour, decouvertes.connait)
     if decouvertes.connait("agriculture"):
         territoire.gerer_auto(agriculture, ressources, jour, 4.0)
@@ -331,6 +353,7 @@ func vers_dict() -> Dictionary:
         "routes": routes.vers_dict(),
         "gisements": gisements.vers_dict(),
         "flotte": flotte.vers_dict(),
+        "elevage": elevage.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -362,6 +385,7 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     routes.installer(agriculture.ile)
     gisements.depuis_dict(d.get("gisements", {}))
     flotte.depuis_dict(d.get("flotte", {}))
+    elevage.depuis_dict(d.get("elevage", {}))
     gisements.installer(agriculture.ile)
     if not d.has("routes"):
         routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

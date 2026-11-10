@@ -212,6 +212,72 @@ func paturage_ha() -> float:
     for ch in agriculture.champs:
         champs += float(ch["ha"])
     return maxf(0.0, territoire.surface_possedee() - champs)
+# Achat d'animaux vivants à un clan connu (v0.3.38). Le vendeur garde toujours
+# un mâle et une femelle adultes, et ne vend ni gestantes ni allaitantes.
+# L'acheteur paie en grain (sans passer sous 30 jours de nourriture). Les bêtes
+# voyagent sur un bateau du vendeur ; risque de perte en mer comme les caravanes.
+const PRIX_BETE := {"pintade": 8.0, "chevre": 60.0, "zebu": 300.0}
+const POIDS_BETE := {"pintade": 1.5, "chevre": 30.0, "zebu": 300.0}
+var livraisons: Array = []       # {esp, sexes, arrivee, risque, vendeur}
+func vendables(v, esp: String) -> Array:
+    var j: int = temps.jour_total
+    var el = v.elevage
+    var l: Array = el.animaux.filter(func(a): return a["esp"] == esp and not (a["sexe"] == "f" and (int(a["gest_fin"]) >= 0 or j < int(a["lact_fin"]))))
+    for sexe in ["m", "f"]:
+        var ad: Array = l.filter(func(a): return a["sexe"] == sexe and el.adulte(a, j))
+        var tous: Array = el.animaux.filter(func(a): return a["esp"] == esp and a["sexe"] == sexe and el.adulte(a, j))
+        if tous.size() <= 1 and not ad.is_empty():
+            l.erase(ad[0])
+        elif not ad.is_empty() and tous.size() - ad.size() < 1:
+            l.erase(ad[0])
+    return l.filter(func(a): return el.adulte(a, j))
+func vendeur_animaux(esp: String) -> String:
+    for v in voisins:
+        if v.vivant() and int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 1 and diplomatie.etat("joueur", v.id) != "hostilité" and vendables(v, esp).size() > 0:
+            return v.id
+    return ""
+func acheter_animaux(esp: String) -> String:
+    var vid := vendeur_animaux(esp)
+    if vid == "":
+        return "Aucun clan connu ne peut vendre de %s sans affaiblir son troupeau." % esp
+    var v = voisin(vid)
+    var l: Array = vendables(v, esp)
+    var lot: Array = []
+    for sexe in ["m", "f"]:
+        for a in l:
+            if a["sexe"] == sexe:
+                lot.append(a)
+                break
+    var prix: float = PRIX_BETE[esp] * lot.size()
+    var j: int = temps.jour_total
+    var conso: float = ressources._conso_jour(population, j, "nourriture")
+    if ressources.total_aliments() - prix < conso * 30.0:
+        return "Payer %d kg de grain ferait passer nos réserves sous 30 jours." % int(prix)
+    var dist: int = caravanes.duree(caravanes.territoire(self), caravanes.territoire(v))
+    var bateau: Dictionary = v.flotte.reserver(j, j + 2 * dist, 2, POIDS_BETE[esp] * lot.size(), "commerce")
+    if bateau.is_empty():
+        return "Le %s n'a pas de bateau libre pour transporter ces bêtes." % v.nom
+    var paye: float = elevage._retirer_grain(ressources, prix)
+    v.ressources.ajouter("mil", paye, "vente_animaux")
+    var sexes: Array = []
+    for a in lot:
+        sexes.append(a["sexe"])
+        v.elevage.animaux.erase(a)
+    livraisons.append({"esp": esp, "sexes": sexes, "arrivee": j + dist, "risque": caravanes.RISQUE_BASE + caravanes.RISQUE_JOUR * dist, "vendeur": v.nom})
+    diplomatie.noter("joueur", vid, "echange", 2.0, "achat d'animaux", j)
+    return ""
+func _livrer_animaux() -> void:
+    var j: int = temps.jour_total
+    for l in livraisons.duplicate():
+        if j < int(l["arrivee"]):
+            continue
+        livraisons.erase(l)
+        var arrives := 0
+        for s in l["sexes"]:
+            if elevage.rng.randf() >= float(l["risque"]):
+                elevage.ajouter(l["esp"], s, j)
+                arrives += 1
+        elevage.evenement.emit("Bétail du %s arrivé : %d sur %d bête(s)." % [l["vendeur"], arrives, l["sexes"].size()])
 func abattre(esp: String) -> String:
     return elevage.abattre(esp, ressources, temps.jour_total)
 func vendre_surplus(produit: String) -> String:
@@ -477,6 +543,7 @@ func _jour_passe() -> void:
     agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())
     elevage.elevage_connu = decouvertes.connait("elevage")
     elevage.capture(population, temps.jour_total)
+    _livrer_animaux()
     besoins.paturage_ha = paturage_ha()
     elevage.jour_passe(ressources, population, temps.jour_total, temps.saison_des_pluies(), besoins.paturage_ha)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
@@ -563,6 +630,7 @@ func sauvegarder() -> void:
         "heros": heros.vers_dict(),
         "histoire": histoire.vers_dict(),
         "elevage": elevage.vers_dict(),
+        "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -614,6 +682,7 @@ func _charger(nom: String) -> bool:
     heros.appliquer(self)
     histoire.depuis_dict(donnees.get("histoire", {}))
     elevage.depuis_dict(donnees.get("elevage", {}))
+    livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))

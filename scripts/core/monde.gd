@@ -176,4 +176,9 @@ static func generer(ile_id: String, ile: Dictionary, rng: RandomNumberGenerator,
         fiche["champs_ha"] = 2.0 * cultivateurs
         # Un clan qui cultive depuis longtemps a des greniers pour sa récolte.
         fiche["greniers"] = int(ceil(2.0 * cultivateurs * 600.0 / 1000.0))
+    # Élevage (v0.3.38) : 4 clans anciens sur 10 élèvent depuis longtemps
+    # (tiré de la graine du clan, sans changer le reste du monde).
+    if anciennete >= 30 and int(fiche["graine"]) % 10 < 4:
+        connaissances.append("elevage")
+        fiche["troupeau"] = {"pintade": [2, 5], "chevre": [1, 3] if anciennete >= 40 else [0, 0]}
     return fiche
