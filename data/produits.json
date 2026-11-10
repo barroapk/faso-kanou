@@ -1,0 +1,520 @@
+{
+ "_notes": {
+  "kcal_kg": "énergie par kg ; 1 kg équivalent mil (kgEM) = 3400 kcal",
+  "valeur": "prix de référence : 1 = 1 kg de mil",
+  "disponibilite": "locale = produit sur place si terrain, époque et découverte le permettent ; introduite = arrive progressivement par les échanges ; commerce = seulement par achat, sauf terrain adapté ; transformation = fabriqué à partir d'un autre produit",
+  "sec": "vrai = se garde mieux dans un grenier"
+ },
+ "produits": {
+  "fonio_sauvage": {
+   "nom": "Fonio sauvage",
+   "categorie": "cereale",
+   "kcal_kg": 3400,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.2,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "note": "graines sauvages récoltées en fin de saison des pluies"
+  },
+  "mil": {
+   "nom": "Mil",
+   "categorie": "cereale",
+   "kcal_kg": 3400,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "agriculture"
+  },
+  "sorgho": {
+   "nom": "Sorgho",
+   "categorie": "cereale",
+   "kcal_kg": 3300,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 0.9,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "humide"
+   ],
+   "decouverte": "agriculture"
+  },
+  "fonio": {
+   "nom": "Fonio",
+   "categorie": "cereale",
+   "kcal_kg": 3500,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.3,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "agriculture"
+  },
+  "riz_africain": {
+   "nom": "Riz africain",
+   "categorie": "cereale",
+   "kcal_kg": 3500,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "humide"
+   ],
+   "decouverte": "agriculture",
+   "note": "Oryza glaberrima, zones inondables"
+  },
+  "mais": {
+   "nom": "Maïs",
+   "categorie": "cereale",
+   "kcal_kg": 3600,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.0,
+   "epoque": "royaumes",
+   "disponibilite": "introduite",
+   "terrains": [
+    "savane",
+    "humide"
+   ],
+   "decouverte": "agriculture",
+   "note": "venu d'Amérique, diffusion en Afrique à partir du XVIe siècle"
+  },
+  "ble": {
+   "nom": "Blé",
+   "categorie": "cereale",
+   "kcal_kg": 3400,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 3.0,
+   "epoque": "fer",
+   "disponibilite": "commerce",
+   "terrains": [
+    "tempere",
+    "oasis"
+   ],
+   "decouverte": "agriculture",
+   "note": "importé au Sahel ; cultivable seulement en terrain adapté"
+  },
+  "niebe": {
+   "nom": "Niébé (haricot)",
+   "categorie": "legume",
+   "kcal_kg": 3400,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.2,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "agriculture"
+  },
+  "igname": {
+   "nom": "Igname",
+   "categorie": "legume",
+   "kcal_kg": 1200,
+   "perte_jour": 0.003,
+   "sec": false,
+   "valeur": 0.6,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "foret",
+    "humide"
+   ],
+   "decouverte": "agriculture"
+  },
+  "arachide": {
+   "nom": "Arachide",
+   "categorie": "legume",
+   "kcal_kg": 5700,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 2.0,
+   "epoque": "royaumes",
+   "disponibilite": "introduite",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "agriculture",
+   "note": "venue d'Amérique"
+  },
+  "gombo": {
+   "nom": "Gombo",
+   "categorie": "legume",
+   "kcal_kg": 330,
+   "perte_jour": 0.1,
+   "sec": false,
+   "valeur": 0.8,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "humide"
+   ],
+   "decouverte": "agriculture"
+  },
+  "karite_amande": {
+   "nom": "Amandes de karité",
+   "categorie": "cueillette",
+   "kcal_kg": 6000,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ]
+  },
+  "nere_graine": {
+   "nom": "Graines de néré",
+   "categorie": "cueillette",
+   "kcal_kg": 4500,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ]
+  },
+  "baobab_feuille": {
+   "nom": "Feuilles de baobab séchées",
+   "categorie": "cueillette",
+   "kcal_kg": 2700,
+   "perte_jour": 0.002,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "desert"
+   ]
+  },
+  "baobab_pulpe": {
+   "nom": "Pulpe de baobab (pain de singe)",
+   "categorie": "cueillette",
+   "kcal_kg": 2800,
+   "perte_jour": 0.002,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "desert"
+   ]
+  },
+  "tamarin": {
+   "nom": "Tamarin",
+   "categorie": "cueillette",
+   "kcal_kg": 2400,
+   "perte_jour": 0.002,
+   "sec": true,
+   "valeur": 1.2,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ]
+  },
+  "miel": {
+   "nom": "Miel",
+   "categorie": "cueillette",
+   "kcal_kg": 3000,
+   "perte_jour": 0.0001,
+   "sec": true,
+   "valeur": 6.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "foret"
+   ]
+  },
+  "pasteque": {
+   "nom": "Pastèque sauvage",
+   "categorie": "fruit",
+   "kcal_kg": 300,
+   "perte_jour": 0.05,
+   "sec": false,
+   "valeur": 0.3,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "desert"
+   ],
+   "note": "originaire d'Afrique"
+  },
+  "mangue": {
+   "nom": "Mangue",
+   "categorie": "fruit",
+   "kcal_kg": 600,
+   "perte_jour": 0.08,
+   "sec": false,
+   "valeur": 0.5,
+   "epoque": "royaumes",
+   "disponibilite": "introduite",
+   "terrains": [
+    "savane",
+    "humide"
+   ],
+   "note": "introduction progressive selon les échanges et les plants"
+  },
+  "orange": {
+   "nom": "Orange",
+   "categorie": "fruit",
+   "kcal_kg": 470,
+   "perte_jour": 0.04,
+   "sec": false,
+   "valeur": 0.8,
+   "epoque": "royaumes",
+   "disponibilite": "introduite",
+   "terrains": [
+    "humide"
+   ],
+   "note": "introduction progressive selon les échanges et les plants"
+  },
+  "raisin": {
+   "nom": "Raisin",
+   "categorie": "fruit",
+   "kcal_kg": 690,
+   "perte_jour": 0.1,
+   "sec": false,
+   "valeur": 8.0,
+   "epoque": "fer",
+   "disponibilite": "commerce",
+   "terrains": [
+    "tempere"
+   ],
+   "note": "commerce surtout ; culture seulement en terrain adapté"
+  },
+  "datte": {
+   "nom": "Datte",
+   "categorie": "fruit",
+   "kcal_kg": 2800,
+   "perte_jour": 0.002,
+   "sec": true,
+   "valeur": 4.0,
+   "epoque": "fer",
+   "disponibilite": "commerce",
+   "terrains": [
+    "oasis"
+   ],
+   "note": "oasis du Sahara"
+  },
+  "gibier": {
+   "nom": "Gibier (viande fraîche)",
+   "categorie": "viande",
+   "kcal_kg": 1500,
+   "perte_jour": 0.2,
+   "sec": false,
+   "valeur": 3.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "foret"
+   ]
+  },
+  "poisson": {
+   "nom": "Poisson frais",
+   "categorie": "viande",
+   "kcal_kg": 1000,
+   "perte_jour": 0.25,
+   "sec": false,
+   "valeur": 2.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "riviere",
+    "humide"
+   ]
+  },
+  "pintade": {
+   "nom": "Pintade",
+   "categorie": "viande",
+   "kcal_kg": 1600,
+   "perte_jour": 0.2,
+   "sec": false,
+   "valeur": 4.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "elevage",
+   "note": "oiseau d'Afrique de l'Ouest"
+  },
+  "chevre": {
+   "nom": "Chèvre",
+   "categorie": "viande",
+   "kcal_kg": 1400,
+   "perte_jour": 0.2,
+   "sec": false,
+   "valeur": 4.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "desert"
+   ],
+   "decouverte": "elevage"
+  },
+  "boeuf": {
+   "nom": "Bœuf",
+   "categorie": "viande",
+   "kcal_kg": 2500,
+   "perte_jour": 0.2,
+   "sec": false,
+   "valeur": 4.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "elevage"
+  },
+  "lait": {
+   "nom": "Lait",
+   "categorie": "viande",
+   "kcal_kg": 650,
+   "perte_jour": 0.5,
+   "sec": false,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "elevage"
+  },
+  "beurre_karite": {
+   "nom": "Beurre de karité",
+   "categorie": "transforme",
+   "kcal_kg": 8800,
+   "perte_jour": 0.0005,
+   "sec": true,
+   "valeur": 6.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "transforme_de": "karite_amande",
+   "note": "transformation des amandes"
+  },
+  "soumbala": {
+   "nom": "Soumbala",
+   "categorie": "transforme",
+   "kcal_kg": 4000,
+   "perte_jour": 0.002,
+   "sec": true,
+   "valeur": 5.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "transforme_de": "nere_graine",
+   "note": "graines de néré fermentées"
+  },
+  "viande_sechee": {
+   "nom": "Viande séchée",
+   "categorie": "transforme",
+   "kcal_kg": 3500,
+   "perte_jour": 0.005,
+   "sec": true,
+   "valeur": 8.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "transforme_de": "gibier",
+   "note": "séchage au soleil et à la fumée"
+  },
+  "farine_mil": {
+   "nom": "Farine de mil",
+   "categorie": "transforme",
+   "kcal_kg": 3500,
+   "perte_jour": 0.002,
+   "sec": true,
+   "valeur": 1.3,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "decouverte": "agriculture",
+   "transforme_de": "mil"
+  },
+  "sel": {
+   "nom": "Sel",
+   "categorie": "condiment",
+   "kcal_kg": 0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 10.0,
+   "epoque": "pierre",
+   "disponibilite": "commerce",
+   "terrains": [
+    "saline"
+   ],
+   "note": "mines et salines du Sahara ; besoin à part, pas de calories"
+  },
+  "sel_vegetal": {
+   "nom": "Sel végétal (cendres)",
+   "categorie": "condiment",
+   "kcal_kg": 0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 3.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "note": "tiré des cendres de certaines plantes ; moins bon que le sel"
+  },
+  "sucre": {
+   "nom": "Sucre",
+   "categorie": "condiment",
+   "kcal_kg": 4000,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 12.0,
+   "epoque": "industriel",
+   "disponibilite": "commerce",
+   "terrains": [
+    "humide"
+   ],
+   "decouverte": "agriculture",
+   "note": "canne à sucre"
+  },
+  "coton": {
+   "nom": "Coton (fibre)",
+   "categorie": "fibre",
+   "kcal_kg": 0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 3.0,
+   "epoque": "fer",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "decouverte": "agriculture",
+   "note": "matière première, jamais nourriture"
+  }
+ }
+}

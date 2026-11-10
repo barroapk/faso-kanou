@@ -389,8 +389,14 @@ func changer_postes(m: String, delta: int, jour: int) -> void:
     postes[m] = maxi(0, int(postes[m]) + delta)
     repartir(jour)
 
-func jour_passe(faim: bool, soif: bool) -> void:
+# Plafond de santé quand le sel manque : rien pendant 30 jours, puis -1 point
+# tous les 6 jours, jusqu'à 60 au plus bas. Le manque de sel seul ne tue pas.
+static func plafond_sante(jours_sans_sel: int) -> int:
+    return 100 - clampi((jours_sans_sel - 30) / 6, 0, 40)
+
+func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0) -> void:
     var morts := []
+    var plafond := plafond_sante(jours_sans_sel)
     for h in habitants:
         var s := int(h["sante"])
         if soif:
@@ -399,6 +405,8 @@ func jour_passe(faim: bool, soif: bool) -> void:
             s -= 2
         else:
             s += 1
+        if s > plafond:
+            s = maxi(plafond, int(h["sante"]) - 1) if int(h["sante"]) > plafond else plafond
         h["sante"] = clampi(s, 0, 100)
         if h["metier"] != "enfant" and h["metier"] != "ancien": h["competence"] = minf(float(h["competence"]) + 0.02, 100.0)
         if h["sante"] == 0:
