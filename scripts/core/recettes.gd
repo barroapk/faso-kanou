@@ -50,6 +50,8 @@ func bilan_masse(id: String) -> Dictionary:
     var r: Dictionary = definitions[id]
     var entree := 0.0
     var sortie := 0.0
+    for m in r.get("terrain", {}):
+        entree += masse(m, float(r["terrain"][m]))
     for m in r["entrees"]:
         entree += masse(m, float(r["entrees"][m]))
     for m in r["combustible"]:
@@ -88,6 +90,9 @@ func etat(id: String, pop, res, cons, jour: int, nombre := 1) -> Dictionary:
             if res.quantite(m) + 0.000001 < besoin:
                 e["matieres"] = false
                 e["raisons"].append("Il manque %.2f de %s." % [besoin - res.quantite(m), m])
+    if r.get("repare", "") != "" and (res.equipement == null or not res.equipement.a_reparer(r["repare"])):
+        e["matieres"] = false
+        e["raisons"].append("Aucun outil à réparer : %s." % r["repare"])
     if r["outil"] != "" and res.quantite(r["outil"]) < 1.0:
         e["outil"] = false
         e["raisons"].append("Il faut un outil : %s." % r["outil"])
@@ -118,7 +123,8 @@ func commander(id: String, pop, res, cons, jour: int, nombre := 1) -> String:
     commandes.append({"recette": id, "nombre": nombre, "reste": float(r["jours_travail"]) * nombre})
     return ""
 
-# Chaque adulte libre donne une journée de travail ; ce jour-là, il ne cueille pas.
+# Chaque adulte libre donne une journée de travail, à une seule commande à la fois ;
+# ce jour-là, il ne cueille pas. Un outil de recette s'use d'un jour.
 func jour_passe(pop, res, jour: int) -> void:
     for h in pop.habitants:
         h.erase("occupe")
@@ -130,6 +136,9 @@ func jour_passe(pop, res, jour: int) -> void:
             break
         var c: Dictionary = commandes[0]
         h["occupe"] = true
+        var outil: String = definitions[c["recette"]]["outil"]
+        if outil != "" and res.equipement != null:
+            res.equipement.user(outil)
         c["reste"] = float(c["reste"]) - 1.0
         if float(c["reste"]) <= 0.000001:
             commandes.pop_front()
@@ -142,6 +151,9 @@ func _livrer(c: Dictionary, res) -> void:
         res.ajouter(m, float(r["sorties"][m]) * n)
     for m in r["sous_produits"]:
         res.ajouter(m, float(r["sous_produits"][m]) * n)
+    if r.get("repare", "") != "" and res.equipement != null:
+        for i in n:
+            res.equipement.reparer(r["repare"])
     evenement.emit("Fabrication terminée : %s (x%d)." % [r["nom"], n])
 
 # ---------- Sauvegarde ----------

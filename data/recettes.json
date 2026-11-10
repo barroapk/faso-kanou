@@ -7,7 +7,9 @@
   "pertes": "masse perdue (kg), avec sa raison : le bilan de masse doit tomber juste",
   "jours_travail": "jours de travail d'une personne",
   "connue_au_depart": "le clan sait la faire dès le début ; sinon, il faut la découvrir ou l'apprendre",
-  "competence": "savoir-faire nécessaire (vérifié à l'étape 4)"
+  "competence": "savoir-faire nécessaire (vérifié à l'étape 4)",
+  "repare": "réparation : rend sa solidité à l'outil le plus usé ; les matières remplacent des parties usées, jetées (pertes)",
+  "terrain": "extraction : quantité prise dans la nature (gisement, rivière, savane) ; compte comme une entrée dans le bilan de masse"
  },
  "recettes": {
   "cendres": {
@@ -230,6 +232,596 @@
    "decouverte": "agriculture",
    "connue_au_depart": false,
    "saisons": []
+  },
+  "hache_pierre": {
+   "nom": "Hache de pierre",
+   "entrees": {
+    "pierre": 2.5,
+    "bois": 0.8
+   },
+   "combustible": {},
+   "sorties": {
+    "hache_pierre": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "éclats de pierre": 1.5,
+    "copeaux": 0.3
+   },
+   "jours_travail": 2,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "arc": {
+   "nom": "Arc et flèches",
+   "entrees": {
+    "bois": 1.6,
+    "os_corne": 0.2
+   },
+   "combustible": {},
+   "sorties": {
+    "arc": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "copeaux": 0.6,
+    "os taillés perdus": 0.2
+   },
+   "jours_travail": 2,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "lance": {
+   "nom": "Lance",
+   "entrees": {
+    "bois": 1.8,
+    "pierre": 0.6
+   },
+   "combustible": {},
+   "sorties": {
+    "lance": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "copeaux": 0.5,
+    "éclats de pierre": 0.4
+   },
+   "jours_travail": 1,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "houe_bois": {
+   "nom": "Houe en bois",
+   "entrees": {
+    "bois": 2.5
+   },
+   "combustible": {},
+   "sorties": {
+    "houe_bois": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "copeaux": 1.0
+   },
+   "jours_travail": 1,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "agriculture",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "moule_brique": {
+   "nom": "Moule à briques",
+   "entrees": {
+    "bois": 3.0
+   },
+   "combustible": {},
+   "sorties": {
+    "moule_brique": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "copeaux": 1.0
+   },
+   "jours_travail": 1,
+   "competence": "construction",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "meule": {
+   "nom": "Meule de pierre",
+   "entrees": {
+    "pierre": 20.0
+   },
+   "combustible": {},
+   "sorties": {
+    "meule": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "éclats de pierre": 5.0
+   },
+   "jours_travail": 5,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "metier_tisser": {
+   "nom": "Métier à tisser",
+   "entrees": {
+    "bois": 32.0
+   },
+   "combustible": {},
+   "sorties": {
+    "metier_tisser": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "copeaux": 7.0
+   },
+   "jours_travail": 6,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "tissage",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "hache_fer": {
+   "nom": "Hache en fer",
+   "entrees": {
+    "fer_brut": 1.6,
+    "bois": 0.8
+   },
+   "combustible": {
+    "charbon_bois": 3.0
+   },
+   "sorties": {
+    "hache_fer": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "fer perdu à la forge, copeaux": 0.4,
+    "charbon brûlé (gaz)": 3.0
+   },
+   "jours_travail": 2,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "houe_fer": {
+   "nom": "Houe en fer",
+   "entrees": {
+    "fer_brut": 1.6,
+    "bois": 0.8
+   },
+   "combustible": {
+    "charbon_bois": 3.0
+   },
+   "sorties": {
+    "houe_fer": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "fer perdu à la forge, copeaux": 0.4,
+    "charbon brûlé (gaz)": 3.0
+   },
+   "jours_travail": 2,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "pioche_fer": {
+   "nom": "Pioche en fer",
+   "entrees": {
+    "fer_brut": 2.4,
+    "bois": 1.0
+   },
+   "combustible": {
+    "charbon_bois": 3.0
+   },
+   "sorties": {
+    "pioche_fer": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "fer perdu à la forge, copeaux": 0.4,
+    "charbon brûlé (gaz)": 3.0
+   },
+   "jours_travail": 2,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "couteau_fer": {
+   "nom": "Couteau en fer",
+   "entrees": {
+    "fer_brut": 0.35,
+    "bois": 0.05
+   },
+   "combustible": {
+    "charbon_bois": 3.0
+   },
+   "sorties": {
+    "couteau_fer": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "fer perdu à la forge, copeaux": 0.1,
+    "charbon brûlé (gaz)": 3.0
+   },
+   "jours_travail": 2,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "reparation_hache_pierre": {
+   "nom": "Réparer : hache pierre",
+   "entrees": {
+    "bois": 0.5,
+    "pierre": 0.3
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 0.8
+   },
+   "jours_travail": 0.5,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "repare": "hache_pierre"
+  },
+  "reparation_arc": {
+   "nom": "Réparer : arc",
+   "entrees": {
+    "bois": 0.4
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 0.4
+   },
+   "jours_travail": 0.3,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "repare": "arc"
+  },
+  "reparation_lance": {
+   "nom": "Réparer : lance",
+   "entrees": {
+    "bois": 0.6
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 0.6
+   },
+   "jours_travail": 0.3,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "repare": "lance"
+  },
+  "reparation_houe_bois": {
+   "nom": "Réparer : houe bois",
+   "entrees": {
+    "bois": 0.6
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 0.6
+   },
+   "jours_travail": 0.3,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "agriculture",
+   "connue_au_depart": false,
+   "saisons": [],
+   "repare": "houe_bois"
+  },
+  "reparation_moule_brique": {
+   "nom": "Réparer : moule brique",
+   "entrees": {
+    "bois": 0.8
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 0.8
+   },
+   "jours_travail": 0.3,
+   "competence": "construction",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "repare": "moule_brique"
+  },
+  "reparation_meule": {
+   "nom": "Réparer : meule",
+   "entrees": {
+    "pierre": 1.0
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 1.0
+   },
+   "jours_travail": 1,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "repare": "meule"
+  },
+  "reparation_metier_tisser": {
+   "nom": "Réparer : metier tisser",
+   "entrees": {
+    "bois": 3.0
+   },
+   "combustible": {},
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 3.0
+   },
+   "jours_travail": 1,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "tissage",
+   "connue_au_depart": false,
+   "saisons": [],
+   "repare": "metier_tisser"
+  },
+  "reparation_hache_fer": {
+   "nom": "Réparer : hache fer",
+   "entrees": {
+    "fer_brut": 0.2
+   },
+   "combustible": {
+    "charbon_bois": 1.0
+   },
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 1.2
+   },
+   "jours_travail": 1,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": [],
+   "repare": "hache_fer"
+  },
+  "reparation_houe_fer": {
+   "nom": "Réparer : houe fer",
+   "entrees": {
+    "fer_brut": 0.2
+   },
+   "combustible": {
+    "charbon_bois": 1.0
+   },
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 1.2
+   },
+   "jours_travail": 1,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": [],
+   "repare": "houe_fer"
+  },
+  "reparation_pioche_fer": {
+   "nom": "Réparer : pioche fer",
+   "entrees": {
+    "fer_brut": 0.2
+   },
+   "combustible": {
+    "charbon_bois": 1.0
+   },
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 1.2
+   },
+   "jours_travail": 1,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": [],
+   "repare": "pioche_fer"
+  },
+  "reparation_couteau_fer": {
+   "nom": "Réparer : couteau fer",
+   "entrees": {
+    "fer_brut": 0.2
+   },
+   "combustible": {
+    "charbon_bois": 1.0
+   },
+   "sorties": {},
+   "sous_produits": {},
+   "pertes": {
+    "parties usées remplacées et jetées": 1.2
+   },
+   "jours_travail": 1,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "forge",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": [],
+   "repare": "couteau_fer"
+  },
+  "ramasser_pierre": {
+   "nom": "Ramasser des pierres",
+   "terrain": {
+    "pierre": 25
+   },
+   "entrees": {},
+   "combustible": {},
+   "sorties": {
+    "pierre": 25
+   },
+   "sous_produits": {},
+   "pertes": {},
+   "jours_travail": 1,
+   "competence": "",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "terrains": [
+    "colline",
+    "massif",
+    "savane"
+   ]
+  },
+  "creuser_argile": {
+   "nom": "Creuser de l'argile",
+   "terrain": {
+    "argile": 40
+   },
+   "entrees": {},
+   "combustible": {},
+   "sorties": {
+    "argile": 40
+   },
+   "sous_produits": {},
+   "pertes": {},
+   "jours_travail": 1,
+   "competence": "",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    10,
+    11
+   ],
+   "terrains": [
+    "humide",
+    "riviere"
+   ]
+  },
+  "ramasser_sable": {
+   "nom": "Ramasser du sable",
+   "terrain": {
+    "sable": 50
+   },
+   "entrees": {},
+   "combustible": {},
+   "sorties": {
+    "sable": 50
+   },
+   "sous_produits": {},
+   "pertes": {},
+   "jours_travail": 1,
+   "competence": "",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [],
+   "terrains": [
+    "riviere",
+    "desert"
+   ]
+  },
+  "couper_paille": {
+   "nom": "Couper de la paille",
+   "terrain": {
+    "paille": 30
+   },
+   "entrees": {},
+   "combustible": {},
+   "sorties": {
+    "paille": 30
+   },
+   "sous_produits": {},
+   "pertes": {},
+   "jours_travail": 1,
+   "competence": "",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [
+    9,
+    10,
+    11
+   ],
+   "terrains": [
+    "savane"
+   ]
   }
  }
 }

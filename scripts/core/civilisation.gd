@@ -12,6 +12,7 @@ const CONSEIL = preload("res://scripts/core/conseil.gd")
 const CHEF = preload("res://scripts/core/chef.gd")
 const MIGRATION = preload("res://scripts/core/migration.gd")
 const RECETTES = preload("res://scripts/core/recettes.gd")
+const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
 
 var temps
 var population
@@ -22,6 +23,7 @@ var conseil
 var chef
 var migration
 var recettes
+var equipement
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -39,6 +41,8 @@ func _creer_modules() -> void:
     migration = MIGRATION.new()
     migration.initialiser(2026)
     recettes = RECETTES.new()
+    equipement = EQUIPEMENT.new()
+    ressources.equipement = equipement
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -61,7 +65,7 @@ func travail_batisseurs() -> float:
     var t := 0.0
     for h in population.habitants:
         if h["metier"] == "bâtisseur":
-            t += 0.6 + float(h["competence"]) / 100.0 * 0.8
+            t += (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
     return t
 
 # Décisions du joueur sur les propositions du chef (écran du chef, v0.3.4).
@@ -82,6 +86,7 @@ func ignorer_alerte(cle: String) -> String:
 func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, temps.jour_total)
+    equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel)
@@ -119,6 +124,7 @@ func sauvegarder() -> void:
         "chef": chef.vers_dict(),
         "migration": migration.vers_dict(),
         "recettes": recettes.vers_dict(),
+        "equipement": equipement.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -148,5 +154,6 @@ func _charger(nom: String) -> bool:
     chef.depuis_dict(donnees.get("chef", {}))
     migration.depuis_dict(donnees.get("migration", {}), 2026)
     recettes.depuis_dict(donnees.get("recettes", {}))
+    equipement.depuis_dict(donnees.get("equipement", {}))
     temps.vitesse = 1
     return true

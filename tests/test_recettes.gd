@@ -56,7 +56,9 @@ func _initialize() -> void:
     _verifier("toutes les matières, sorties et outils existent dans le catalogue", inconnus.is_empty())
     _verifier("combustible séparé : seulement bois ou charbon de bois", mauvais_combustible.is_empty())
     _verifier("chaque recette demande du temps de travail", rec.definitions.values().all(func(r): return float(r["jours_travail"]) > 0.0))
-    _verifier("connues au départ : cendres, sel végétal, canari, brique de banco (%s)" % ", ".join(rec.connues), rec.connues.size() == 4 and rec.connues.has("sel_vegetal") and not rec.connues.has("fer_brut"))
+    var age_pierre := ["cendres", "sel_vegetal", "canari", "brique_banco", "hache_pierre", "arc", "lance", "ramasser_pierre", "creuser_argile"]
+    var plus_tard := ["fer_brut", "charbon_bois", "fil_coton", "tissu_coton", "farine_mil", "hache_fer", "houe_bois"]
+    _verifier("connues au départ : seulement des savoir-faire de l'âge de la pierre (%d recettes)" % rec.connues.size(), age_pierre.all(func(x): return rec.connues.has(x)) and plus_tard.all(func(x): return not rec.connues.has(x)))
     # 2. Les 5 conditions séparées : fer brut
     _monde()
     var e: Dictionary = rec.etat("fer_brut", pop, res, cons, 0)

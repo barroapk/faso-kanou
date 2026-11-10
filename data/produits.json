@@ -2194,6 +2194,28 @@
    ],
    "obtention": "enveloppes retirées au pilage du mil",
    "transforme_de": "mil"
+  },
+  "moule_brique": {
+   "nom": "Moule à briques",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 2.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 2.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "construction"
+   ],
+   "obtention": "cadre en bois assemblé",
+   "transforme_de": "bois"
   }
  },
  "version_catalogue": 2

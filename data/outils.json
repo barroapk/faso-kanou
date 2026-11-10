@@ -1,0 +1,122 @@
+{
+ "_notes": {
+  "famille": "agricole, forestier, construction, minier, artisanal, chasse",
+  "effets": "multiplie le travail d'un métier quand le travailleur a l'outil ; 'chantier' = travail de construction des bâtisseurs",
+  "durabilite": "jours d'utilisation avant que l'outil soit inutilisable",
+  "reparation": "rend la solidité, mais l'outil perd 10 % de sa durée de vie maximale à chaque réparation",
+  "depart": "équipement du clan au début de la partie (et des anciennes sauvegardes)"
+ },
+ "outils": {
+  "hache_pierre": {
+   "famille": "forestier",
+   "effets": {
+    "bâtisseur": 1.3
+   },
+   "durabilite": 120,
+   "recette": "hache_pierre",
+   "reparation": "reparation_hache_pierre"
+  },
+  "hache_fer": {
+   "famille": "forestier",
+   "effets": {
+    "bâtisseur": 1.7
+   },
+   "durabilite": 600,
+   "recette": "hache_fer",
+   "reparation": "reparation_hache_fer"
+  },
+  "houe_bois": {
+   "famille": "agricole",
+   "effets": {
+    "cultivateur": 1.3
+   },
+   "durabilite": 90,
+   "recette": "houe_bois",
+   "reparation": "reparation_houe_bois"
+  },
+  "houe_fer": {
+   "famille": "agricole",
+   "effets": {
+    "cultivateur": 1.8
+   },
+   "durabilite": 500,
+   "recette": "houe_fer",
+   "reparation": "reparation_houe_fer"
+  },
+  "moule_brique": {
+   "famille": "construction",
+   "effets": {
+    "chantier": 1.25
+   },
+   "durabilite": 200,
+   "recette": "moule_brique",
+   "reparation": "reparation_moule_brique"
+  },
+  "pioche_fer": {
+   "famille": "minier",
+   "effets": {
+    "mineur": 1.8
+   },
+   "durabilite": 400,
+   "recette": "pioche_fer",
+   "reparation": "reparation_pioche_fer"
+  },
+  "arc": {
+   "famille": "chasse",
+   "effets": {
+    "chasseur": 1.3
+   },
+   "durabilite": 150,
+   "recette": "arc",
+   "reparation": "reparation_arc"
+  },
+  "lance": {
+   "famille": "chasse",
+   "effets": {
+    "chasseur": 1.15
+   },
+   "durabilite": 200,
+   "recette": "lance",
+   "reparation": "reparation_lance"
+  },
+  "canari": {
+   "famille": "artisanal",
+   "effets": {},
+   "durabilite": 60,
+   "recette": "canari",
+   "reparation": ""
+  },
+  "meule": {
+   "famille": "artisanal",
+   "effets": {},
+   "durabilite": 2000,
+   "recette": "meule",
+   "reparation": "reparation_meule"
+  },
+  "metier_tisser": {
+   "famille": "artisanal",
+   "effets": {},
+   "durabilite": 1000,
+   "recette": "metier_tisser",
+   "reparation": "reparation_metier_tisser"
+  },
+  "couteau_fer": {
+   "famille": "artisanal",
+   "effets": {},
+   "durabilite": 800,
+   "recette": "couteau_fer",
+   "reparation": "reparation_couteau_fer"
+  }
+ },
+ "depart": {
+  "hache_pierre": 1,
+  "arc": 1,
+  "lance": 1
+ },
+ "priorites": [
+  "chasseur",
+  "bâtisseur",
+  "cultivateur",
+  "mineur"
+ ]
+}

@@ -31,7 +31,11 @@ const PERTES_NOURRITURE_GRENIER := 0.0003
 const COEF_GRENIER := 0.3               # un grenier divise les pertes des produits secs
 const EVAPORATION_EAU := 0.002          # jarres et canaris : 0,2 % par jour
 const CENDRES_PAR_KG_BOIS := 0.015      # le bois brûlé chaque jour laisse des cendres
-const SEL_PAR_SEL_VEGETAL := 0.5        # 1 kg de sel végétal remplace 0,5 kg de sel
+const SEL_PAR_SEL_VEGETAL := 0.5        # simplification de jeu (pas une équivalence chimique) :
+                                        # 1 kg de sel végétal remplace 0,5 kg de sel
+# Sous-produits de la chasse, par kg de viande : os et cornes, peaux.
+const OS_PAR_KG_VIANDE := 0.05
+const PEAU_PAR_KG_VIANDE := 0.08
 
 # Cueillette par mois (janvier = 0) : part de chaque produit, total = 1.
 # Saison sèche : pulpe de baobab, tamarin, néré, miel. Début des pluies : karité.
@@ -53,6 +57,7 @@ const CUEILLETTE := [
 const CHASSE := {"gibier": 1.0}
 
 var construction
+var equipement      # outils (equipement.gd), branché par la civilisation
 var produits := {}
 var stocks := {"nourriture": 300.0, "eau": 120.0, "bois": 100.0, "sel": 20.0}
 var aliments := {"fonio_sauvage": 200.0, "baobab_pulpe": 60.0, "karite_amande": 28.0}
@@ -169,6 +174,8 @@ func _synchroniser() -> void:
 func _lieu(id: String) -> String:
     if id == "eau" or id == "bois" or id == "sel":
         return "stocks"
+    if equipement != null and equipement.est_outil(id):
+        return "outils"
     var f: Dictionary = produits.get(id, {})
     if bool(f.get("alimentaire", false)) and float(f.get("kcal_kg", 0.0)) > 0.0:
         return "aliments"
@@ -180,6 +187,8 @@ func quantite(id: String) -> float:
             return float(stocks.get(id, 0.0))
         "aliments":
             return float(aliments.get(id, 0.0))
+        "outils":
+            return float(equipement.nombre(id))
     return float(objets.get(id, 0.0))
 
 func ajouter(id: String, q: float) -> void:
@@ -189,6 +198,8 @@ func ajouter(id: String, q: float) -> void:
         "aliments":
             aliments[id] = float(aliments.get(id, 0.0)) + q
             stocks["nourriture"] = total_aliments()
+        "outils":
+            equipement.ajouter(id, int(round(q)))
         _:
             objets[id] = float(objets.get(id, 0.0)) + q
 
@@ -203,6 +214,8 @@ func retirer(id: String, q: float) -> bool:
             aliments[id] = maxf(0.0, float(aliments[id]) - q)
             _nettoyer()
             stocks["nourriture"] = total_aliments()
+        "outils":
+            return equipement.retirer(id, int(round(q)))
         _:
             objets[id] = maxf(0.0, float(objets[id]) - q)
             if float(objets[id]) < 0.000001:
@@ -263,11 +276,15 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         if h.get("occupe", false):
             continue
         var p = PRODUCTION.get(h["metier"], {})
-        var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils
+        var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0))
         for r in p:
             var q: float = p[r][s] * efficacite
             if r == "nourriture":
                 _recolter(q, CHASSE if h["metier"] == "chasseur" else CUEILLETTE[mois])
+                if h["metier"] == "chasseur":
+                    var viande := q / facteur("gibier")
+                    objets["os_corne"] = float(objets.get("os_corne", 0.0)) + viande * OS_PAR_KG_VIANDE
+                    objets["peau"] = float(objets.get("peau", 0.0)) + viande * PEAU_PAR_KG_VIANDE
             else:
                 variation[r] += q
     if pluie:
