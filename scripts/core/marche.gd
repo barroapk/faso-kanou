@@ -78,8 +78,14 @@ func place(c, id: String) -> float:
 
 # a = acheteur, b = vendeur (objets clan : population, ressources, economie).
 # paiement = "cauris" ou un produit de troc ; "" = choisir automatiquement.
-func devis(a, b, id: String, q: float, jour: int, paiement := "") -> Dictionary:
-    var d := {"possible": false, "raison": "", "produit": id, "quantite": q, "paiement": {}}
+# Diplomatie et commerce (v0.3.32) : frais selon la relation, payés au vendeur
+# (rien ne disparaît). Hostilité : commerce ordinaire interdit.
+const FRAIS := {"rivalité": 0.10, "neutralité": 0.05, "amitié": 0.03, "alliance": 0.01}
+func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutralité") -> Dictionary:
+    var d := {"possible": false, "raison": "", "produit": id, "quantite": q, "paiement": {}, "etat": etat}
+    if etat == "hostilité":
+        d["raison"] = "Commerce impossible : nos relations avec ce clan sont hostiles."
+        return d
     if valeur_ref(id) <= 0.0:
         d["raison"] = "Ce produit n'a pas de valeur connue."
         return d
@@ -92,7 +98,10 @@ func devis(a, b, id: String, q: float, jour: int, paiement := "") -> Dictionary:
     if p_acheteur < p_vendeur:
         d["raison"] = "Le vendeur en veut %.2f kg de mil, l'acheteur n'en offre que %.2f." % [p_vendeur, p_acheteur]
         return d
-    var pu := (p_vendeur + p_acheteur) / 2.0
+    var pu := (p_vendeur + p_acheteur) / 2.0 * (1.0 + float(FRAIS.get(etat, 0.05)))
+    if pu > p_acheteur:
+        d["raison"] = "Avec les frais (%d %%), le prix dépasse ce que l'acheteur offre." % int(100.0 * float(FRAIS.get(etat, 0.05)))
+        return d
     if paiement == "":
         paiement = _choisir_paiement(a, b, id, jour)
     if paiement == "" or paiement == id:
@@ -151,6 +160,8 @@ func _produits(c) -> Array:
 func conclure(a, id_a: String, b, id_b: String, d: Dictionary, jour: int, diplomatie = null) -> String:
     if not d.get("possible", false):
         return d.get("raison", "Échange impossible.")
+    if diplomatie != null and diplomatie.etat(id_a, id_b) == "hostilité":
+        return "Commerce impossible : nos relations avec ce clan sont hostiles."
     compteur += 1
     var num := "T%d-%d" % [jour, compteur]
     var err := ""
@@ -194,7 +205,7 @@ func mois_passe(clans: Array, ids_ordinateur: Array, jour: int, diplomatie) -> v
                     q -= caravanes.en_attente(ca[0], id)
                 if q <= 0.0:
                     break
-                var d := devis(ca[1], cb[1], id, q, jour)
+                var d := devis(ca[1], cb[1], id, q, jour, "", diplomatie.etat(ca[0], cb[0]) if diplomatie != null else "neutralité")
                 if conclure(ca[1], ca[0], cb[1], cb[0], d, jour, diplomatie) == "":
                     break
 

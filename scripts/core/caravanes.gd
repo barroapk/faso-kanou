@@ -18,6 +18,9 @@ const RISQUE_BASE := 0.05       # chance d'incident par traversée (tempête, ch
 const RISQUE_JOUR := 0.01       # + par jour en mer
 const PERTE_MIN := 0.1          # part perdue lors d'un incident
 const PERTE_MAX := 0.4
+# Un clan ami ou allié offre escales et escortes : moins de pertes (jamais zéro).
+# Les tempêtes ne dépendent pas de la diplomatie.
+const RISQUE_RELATION := {"amitié": 0.8, "alliance": 0.65}
 
 var en_route: Array = []
 var rng := RandomNumberGenerator.new()
@@ -64,7 +67,7 @@ func envoyer(a, id_a: String, b, id_b: String, d: Dictionary, jour: int, num: St
         "id": num, "acheteur": id_a, "vendeur": id_b,
         "produit": produit, "quantite": q, "paiement": p, "prix": qp,
         "depart": jour, "arrivee": jour + jours,
-        "risque": RISQUE_BASE + RISQUE_JOUR * jours,
+        "risque": (RISQUE_BASE + RISQUE_JOUR * jours) * float(RISQUE_RELATION.get(d.get("etat", ""), 1.0)),
     })
     evenement.emit("Bateau %s : %.1f %s part de %s vers %s (%d jours de mer)." % [num, q, produit, id_b, id_a, jours])
     return ""

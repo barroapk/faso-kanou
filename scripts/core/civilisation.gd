@@ -178,7 +178,7 @@ func devis_commerce(acheteur: String, vendeur: String, produit: String, q: float
     var b = _clan(vendeur)
     if a == null or b == null:
         return {"possible": false, "raison": "Clan inconnu."}
-    return marche.devis(a, b, produit, q, temps.jour_total, paiement)
+    return marche.devis(a, b, produit, q, temps.jour_total, paiement, diplomatie.etat(acheteur, vendeur))
 
 func commercer(acheteur: String, vendeur: String, produit: String, q: float, paiement := "") -> String:
     var d := devis_commerce(acheteur, vendeur, produit, q, paiement)
