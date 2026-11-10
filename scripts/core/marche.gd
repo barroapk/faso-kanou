@@ -25,6 +25,9 @@ const MONNAIE := "cauris"
 var valeurs := {}              # prix de référence (kg de mil)
 var compteur := 0              # numéro des transactions
 var caravanes = null           # si présent, la marchandise voyage (v0.3.15 B)
+# Prix de l'archipel (v0.3.32c) : chaque clan ne voit que les clans qu'il connaît.
+# connus[id d'instance du clan] = [clans connus, lui compris]. Recalculé chaque mois.
+var connus := {}
 
 func _init() -> void:
     valeurs = ECONOMIE.new().valeurs
@@ -50,9 +53,28 @@ func facteur(c, id: String, jour: int) -> float:
     if v == "":
         return 1.0
     var j := _jours(c, v, jour)
-    if j <= 0.0:
+    var local := FACTEUR_MAX if j <= 0.0 else clampf(sqrt(float(JOURS_VISES[v]) / j), FACTEUR_MIN, FACTEUR_MAX)
+    # Prix = moyenne (géométrique) de la rareté chez soi et dans l'archipel connu.
+    return sqrt(local * facteur_archipel(c, v, jour))
+# Rareté dans l'archipel connu du clan : réserves totales / consommation totale
+# (pondéré par la consommation : un produit peu consommé ne paraît pas rare).
+# Ce n'est jamais stocké : recalculé à chaque devis.
+func facteur_archipel(c, v: String, jour: int) -> float:
+    if not v in ["nourriture", "eau", "bois"]:
+        return 1.0
+    var stock := 0.0
+    var conso := 0.0
+    for k in connus.get(c.get_instance_id(), [c]):
+        if k.population.habitants.is_empty():
+            continue
+        var cj: float = k.ressources._conso_jour(k.population, jour, v)
+        stock += _jours(k, v, jour) * cj
+        conso += cj
+    if conso <= 0.0:
+        return 1.0
+    if stock <= 0.0:
         return FACTEUR_MAX
-    return clampf(sqrt(float(JOURS_VISES[v]) / j), FACTEUR_MIN, FACTEUR_MAX)
+    return clampf(sqrt(float(JOURS_VISES[v]) / (stock / conso)), FACTEUR_MIN, FACTEUR_MAX)
 
 func prix_local(c, id: String, jour: int) -> float:
     return valeur_ref(id) * facteur(c, id, jour)
@@ -78,8 +100,8 @@ func place(c, id: String) -> float:
 
 # a = acheteur, b = vendeur (objets clan : population, ressources, economie).
 # paiement = "cauris" ou un produit de troc ; "" = choisir automatiquement.
-# Diplomatie et commerce (v0.3.32) : frais selon la relation, payés au vendeur
-# (rien ne disparaît). Hostilité : commerce ordinaire interdit.
+# Diplomatie et commerce (v0.3.32) : frais selon la relation, retenus sur le
+# vendeur (rien ne disparaît). Hostilité : commerce ordinaire interdit.
 const FRAIS := {"rivalité": 0.10, "neutralité": 0.05, "amitié": 0.03, "alliance": 0.01}
 func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutralité") -> Dictionary:
     var d := {"possible": false, "raison": "", "produit": id, "quantite": q, "paiement": {}, "etat": etat}
@@ -98,10 +120,9 @@ func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutr
     if p_acheteur < p_vendeur:
         d["raison"] = "Le vendeur en veut %.2f kg de mil, l'acheteur n'en offre que %.2f." % [p_vendeur, p_acheteur]
         return d
-    var pu := (p_vendeur + p_acheteur) / 2.0 * (1.0 + float(FRAIS.get(etat, 0.05)))
-    if pu > p_acheteur:
-        d["raison"] = "Avec les frais (%d %%), le prix dépasse ce que l'acheteur offre." % int(100.0 * float(FRAIS.get(etat, 0.05)))
-        return d
+    # Les frais (selon la relation) sont retenus sur ce que reçoit le vendeur,
+    # au profit de l'acheteur qui l'accueille au port : rien ne disparaît (v0.3.32c).
+    var pu := (p_vendeur + p_acheteur) / 2.0 * (1.0 - float(FRAIS.get(etat, 0.05)))
     if paiement == "":
         paiement = _choisir_paiement(a, b, id, jour)
     if paiement == "" or paiement == id:

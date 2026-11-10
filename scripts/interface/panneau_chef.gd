@@ -325,6 +325,14 @@ func _section_flotte(C) -> void:
         var d: Dictionary = f.TYPES[typ]
         enfants.append(_bouton("%s (%d pers., %d kg, %s)" % [d["nom"], int(d["personnes"]), int(d["kg"]), f._texte(d["cout"])], true, func(): _faire(C.construire_bateau(ty), "Chantier naval lancé.")))
     boite.add_child(_ligne(enfants))
+    var ventes: Array = [_label("Vendre nos surplus (au clan connu qui paie le mieux) :", 21)]
+    for prod in ["bois", "sel"] + C.ressources.aliments.keys() + C.ressources.objets.keys():
+        var pr: String = prod
+        var q: float = C.marche.disponible(C, pr, jour)
+        if q >= 1.0 and C.marche.valeur_ref(pr) > 0.0:
+            ventes.append(_bouton("%s (%d)" % [pr, int(q)], true, func(): _faire(C.vendre_surplus(pr), "Marchandise partie.")))
+    if ventes.size() > 1:
+        boite.add_child(_ligne(ventes))
 
 # ---------- Archipel : explorer, visiter, connaître les autres îles ----------
 

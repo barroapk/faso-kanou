@@ -179,6 +179,44 @@ func devis_commerce(acheteur: String, vendeur: String, produit: String, q: float
     if a == null or b == null:
         return {"possible": false, "raison": "Clan inconnu."}
     return marche.devis(a, b, produit, q, temps.jour_total, paiement, diplomatie.etat(acheteur, vendeur))
+# Qui connaît qui (v0.3.32c) : le joueur, les îles découvertes ; l'ordinateur,
+# les îles que ses délégations ont visitées. Pas de connaissance magique.
+func _connaissances_marche() -> void:
+    var moi: Array = [self]
+    for v in voisins:
+        if int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 1:
+            moi.append(v)
+    marche.connus = {get_instance_id(): moi}
+    for v in voisins:
+        var l: Array = [v]
+        for w in voisins:
+            if w != v and v.iles_connues.has(w.agriculture.ile_id):
+                l.append(w)
+        if v.iles_connues.has(ile_joueur):
+            l.append(self)
+        marche.connus[v.get_instance_id()] = l
+# Vendre un surplus réel au clan connu qui en offre le plus (v0.3.32c).
+# Les réserves vitales restent protégées ; rien n'est créé.
+func vendre_surplus(produit: String) -> String:
+    var jour: int = temps.jour_total
+    var q: float = marche.disponible(self, produit, jour)
+    if q <= 0.01:
+        return "Pas de surplus de %s : nos réserves vitales passent d'abord." % produit
+    var meilleur := ""
+    var total := 0.0
+    var raison := "Aucun clan connu n'en veut pour l'instant."
+    for v in voisins:
+        if not v.vivant() or int(expeditions.connues.get(v.agriculture.ile_id, 0)) < 1:
+            continue
+        var d := devis_commerce(v.id, "joueur", produit, q)
+        if d.get("possible", false) and float(d["total"]) > total:
+            total = float(d["total"])
+            meilleur = v.id
+        elif not d.get("possible", false):
+            raison = d.get("raison", raison)
+    if meilleur == "":
+        return raison
+    return commercer(meilleur, "joueur", produit, q)
 
 func commercer(acheteur: String, vendeur: String, produit: String, q: float, paiement := "") -> String:
     var d := devis_commerce(acheteur, vendeur, produit, q, paiement)
@@ -408,6 +446,7 @@ func _mois_passe() -> void:
     rival.mois_passe(self)
     heros.mois_passe(self)
     histoire.mois_passe(self)
+    _connaissances_marche()
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()
