@@ -101,6 +101,7 @@ func _ready() -> void:
     Civilisation.equipement.evenement.connect(_afficher_message)
     Civilisation.decouvertes.evenement.connect(_afficher_message)
     Civilisation.diplomatie.evenement.connect(_afficher_message)
+    Civilisation.marche.evenement.connect(_afficher_message)
     for c in Civilisation.voisins:
         c.evenement.connect(_afficher_message)
 

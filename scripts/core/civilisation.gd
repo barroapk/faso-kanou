@@ -17,6 +17,7 @@ const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 const ECONOMIE = preload("res://scripts/core/economie.gd")
 const CLAN = preload("res://scripts/core/clan.gd")
 const DIPLOMATIE = preload("res://scripts/core/diplomatie.gd")
+const MARCHE = preload("res://scripts/core/marche.gd")
 
 var temps
 var population
@@ -32,6 +33,7 @@ var decouvertes
 var economie
 var voisins: Array = []
 var diplomatie
+var marche
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -55,6 +57,7 @@ func _creer_modules() -> void:
     construction.connaissances = decouvertes
     economie = ECONOMIE.new()
     diplomatie = DIPLOMATIE.new()
+    marche = MARCHE.new()
     voisins = []
     ressources.construction = construction
 
@@ -79,6 +82,31 @@ func _creer_voisins() -> void:
         voisins.append(c)
         ids.append(cle)
     diplomatie.etat_initial(ids)
+
+# Tous les clans pour le marché : [id, objet]. Le joueur, c'est Civilisation.
+func _clans() -> Array:
+    var l: Array = [["joueur", self]]
+    for c in voisins:
+        l.append([c.id, c])
+    return l
+
+func _ids_voisins() -> Array:
+    return voisins.map(func(c): return c.id)
+
+func _clan(cle: String):
+    return self if cle == "joueur" else voisin(cle)
+
+# Le joueur achète (acheteur = "joueur") ou vend (vendeur = "joueur").
+func devis_commerce(acheteur: String, vendeur: String, produit: String, q: float, paiement := "") -> Dictionary:
+    var a = _clan(acheteur)
+    var b = _clan(vendeur)
+    if a == null or b == null:
+        return {"possible": false, "raison": "Clan inconnu."}
+    return marche.devis(a, b, produit, q, temps.jour_total, paiement)
+
+func commercer(acheteur: String, vendeur: String, produit: String, q: float, paiement := "") -> String:
+    var d := devis_commerce(acheteur, vendeur, produit, q, paiement)
+    return marche.conclure(_clan(acheteur), acheteur, _clan(vendeur), vendeur, d, temps.jour_total, diplomatie)
 
 func voisin(cle: String):
     for c in voisins:
@@ -144,6 +172,7 @@ func _mois_passe() -> void:
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
     diplomatie.mois_passe()
+    marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -171,6 +200,7 @@ func sauvegarder() -> void:
         "economie": economie.vers_dict(),
         "voisins": voisins.map(func(c): return c.vers_dict()),
         "diplomatie": diplomatie.vers_dict(),
+        "marche": marche.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -203,6 +233,7 @@ func _charger(nom: String) -> bool:
     equipement.depuis_dict(donnees.get("equipement", {}))
     decouvertes.depuis_dict(donnees.get("decouvertes", {}))
     economie.depuis_dict(donnees.get("economie", {}), ressources)
+    marche.depuis_dict(donnees.get("marche", {}))
     if donnees.has("voisins"):
         voisins = []
         var ids := ["joueur"]
