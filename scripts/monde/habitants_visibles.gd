@@ -8,6 +8,8 @@ var corps := {}
 func _ready() -> void:
     Civilisation.population.naissance.connect(_sur_changement)
     Civilisation.population.deces.connect(_sur_changement)
+    Civilisation.population.entree.connect(_sur_changement)
+    Civilisation.population.sortie.connect(_sur_changement)
     _synchroniser()
 
 func _sur_changement(_h) -> void:

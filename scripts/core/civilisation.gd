@@ -2,7 +2,7 @@ extends Node
 
 const DOSSIER := "user://"
 const FICHIER := "partie.json"
-const VERSION := 3
+const VERSION := 4
 const TEMPS = preload("res://scripts/core/temps.gd")
 const POPULATION = preload("res://scripts/core/population.gd")
 const RESSOURCES = preload("res://scripts/core/ressources.gd")
@@ -10,6 +10,7 @@ const CONSTRUCTION = preload("res://scripts/core/construction.gd")
 const BESOINS = preload("res://scripts/core/besoins.gd")
 const CONSEIL = preload("res://scripts/core/conseil.gd")
 const CHEF = preload("res://scripts/core/chef.gd")
+const MIGRATION = preload("res://scripts/core/migration.gd")
 
 var temps
 var population
@@ -18,6 +19,7 @@ var construction
 var besoins
 var conseil
 var chef
+var migration
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -32,6 +34,8 @@ func _creer_modules() -> void:
     besoins = BESOINS.new()
     conseil = CONSEIL.new()
     chef = CHEF.new()
+    migration = MIGRATION.new()
+    migration.initialiser(2026)
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -81,9 +85,10 @@ func _jour_passe() -> void:
 func _mois_passe() -> void:
     construction.mois_passe(ressources)
     var logement: float = construction.effet_total("logement")
-    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0 and population.habitants.size() < logement)
+    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0, int(logement))
     conseil.mois_passe(population, temps.jour_total)
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
+    migration.mois_passe(population, ressources, construction, temps.jour_total)
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -104,6 +109,7 @@ func sauvegarder() -> void:
         "besoins": besoins.vers_dict(),
         "conseil": conseil.vers_dict(),
         "chef": chef.vers_dict(),
+        "migration": migration.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -131,5 +137,6 @@ func _charger(nom: String) -> bool:
     besoins.depuis_dict(donnees.get("besoins", {}))
     conseil.depuis_dict(donnees.get("conseil", {}), population, temps.jour_total)
     chef.depuis_dict(donnees.get("chef", {}))
+    migration.depuis_dict(donnees.get("migration", {}), 2026)
     temps.vitesse = 1
     return true

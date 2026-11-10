@@ -7,6 +7,7 @@ extends RefCounted
 #   marge    : elle la couvre, mais sans la marge de sécurité
 #   stockage : la réserve maximale tient moins de 30 jours
 #   surplus  : un poste peut être libéré sans danger
+#   logement : moins de places libres que de couples qui peuvent avoir un enfant
 # Ce module ne change rien tout seul en mode "conseil".
 # Toute action passe par appliquer(), qui vérifie les règles du jeu
 # (même chemin pour le joueur, le chef et les tests).
@@ -53,6 +54,8 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
     for p in problemes:
         if p["type"] == "stockage":
             _avis(p["ressource"], "Réserve de %s trop petite pour 30 jours : construisez du stockage." % p["ressource"])
+        elif p["type"] == "logement":
+            _avis("logement", "Logement : %d place(s) libre(s) pour %d couple(s) qui peuvent avoir un enfant. Construisez des huttes." % [maxi(0, p["places"]), int(p["besoin"])])
         elif p["type"] == "deficit" and p["solutions"].is_empty():
             _avis(p["ressource"] + "_bras", "Pas assez de bras pour produire assez de %s." % p["ressource"])
 
@@ -75,7 +78,46 @@ func diagnostiquer() -> Array:
         var p := _diagnostic(r)
         if not p.is_empty():
             liste.append(p)
+    var l := _diagnostic_logement()
+    if not l.is_empty():
+        liste.append(l)
     return liste
+
+# ---------- Diagnostic du logement ----------
+
+func _diagnostic_logement() -> Dictionary:
+    var capacite := int(_cons.effet_total("logement"))
+    var occupes: int = _pop.habitants.size() + _pop.grossesses()
+    var places := capacite - occupes
+    var feconds := 0
+    for c in _pop.couples:
+        if int(c["fin"]) >= 0 or c["sterile"]:
+            continue
+        var mere: Dictionary = _pop.par_id(int(c["femme"]))
+        if not mere.is_empty() and _pop.age(mere, _jour) <= 44:
+            feconds += 1
+    if places >= feconds:
+        return {}
+    var p := {
+        "ressource": "logement",
+        "type": "logement",
+        "niveau": 2 if places <= 0 else 1,
+        "capacite": capacite,
+        "occupes": occupes,
+        "places": places,
+        "deficit": feconds - places,
+        "conso": 0.0,
+        "production": 0.0,
+        "besoin": float(feconds),
+        "stock": float(places),
+        "jours_reserve": -1.0,
+        "jours_rupture": -1.0,
+        "solutions": [],
+    }
+    var b := _batiment_pour("logement")
+    if b != "":
+        p["solutions"] = [{"action": "construire", "ressource": "logement", "batiment": b}]
+    return p
 
 # ---------- Diagnostic d'une ressource ----------
 
@@ -115,7 +157,7 @@ func _diagnostic(r: String) -> Dictionary:
         return p
     if plein and capacite / conso < 30.0:
         p["type"] = "stockage"
-        var b := _batiment_stockage(r)
+        var b := _batiment_pour("stock_" + r)
         if b != "":
             p["solutions"] = [{"action": "construire", "ressource": r, "batiment": b}]
         return p
@@ -240,7 +282,10 @@ func estimer(sol: Dictionary) -> Dictionary:
             var force := _travail_batisseurs()
             var jours := ceili(float(niv["travail"]) / force) if force > 0.0 else -1
             e["cout"] = ", ".join(morceaux)
-            e["effet"] = "%s : +%d %s de réserve %s" % [niv["nom"], int(niv["effet"].get("stock_" + r, 0)), u, _de(r)]
+            if r == "logement":
+                e["effet"] = "%s : +%d places de logement" % [niv["nom"], int(niv["effet"].get("logement", 0))]
+            else:
+                e["effet"] = "%s : +%d %s de réserve %s" % [niv["nom"], int(niv["effet"].get("stock_" + r, 0)), u, _de(r)]
             if jours > 0:
                 e["risque"] = "Bois payé tout de suite. Bâtisseurs occupés environ %d jours, sans couper de bois." % jours
             else:
@@ -290,10 +335,10 @@ func _meilleur_metier(r: String, niveau: int) -> String:
             meilleur = m
     return meilleur
 
-func _batiment_stockage(r: String) -> String:
+func _batiment_pour(effet_cherche: String) -> String:
     for type in _cons.definitions:
         var effet: Dictionary = _cons.definitions[type]["niveaux"][0].get("effet", {})
-        if effet.has("stock_" + r):
+        if effet.has(effet_cherche):
             return type
     return ""
 
