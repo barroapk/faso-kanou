@@ -178,6 +178,15 @@ func _proposer(cle: String, titre: String, texte: String, options: Array, jours:
 
 func _situations(C) -> void:
     var jour: int = C.temps.jour_total
+    # Sécheresse (v0.3.26) : décidée en mai pour l'année, jamais deux ans de suite,
+    # jamais la première année. Elle touche tout l'archipel.
+    var an: int = C.temps.annee()
+    if C.temps.mois() == 4 and an >= 2 and C.temps.annee_seche < an - 1 and rng.randf() < 0.15:
+        C.temps.annee_seche = an
+    if C.temps.mois() == 5 and C.temps.secheresse():
+        _proposer("secheresse_%d" % an, "Les pluies ne viennent pas",
+            "Le ciel reste sec : cette année il pleuvra peu. Les champs non irrigués donneront moins, l'eau manquera.",
+            ["Rationner : chacun mange 20 % de moins pendant 120 jours", "Creuser des puits (3 adultes pendant 20 jours)", "Attendre la pluie"], 15, jour)
     # Des bêtes sauvages s'approchent d'un champ semé sans bonne clôture.
     for c in C.agriculture.champs:
         if c["etat"] == "seme" and C.clotures.protection("champ_%d" % int(c["id"])) < 0.3 and rng.randf() < 0.12:
@@ -227,6 +236,26 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
         elif not champ.is_empty():
             champ["degats"] = minf(0.9, float(champ.get("degats", 0.0)) + 0.25)
             evenement.emit("Les bêtes ont ravagé une partie du champ %d." % int(d["donnees"]["champ"]))
+    elif cle.begins_with("secheresse_"):
+        if option == 0:
+            C.ressources.ration = 0.8
+            C.ressources.ration_jusqu = jour + 120
+            C.pression.noter("conservation", 25.0)
+            evenement.emit("Rationnement : le grain durera plus longtemps, mais le clan souffre.")
+        elif option == 1:
+            var gens := 0
+            for h in C.population.habitants:
+                if gens < 3 and C.population.age(h, jour) >= 14 and not h["metier"] in ["chef", "ancien"] and not occupes.has(int(h["id"])):
+                    occupes[int(h["id"])] = jour + 20
+                    gens += 1
+            if gens < 3:
+                return "Il faut 3 adultes disponibles."
+            C.pression.noter("eau", 40.0)
+            C.ressources.ajouter("eau", 300.0, "puits")
+            evenement.emit("Les puiseurs creusent : un peu d'eau, et le clan cherche à maîtriser l'irrigation.")
+        else:
+            C.pression.noter("nourriture", 20.0)
+            evenement.emit("Le clan attend la pluie en espérant que les réserves suffiront.")
     elif cle == "marchand":
         if option == 0:
             if C.ressources.total_aliments() < float(d["donnees"]["prix"]):

@@ -32,6 +32,8 @@ const AGE_AIDE := 8
 # kg par pêcheur et par jour, multiplié par le sel de l'île (amorti).
 const SEL_MARIN := 0.03
 const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
+var ration := 1.0              # 0.8 = rationnement (chacun mange 20 % de moins)
+var ration_jusqu := -1
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
 const SEL_PAR_PERSONNE := 0.005         # kg par jour (5 g)
 const BASE := {"nourriture": 300.0, "eau": 600.0, "bois": 500.0, "sel": 200.0}
@@ -379,6 +381,9 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     noter("consommation", "bois", -_conso_jour(population, jour, "bois"))
     # Nourriture : pertes sur le stock du jour, puis repas, puis trop-plein.
     noter("perte", "nourriture", -_pertes_aliments())
+    if jour > ration_jusqu:
+        ration = 1.0
+    besoin_nourriture *= ration
     var manque := _retirer(besoin_nourriture)
     noter("consommation", "nourriture", -(besoin_nourriture - manque))
     var trop := total_aliments() - capacite("nourriture")
@@ -457,7 +462,7 @@ func texte_aliments() -> String:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"stocks": stocks, "aliments": aliments, "objets": objets, "jours_sans_sel": jours_sans_sel, "outils": outils, "faim": faim, "soif": soif}
+    return {"stocks": stocks, "aliments": aliments, "objets": objets, "jours_sans_sel": jours_sans_sel, "outils": outils, "faim": faim, "soif": soif, "ration": ration, "ration_jusqu": ration_jusqu}
 
 func depuis_dict(d: Dictionary) -> void:
     var st: Dictionary = d.get("stocks", {})
@@ -480,3 +485,5 @@ func depuis_dict(d: Dictionary) -> void:
     outils = float(d.get("outils", 1.0))
     faim = bool(d.get("faim", false))
     soif = bool(d.get("soif", false))
+    ration = float(d.get("ration", 1.0))
+    ration_jusqu = int(d.get("ration_jusqu", -1))
