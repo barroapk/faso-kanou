@@ -333,6 +333,15 @@ func _section_flotte(C) -> void:
             ventes.append(_bouton("%s (%d)" % [pr, int(q)], true, func(): _faire(C.vendre_surplus(pr), "Marchandise partie.")))
     if ventes.size() > 1:
         boite.add_child(_ligne(ventes))
+    # Élevage (v0.3.36)
+    boite.add_child(_label(C.elevage.texte(jour), 21))
+    var ab: Array = [_label("Abattre :", 21)]
+    for esp in C.elevage.especes:
+        var e2: String = esp
+        if C.elevage.nombre(e2) > 0:
+            ab.append(_bouton("1 %s" % str(C.elevage.especes[e2]["nom"]).to_lower(), true, func(): _faire(C.abattre(e2), "Bête abattue.")))
+    if ab.size() > 1:
+        boite.add_child(_ligne(ab))
 
 # ---------- Archipel : explorer, visiter, connaître les autres îles ----------
 

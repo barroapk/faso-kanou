@@ -1,0 +1,12 @@
+{
+  "_notes": "Élevage (v0.3.36). Valeurs de départ, ajustables. jours = jours de jeu. paturage_ha : surface de pâture par bête (moitié moins de pâture en saison sèche). fourrage_kgem : grain équivalent mil par jour si la pâture manque. mortalite_an : mort naturelle de base par an (x2 sans éleveur). fumier_kg_jour : par bête vivante.",
+  "pintade": {"nom": "Pintade", "adulte_j": 180, "vie_j": 2900, "gestation_j": 26, "portee": [6, 12], "survie_petits": 0.5, "intervalle_j": 180,
+    "lactation_j": 0, "lait_kg_jour": 0.0, "oeufs_an": 100, "grain_kgem_jour": 0.1, "paturage_ha": 0.0, "fourrage_kgem": 0.0,
+    "eau_jour": 0.3, "viande_kg": 1.2, "viande_id": "pintade", "mortalite_an": 0.10, "fumier_kg_jour": 0.02, "eleveur_pour": 50},
+  "chevre": {"nom": "Chèvre", "adulte_j": 365, "vie_j": 4000, "gestation_j": 150, "portee": [1, 2], "survie_petits": 0.8, "intervalle_j": 240,
+    "lactation_j": 120, "lait_kg_jour": 0.5, "oeufs_an": 0, "grain_kgem_jour": 0.0, "paturage_ha": 0.5, "fourrage_kgem": 0.6,
+    "eau_jour": 4.0, "viande_kg": 15.0, "viande_id": "chevre", "mortalite_an": 0.06, "fumier_kg_jour": 0.5, "eleveur_pour": 20},
+  "zebu": {"nom": "Zébu", "adulte_j": 1095, "vie_j": 7000, "gestation_j": 285, "portee": [1, 1], "survie_petits": 0.85, "intervalle_j": 450,
+    "lactation_j": 240, "lait_kg_jour": 2.0, "oeufs_an": 0, "grain_kgem_jour": 0.0, "paturage_ha": 2.0, "fourrage_kgem": 3.0,
+    "eau_jour": 30.0, "viande_kg": 120.0, "viande_id": "boeuf", "mortalite_an": 0.04, "fumier_kg_jour": 5.0, "eleveur_pour": 5}
+}

@@ -209,6 +209,10 @@ func _situations(C) -> void:
         var offre := {"produit": "sel", "quantite": 20.0, "prix": 260.0}
         if float(a.get("sel", 99.0)) > 120.0:
             offre = {"produit": "hache_fer", "quantite": 1.0, "prix": 30.0}
+        # Élevage connu : il peut amener un couple d'animaux vivants (v0.3.36).
+        if C.elevage.elevage_connu and rng.randf() < 0.4:
+            var esp: String = ["pintade", "chevre", "zebu"][mini(rng.randi() % 3, 1 + epoque)]
+            offre = {"produit": "un couple de " + str(C.elevage.especes[esp]["nom"]).to_lower(), "quantite": 2.0, "prix": {"pintade": 15.0, "chevre": 120.0, "zebu": 600.0}[esp], "animal": esp}
         _proposer("marchand", "Un marchand étranger accoste",
             "Venu d'au-delà de l'archipel, il propose %d %s contre %d kg de grain." % [int(offre["quantite"]), offre["produit"], int(offre["prix"])],
             ["Acheter", "Le renvoyer"], 7, jour, offre)
@@ -315,7 +319,11 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
             if C.ressources.total_aliments() < float(d["donnees"]["prix"]):
                 return "Pas assez de grain pour payer."
             C.territoire._payer_nourriture(C.ressources, float(d["donnees"]["prix"]))
-            C.ressources.ajouter(d["donnees"]["produit"], float(d["donnees"]["quantite"]), "importation")
+            if d["donnees"].has("animal"):
+                C.elevage.ajouter(d["donnees"]["animal"], "m", jour)
+                C.elevage.ajouter(d["donnees"]["animal"], "f", jour)
+            else:
+                C.ressources.ajouter(d["donnees"]["produit"], float(d["donnees"]["quantite"]), "importation")
             evenement.emit("Marché conclu avec le marchand étranger.")
     elif cle.begins_with("alliance_"):
         var autre = C.voisin(d["donnees"]["clan"])

@@ -32,6 +32,7 @@ const DEFIS = preload("res://scripts/core/defis.gd")
 const RIVAL = preload("res://scripts/core/rival.gd")
 const HEROS = preload("res://scripts/core/heros.gd")
 const HISTOIRE = preload("res://scripts/core/histoire.gd")
+const ELEVAGE = preload("res://scripts/core/elevage.gd")
 
 var temps
 var population
@@ -61,6 +62,7 @@ var defis
 var rival
 var heros
 var histoire
+var elevage
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -108,6 +110,8 @@ func _creer_modules() -> void:
     heros = HEROS.new()
     population.deces.connect(heros.sur_depart.bind(true))
     population.sortie.connect(heros.sur_depart.bind(false))
+    elevage = ELEVAGE.new()
+    besoins.elevage = elevage
     histoire = HISTOIRE.new()
     histoire.observer(self)
     marche.caravanes = caravanes
@@ -202,6 +206,14 @@ func _connaissances_marche() -> void:
         marche.connus[v.get_instance_id()] = l
 # Vendre un surplus réel au clan connu qui en offre le plus (v0.3.32c).
 # Les réserves vitales restent protégées ; rien n'est créé.
+# Pâture : nos parcelles qui ne sont pas des champs (v0.3.36).
+func paturage_ha() -> float:
+    var champs := 0.0
+    for ch in agriculture.champs:
+        champs += float(ch["ha"])
+    return maxf(0.0, territoire.surface_possedee() - champs)
+func abattre(esp: String) -> String:
+    return elevage.abattre(esp, ressources, temps.jour_total)
 func vendre_surplus(produit: String) -> String:
     var jour: int = temps.jour_total
     var q: float = marche.disponible(self, produit, jour)
@@ -446,6 +458,10 @@ func _jour_passe() -> void:
         else:
             flotte.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())
+    elevage.elevage_connu = decouvertes.connait("elevage")
+    elevage.capture(population, temps.jour_total)
+    besoins.paturage_ha = paturage_ha()
+    elevage.jour_passe(ressources, population, temps.jour_total, temps.saison_des_pluies(), besoins.paturage_ha)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     pression.jour_passe(ressources)
     for c in voisins:
@@ -484,6 +500,7 @@ func _mois_passe() -> void:
     _epoques_ordinateur()
     rival.mois_passe(self)
     heros.mois_passe(self)
+    elevage.mois_passe(ressources, population, temps.jour_total)
     histoire.mois_passe(self)
     _connaissances_marche()
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
@@ -528,6 +545,7 @@ func sauvegarder() -> void:
         "rival": rival.vers_dict(),
         "heros": heros.vers_dict(),
         "histoire": histoire.vers_dict(),
+        "elevage": elevage.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -578,6 +596,7 @@ func _charger(nom: String) -> bool:
     heros.depuis_dict(donnees.get("heros", {}))
     heros.appliquer(self)
     histoire.depuis_dict(donnees.get("histoire", {}))
+    elevage.depuis_dict(donnees.get("elevage", {}))
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))

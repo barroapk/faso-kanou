@@ -547,6 +547,8 @@ func _avis(cle: String, texte: String) -> void:
 const HORIZON := 60
 const METIERS_VITAUX := ["porteur d'eau", "cueilleur", "chasseur", "pêcheur", "bâtisseur", "cultivateur"]
 const GAIN_MIN := 40.0
+var elevage = null                # v0.3.36 : les bêtes boivent, mangent, donnent lait et œufs
+var paturage_ha := 0.0
 var _cache := {}                  # rendements et consommation du mois
 var _survie := 0.0                # jours sans pénurie de la dernière simulation
 var _jour_plan := -1               # début de la période observée (prod_metier)
@@ -636,6 +638,14 @@ func _score(delta: Dictionary, strict := true) -> float:
             else:
                 p_sec += n * _rend(m, "nourriture", s) * km
         p_sec += chef * _rend("chef", "nourriture", s)
+        if elevage != null and not elevage.animaux.is_empty():
+            var ck := "elev|%d" % s
+            if not _cache.has(ck):
+                _cache[ck] = elevage.prevision(_jour, s == 1, paturage_ha)
+            var ev: Dictionary = _cache[ck]
+            p_eau -= float(ev["eau"])
+            p_sec -= float(ev["grain"])
+            p_frais += float(ev["frais"])
         p_eau *= float(k["eau"])
         p_bois *= float(k["bois"])
         reste_chantier = maxf(0.0, reste_chantier - force_bat)
@@ -678,6 +688,12 @@ func _score(delta: Dictionary, strict := true) -> float:
     score += minf(90.0, (sec + frais) / maxf(0.1, conso["nourriture"])) * 40.0
     score += minf(30.0, eau / maxf(0.1, conso["eau"])) * 10.0
     score += minf(30.0, bois / maxf(0.1, conso["bois"])) * 2.0
+    # Éleveurs : sans eux, les bêtes meurent deux fois plus (bonus jusqu'au besoin).
+    if elevage != null and not elevage.animaux.is_empty():
+        var besoin_el := 0.0
+        for a in elevage.animaux:
+            besoin_el += 1.0 / float(elevage.especes[a["esp"]]["eleveur_pour"])
+        score += minf(float(postes.get("éleveur", 0)), ceilf(besoin_el)) * 150.0
     if _chantier and int(postes.get("bâtisseur", 0)) >= 1:
         score += 30.0
     return score
@@ -727,6 +743,8 @@ func _planifier() -> void:
     for m in METIERS_VITAUX:
         if not metiers.has(m) and _pop.postes.has(m):
             metiers.append(m)
+    if elevage != null and not elevage.animaux.is_empty() and not metiers.has("éleveur"):
+        metiers.append("éleveur")
     if not metiers.has("sécheur") and (int(_pop.postes.get("chasseur", 0)) + int(_pop.postes.get("pêcheur", 0))) > 0:
         metiers.append("sécheur")
     for i in 3:
@@ -734,7 +752,7 @@ func _planifier() -> void:
         var meilleur := {}
         var gain := base + GAIN_MIN
         for vers in metiers:
-            if (not _res.PRODUCTION.has(vers) and vers != "sécheur") or (_verrouille(vers) and base > 40000.0):
+            if (not _res.PRODUCTION.has(vers) and not vers in ["sécheur", "éleveur"]) or (_verrouille(vers) and base > 40000.0):
                 continue
             var d := {vers: 1}
             var v := _score(d)
