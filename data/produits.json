@@ -824,6 +824,26 @@
    ],
    "obtention": "viande séchée au soleil et à la fumée"
   },
+  "poisson_fume": {
+   "nom": "Poisson fumé",
+   "categorie": "transformee",
+   "kcal_kg": 3000,
+   "perte_jour": 0.005,
+   "sec": true,
+   "valeur": 7.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "transforme_de": "poisson",
+   "note": "fumé et séché (v0.3.35) : 3 kg frais donnent 1 kg",
+   "sous_categorie": "transforme",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": ["nourriture", "commerce"],
+   "obtention": "poisson fumé au feu de bois et salé"
+  },
   "farine_mil": {
    "nom": "Farine de mil",
    "categorie": "transformee",

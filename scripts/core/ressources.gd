@@ -44,6 +44,15 @@ const KCAL_KGEM := 3400.0
 # Pertes de stockage par jour (part du stock).
 const PERTES_NOURRITURE := 0.001        # valeur moyenne, utilisée si le stock est vide
 const PERTES_NOURRITURE_GRENIER := 0.0003
+# Séchage et fumage (v0.3.35) : le sécheur transforme la viande et le poisson
+# frais qui restent après le repas. Calories conservées (moins 5 %) : seule
+# l'eau part. Capacité : 20 kg frais par sécheur et par jour. Coûts réels :
+# 0,03 kg de sel et 0,3 kg de bois par kg frais ; on garde 5 jours de bois.
+const SECHAGE := {"gibier": "viande_sechee", "poisson": "poisson_fume"}
+const SECHAGE_KG_JOUR := 20.0
+const SECHAGE_SEL := 0.03
+const SECHAGE_BOIS := 0.3
+const PERTE_SECHAGE := 0.05
 const COEF_GRENIER := 0.3               # un grenier divise les pertes des produits secs
 const EVAPORATION_EAU := 0.002          # jarres et canaris : 0,2 % par jour
 const CENDRES_PAR_KG_BOIS := 0.015      # le bois brûlé chaque jour laisse des cendres
@@ -314,6 +323,29 @@ func taux_pertes() -> float:
         p += float(aliments[id]) * facteur(id) * taux
     return p / t * (1.0 - honneur_grenier)
 
+func _secher(population, jour: int) -> void:
+    var cap := 0.0
+    for h in population.habitants:
+        if h["metier"] == "sécheur" and not h.get("occupe", false):
+            cap += SECHAGE_KG_JOUR * (0.6 + float(h["competence"]) / 100.0 * 0.8)
+    if cap <= 0.0:
+        return
+    for id in SECHAGE:
+        var q: float = minf(float(aliments.get(id, 0.0)), cap)
+        q = minf(q, float(stocks["sel"]) / SECHAGE_SEL)
+        q = minf(q, maxf(0.0, float(stocks["bois"]) - 5.0 * _conso_jour(population, jour, "bois")) / SECHAGE_BOIS)
+        if q <= 0.01:
+            continue
+        var out: String = SECHAGE[id]
+        var kgem: float = q * facteur(id)
+        aliments[id] = float(aliments[id]) - q
+        aliments[out] = float(aliments.get(out, 0.0)) + kgem * (1.0 - PERTE_SECHAGE) / facteur(out)
+        stocks["sel"] = float(stocks["sel"]) - q * SECHAGE_SEL
+        stocks["bois"] = float(stocks["bois"]) - q * SECHAGE_BOIS
+        noter("transformation", "nourriture", -kgem * PERTE_SECHAGE)
+        noter("transformation", "sel", -q * SECHAGE_SEL)
+        noter("transformation", "bois", -q * SECHAGE_BOIS)
+        cap -= q
 # Autonomie : nombre de jours tenables sur les stocks, sans produire ni importer.
 func autonomie(population, jour: int) -> Dictionary:
     var conso := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0, "sel": 0.0}
@@ -394,6 +426,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     if trop > 0.0:
         _retirer(trop)
         noter("trop_plein", "nourriture", -trop)
+    _secher(population, jour)
     stocks["nourriture"] = total_aliments()
     bilan["nourriture"] = stocks["nourriture"] - avant
     # Eau et bois.

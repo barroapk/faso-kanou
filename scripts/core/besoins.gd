@@ -647,6 +647,12 @@ func _score(delta: Dictionary, strict := true) -> float:
         var pris := minf(frais, faim)
         frais -= pris
         faim -= pris
+        # Sécheurs : le frais restant devient du sec (calories -5 %), bois et sel consommés.
+        if int(postes.get("sécheur", 0)) > 0 and frais > 0.0 and float(_res.stocks["sel"]) > 1.0:
+            var conv := minf(frais, int(postes["sécheur"]) * _res.SECHAGE_KG_JOUR * 0.8 * _res.facteur("gibier"))
+            frais -= conv
+            sec += conv * (1.0 - _res.PERTE_SECHAGE)
+            bois -= conv / _res.facteur("gibier") * _res.SECHAGE_BOIS
         sec = minf(cap_n, sec + p_sec) - faim
         manque["eau"] += maxf(0.0, -eau) / maxf(0.1, conso["eau"])
         manque["bois"] += maxf(0.0, -bois) / maxf(0.1, conso["bois"])
@@ -721,12 +727,14 @@ func _planifier() -> void:
     for m in METIERS_VITAUX:
         if not metiers.has(m) and _pop.postes.has(m):
             metiers.append(m)
+    if not metiers.has("sécheur") and (int(_pop.postes.get("chasseur", 0)) + int(_pop.postes.get("pêcheur", 0))) > 0:
+        metiers.append("sécheur")
     for i in 3:
         var base := _score({})
         var meilleur := {}
         var gain := base + GAIN_MIN
         for vers in metiers:
-            if not _res.PRODUCTION.has(vers) or (_verrouille(vers) and base > 40000.0):
+            if (not _res.PRODUCTION.has(vers) and vers != "sécheur") or (_verrouille(vers) and base > 40000.0):
                 continue
             var d := {vers: 1}
             var v := _score(d)
