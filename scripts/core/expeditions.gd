@@ -27,6 +27,7 @@ var connues := {}                # ile_id -> niveau de connaissance (1 = vue, 2+
 var visites := {}                # clan_id -> {"nb": n, "dernier": jour}
 var en_cours := {}               # {type, cible, membres: [id], retour, ...}
 var rng := RandomNumberGenerator.new()
+var flotte = null                # flotte.gd : chaque expédition prend un bateau
 
 func _init() -> void:
     rng.seed = 4242
@@ -64,10 +65,18 @@ func lancer(type: String, cible: String, maison: String, pop, res, jour: int) ->
     var membres := _choisir(pop, jour, int(MEMBRES[type]))
     if membres.size() < int(MEMBRES[type]):
         return "Pas assez d'adultes disponibles (%d nécessaires)." % int(MEMBRES[type])
+    if flotte != null:
+        var v: float = flotte.vitesse_libre(jour, membres.size(), 0.0)
+        if v <= 0.0:
+            return flotte.raison_aucun(jour, membres.size(), 0.0)
+        # Un bateau plus rapide raccourcit le voyage.
+        duree = SEJOUR + int(ceil((duree - SEJOUR) * VITESSE_KM / v))
     var vivres := VIVRES_JOUR * membres.size() * duree
     if res.total_aliments() < vivres:
         return "Il faut %d kg de vivres pour le voyage." % int(vivres)
     _payer_vivres(res, vivres)
+    if flotte != null:
+        flotte.reserver(jour, jour + duree, membres.size(), 0.0, type)
     var ids: Array = []
     for h in membres:
         h["expedition"] = true

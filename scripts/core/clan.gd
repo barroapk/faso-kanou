@@ -23,6 +23,7 @@ const TERRITOIRE = preload("res://scripts/core/territoire.gd")
 const CLOTURES = preload("res://scripts/core/clotures.gd")
 const ROUTES = preload("res://scripts/core/routes.gd")
 const GISEMENTS = preload("res://scripts/core/gisements.gd")
+const FLOTTE = preload("res://scripts/core/flotte.gd")
 
 var id := ""
 var nom := ""
@@ -46,6 +47,7 @@ var territoire
 var clotures
 var routes
 var gisements
+var flotte
 var _rng_sol := RandomNumberGenerator.new()
 
 func _modules() -> void:
@@ -71,6 +73,8 @@ func _modules() -> void:
     agriculture.routes = routes
     ressources.routes = routes
     gisements = GISEMENTS.new()
+    flotte = FLOTTE.new()
+    flotte.depart()
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -167,8 +171,10 @@ func jour_passe(jour: int, pluie: bool) -> void:
     if construction.chantiers.is_empty():
         if clotures.en_travaux():
             clotures.jour_passe(travail_batisseurs())
-        else:
+        elif routes.en_travaux():
             routes.jour_passe(travail_batisseurs())
+        else:
+            flotte.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, jour, pluie)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, jour)
     pression.jour_passe(ressources)
@@ -179,6 +185,7 @@ func mois_passe(jour: int, pluie: bool) -> void:
     construction.mois_passe(ressources)
     clotures.mois_passe(ressources, (jour / 30) % 12)
     routes.mois_passe(ressources, (jour / 30) % 12)
+    flotte.mois_passe(ressources, (jour / 30) % 12)
     population.mois_passe(jour, ressources.stocks["nourriture"] > 100.0, int(construction.effet_total("logement")))
     conseil.mois_passe(population, jour)
     _gouverner(jour)
@@ -293,6 +300,7 @@ func vers_dict() -> Dictionary:
         "clotures": clotures.vers_dict(),
         "routes": routes.vers_dict(),
         "gisements": gisements.vers_dict(),
+        "flotte": flotte.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -321,6 +329,7 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     routes.depuis_dict(d.get("routes", {}))
     routes.installer(agriculture.ile)
     gisements.depuis_dict(d.get("gisements", {}))
+    flotte.depuis_dict(d.get("flotte", {}))
     gisements.installer(agriculture.ile)
     if not d.has("routes"):
         routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

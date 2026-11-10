@@ -70,6 +70,7 @@ func remplir() -> void:
     _section_clotures(C)
     _section_routes(C)
     _section_sous_sol(C)
+    _section_flotte(C)
     _section_archipel(C)
     _section_mode(C)
 
@@ -271,6 +272,27 @@ func _section_sous_sol(C) -> void:
             txt += " — ouvert, mineurs : %d" % C.population.nombre("mineur")
             enfants[0].text = txt
         boite.add_child(_ligne(enfants))
+
+# ---------- Port et flotte ----------
+
+func _section_flotte(C) -> void:
+    var f = C.flotte
+    var jour: int = C.temps.jour_total
+    boite.add_child(_label("Port et flotte", 30))
+    var np: int = f.niveau_port(C.construction, C.routes)
+    var t := "Port : %s — places pour %d bateau(x). Construisez le port dans « Construire » ; il ne sert que relié par la route." % [["aucun (1 pirogue sur la plage)", "débarcadère", "port aménagé", "grand port"][np], f.places(C.construction, C.routes)]
+    boite.add_child(_label(t, 21))
+    for b in f.bateaux:
+        var etat := "au port" if int(b["occupe_jusqu"]) < jour else "en mer (%s), retour dans %d jours" % [b["mission"], int(b["occupe_jusqu"]) - jour]
+        boite.add_child(_label("%s n° %d : %s, état %d %%" % [f.TYPES[b["type"]]["nom"], int(b["id"]), etat, int(float(b["etat"]) * 100)], 21))
+    if f.en_travaux():
+        boite.add_child(_label("Chantier naval : %s, encore %d jours de travail." % [f.TYPES[f.chantier["type"]]["nom"], int(ceil(float(f.chantier["travail_restant"])))], 21))
+    var enfants: Array = [_label("Construire un bateau :", 21)]
+    for typ in f.TYPES:
+        var ty: String = typ
+        var d: Dictionary = f.TYPES[typ]
+        enfants.append(_bouton("%s (%d pers., %d kg, %s)" % [d["nom"], int(d["personnes"]), int(d["kg"]), f._texte(d["cout"])], true, func(): _faire(C.construire_bateau(ty), "Chantier naval lancé.")))
+    boite.add_child(_ligne(enfants))
 
 # ---------- Archipel : explorer, visiter, connaître les autres îles ----------
 

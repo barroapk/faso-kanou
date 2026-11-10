@@ -240,5 +240,54 @@
         }
       }
     ]
+  },
+  "port": {
+    "nom": "Port",
+    "niveaux": [
+      {
+        "nom": "Débarcadère en bois",
+        "cout": {
+          "bois": 200,
+          "pierre": 50
+        },
+        "travail": 60,
+        "entretien": {
+          "bois": 2
+        },
+        "effet": {
+          "places_bateaux": 1
+        }
+      },
+      {
+        "nom": "Port aménagé",
+        "cout": {
+          "bois": 400,
+          "pierre": 400
+        },
+        "travail": 150,
+        "entretien": {
+          "bois": 3,
+          "pierre": 2
+        },
+        "effet": {
+          "places_bateaux": 1
+        }
+      },
+      {
+        "nom": "Grand port",
+        "cout": {
+          "bois": 800,
+          "pierre": 1500
+        },
+        "travail": 400,
+        "entretien": {
+          "bois": 5,
+          "pierre": 5
+        },
+        "effet": {
+          "places_bateaux": 1
+        }
+      }
+    ]
   }
 }

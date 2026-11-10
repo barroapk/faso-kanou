@@ -44,9 +44,22 @@ func envoyer(a, id_a: String, b, id_b: String, d: Dictionary, jour: int, num: St
         return "Le vendeur n'a plus assez de %s." % produit
     if a.ressources.quantite(p) + 0.000001 < qp:
         return "L'acheteur n'a plus assez de %s." % p
+    # Un bateau du vendeur (sinon de l'acheteur) fait l'aller-retour.
+    var dist := Vector2(float(territoire(a)["x"]) - float(territoire(b)["x"]), float(territoire(a)["z"]) - float(territoire(b)["z"])).length()
+    var bateau := {}
+    for cl in [b, a]:
+        var f = cl.get("flotte")
+        if f == null or not bateau.is_empty():
+            continue
+        var v: float = f.vitesse_libre(jour, 2, q)
+        if v > 0.0:
+            var j := maxi(DUREE_MIN, int(ceil(dist / v)))
+            bateau = f.reserver(jour, jour + 2 * j, 2, q, "commerce")
+    if bateau.is_empty() and (a.get("flotte") != null or b.get("flotte") != null):
+        return "Aucun bateau libre assez grand pour %d kg (ni chez le vendeur, ni chez l'acheteur)." % int(q)
     b.ressources.retirer(produit, q, "transport")
     a.ressources.retirer(p, qp, "transport")
-    var jours := duree(territoire(a), territoire(b))
+    var jours := maxi(DUREE_MIN, int(ceil(dist / float(load("res://scripts/core/flotte.gd").TYPES[bateau.get("type", "pirogue")]["km_jour"]))))
     en_route.append({
         "id": num, "acheteur": id_a, "vendeur": id_b,
         "produit": produit, "quantite": q, "paiement": p, "prix": qp,

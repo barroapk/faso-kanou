@@ -27,6 +27,7 @@ const CLOTURES = preload("res://scripts/core/clotures.gd")
 const ROUTES = preload("res://scripts/core/routes.gd")
 const EXPEDITIONS = preload("res://scripts/core/expeditions.gd")
 const GISEMENTS = preload("res://scripts/core/gisements.gd")
+const FLOTTE = preload("res://scripts/core/flotte.gd")
 
 var temps
 var population
@@ -51,6 +52,7 @@ var clotures
 var routes
 var expeditions
 var gisements
+var flotte
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -90,6 +92,9 @@ func _creer_modules() -> void:
     ressources.routes = routes
     expeditions = EXPEDITIONS.new()
     gisements = GISEMENTS.new()
+    flotte = FLOTTE.new()
+    flotte.depart()
+    expeditions.flotte = flotte
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -208,6 +213,10 @@ func _clans_par_ile() -> Dictionary:
             d[c.agriculture.ile_id] = [c.id, c]
     return d
 
+# Port et flotte du joueur.
+func construire_bateau(type: String) -> String:
+    return flotte.commander(type, ressources, construction, routes)
+
 func prospecter() -> String:
     return gisements.prospecter(population, temps.jour_total)
 
@@ -299,8 +308,10 @@ func _jour_passe() -> void:
     if construction.chantiers.is_empty():
         if clotures.en_travaux():
             clotures.jour_passe(travail_batisseurs())
-        else:
+        elif routes.en_travaux():
             routes.jour_passe(travail_batisseurs())
+        else:
+            flotte.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     pression.jour_passe(ressources)
@@ -316,6 +327,7 @@ func _mois_passe() -> void:
     construction.mois_passe(ressources)
     clotures.mois_passe(ressources, temps.mois())
     routes.mois_passe(ressources, temps.mois())
+    flotte.mois_passe(ressources, temps.mois())
     var logement: float = construction.effet_total("logement")
     population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0, int(logement))
     conseil.mois_passe(population, temps.jour_total)
@@ -372,6 +384,7 @@ func sauvegarder() -> void:
         "routes": routes.vers_dict(),
         "expeditions": expeditions.vers_dict(),
         "gisements": gisements.vers_dict(),
+        "flotte": flotte.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -416,6 +429,7 @@ func _charger(nom: String) -> bool:
     routes.depuis_dict(donnees.get("routes", {}))
     expeditions.depuis_dict(donnees.get("expeditions", {}))
     gisements.depuis_dict(donnees.get("gisements", {}))
+    flotte.depuis_dict(donnees.get("flotte", {}))
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
