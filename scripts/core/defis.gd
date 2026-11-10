@@ -98,9 +98,12 @@ func _verifier_epoque(C) -> void:
 func _candidats(C) -> Array:
     var l: Array = []
     var a: Dictionary = C.ressources.autonomie(C.population, C.temps.jour_total)
+    # Premier défi garanti (v0.3.33b) : la réserve qui ouvre la première exploration.
+    if not mer_ouverte:
+        l.append({"cle": "nourriture_60", "horizon": "court", "texte": "Constituer 60 jours de nourriture", "duree": 180})
     if float(a.get("eau", 99.0)) < 15.0:
         l.append({"cle": "eau_30", "horizon": "court", "texte": "Constituer 30 jours de réserve d'eau", "duree": 60})
-    if float(a.get("nourriture", 99.0)) < 30.0:
+    if mer_ouverte and float(a.get("nourriture", 99.0)) < 30.0:
         l.append({"cle": "nourriture_60", "horizon": "court", "texte": "Constituer 60 jours de nourriture", "duree": 120})
     if C.agriculture.champs.any(func(c): return not bool(c["defriche"])):
         l.append({"cle": "defricher", "horizon": "court", "texte": "Finir de défricher tous les champs", "duree": 90})
@@ -146,8 +149,12 @@ func _reussi(C, cle: String) -> bool:
         return _amis(C) >= 3
     return false
 
+var mer_ouverte := false         # message de la première exploration déjà donné (sauvegardé)
 func _maj_defis(C) -> void:
     var jour: int = C.temps.jour_total
+    if not mer_ouverte and _reussi(C, "nourriture_60"):
+        mer_ouverte = true
+        evenement.emit("Le clan peut maintenant tenter sa première exploration en mer.")
     for d in defis.duplicate():
         if _reussi(C, d["cle"]):
             defis.erase(d)
@@ -354,13 +361,14 @@ func mois_passe(C) -> void:
     _situations(C)
 
 func vers_dict() -> Dictionary:
-    return {"epoque": epoque, "renommee": renommee, "defis": defis, "decisions": decisions, "occupes": occupes, "graine": rng.seed, "etat": rng.state}
+    return {"epoque": epoque, "renommee": renommee, "defis": defis, "decisions": decisions, "occupes": occupes, "mer_ouverte": mer_ouverte, "graine": rng.seed, "etat": rng.state}
 
 func depuis_dict(d: Dictionary) -> void:
     epoque = int(d.get("epoque", 0))
     renommee = int(d.get("renommee", 0))
     defis = d.get("defis", [])
     decisions = d.get("decisions", [])
+    mer_ouverte = bool(d.get("mer_ouverte", true))
     occupes = {}
     for k in d.get("occupes", {}):
         occupes[int(k)] = int(d["occupes"][k])
