@@ -8,7 +8,7 @@ const RESSOURCES = preload("res://scripts/core/ressources.gd")
 const CONSTRUCTION = preload("res://scripts/core/construction.gd")
 const BESOINS = preload("res://scripts/core/besoins.gd")
 
-const CHAMPS := ["nom", "categorie", "kcal_kg", "perte_jour", "sec", "valeur", "epoque", "disponibilite", "terrains"]
+const CHAMPS := ["nom", "categorie", "kcal_kg", "perte_jour", "sec", "valeur", "epoque", "disponibilite", "terrains", "alimentaire", "unite", "saisons", "usages", "obtention"]
 const JAMAIS_PRODUITS := ["sel", "ble", "raisin", "mangue", "orange", "mais", "arachide", "datte", "sucre", "coton"]
 
 var ok := 0
@@ -23,8 +23,8 @@ func _initialize() -> void:
             if not res.produits[id].has(c):
                 completes = false
                 print("   fiche incomplète : %s (%s)" % [id, c])
-    _verifier("%d produits, toutes les fiches ont les 9 propriétés" % res.produits.size(), completes and res.produits.size() >= 30)
-    _verifier("coton : fibre, jamais nourriture (0 kcal)", res.produits["coton"]["categorie"] == "fibre" and float(res.produits["coton"]["kcal_kg"]) == 0.0)
+    _verifier("%d ressources, toutes les fiches ont les 14 propriétés" % res.produits.size(), completes and res.produits.size() >= 30)
+    _verifier("coton : fibre, jamais nourriture (0 kcal)", res.produits["coton"]["sous_categorie"] == "fibre" and not res.produits["coton"]["alimentaire"] and float(res.produits["coton"]["kcal_kg"]) == 0.0)
     _verifier("sel : condiment sans calories", float(res.produits["sel"]["kcal_kg"]) == 0.0)
     var tr_ok := true
     for id in res.produits:

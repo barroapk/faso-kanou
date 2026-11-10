@@ -3,12 +3,17 @@
   "kcal_kg": "énergie par kg ; 1 kg équivalent mil (kgEM) = 3400 kcal",
   "valeur": "prix de référence : 1 = 1 kg de mil",
   "disponibilite": "locale = produit sur place si terrain, époque et découverte le permettent ; introduite = arrive progressivement par les échanges ; commerce = seulement par achat, sauf terrain adapté ; transformation = fabriqué à partir d'un autre produit",
-  "sec": "vrai = se garde mieux dans un grenier"
+  "sec": "vrai = se garde mieux dans un grenier",
+  "categorie": "alimentaire, naturelle, miniere, agricole, transformee, artisanale",
+  "saisons": "mois de récolte (janvier = 0) ; liste vide = toute l'année",
+  "unite": "kg, L, g ou piece ; masse_unite_kg = masse d'une unité",
+  "obtention": "comment on l'obtient ; les recettes détaillées viendront à l'étape 2",
+  "identifiants": "ne jamais renommer ni supprimer un identifiant (sauvegardes)"
  },
  "produits": {
   "fonio_sauvage": {
    "nom": "Fonio sauvage",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3400,
    "perte_jour": 0.001,
    "sec": true,
@@ -18,11 +23,24 @@
    "terrains": [
     "savane"
    ],
-   "note": "graines sauvages récoltées en fin de saison des pluies"
+   "note": "graines sauvages récoltées en fin de saison des pluies",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    8,
+    9,
+    10
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "mil": {
    "nom": "Mil",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3400,
    "perte_jour": 0.001,
    "sec": true,
@@ -32,11 +50,23 @@
    "terrains": [
     "savane"
    ],
-   "decouverte": "agriculture"
+   "decouverte": "agriculture",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    8,
+    9
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "sorgho": {
    "nom": "Sorgho",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3300,
    "perte_jour": 0.001,
    "sec": true,
@@ -47,11 +77,23 @@
     "savane",
     "humide"
    ],
-   "decouverte": "agriculture"
+   "decouverte": "agriculture",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    9,
+    10
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "fonio": {
    "nom": "Fonio",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3500,
    "perte_jour": 0.001,
    "sec": true,
@@ -61,11 +103,23 @@
    "terrains": [
     "savane"
    ],
-   "decouverte": "agriculture"
+   "decouverte": "agriculture",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    7,
+    8
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "riz_africain": {
    "nom": "Riz africain",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3500,
    "perte_jour": 0.001,
    "sec": true,
@@ -76,11 +130,23 @@
     "humide"
    ],
    "decouverte": "agriculture",
-   "note": "Oryza glaberrima, zones inondables"
+   "note": "Oryza glaberrima, zones inondables",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    9,
+    10
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "mais": {
    "nom": "Maïs",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3600,
    "perte_jour": 0.001,
    "sec": true,
@@ -92,11 +158,23 @@
     "humide"
    ],
    "decouverte": "agriculture",
-   "note": "venu d'Amérique, diffusion en Afrique à partir du XVIe siècle"
+   "note": "venu d'Amérique, diffusion en Afrique à partir du XVIe siècle",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    7,
+    8
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "arrive par les échanges, puis se cultive si le terrain le permet"
   },
   "ble": {
    "nom": "Blé",
-   "categorie": "cereale",
+   "categorie": "alimentaire",
    "kcal_kg": 3400,
    "perte_jour": 0.001,
    "sec": true,
@@ -108,11 +186,21 @@
     "oasis"
    ],
    "decouverte": "agriculture",
-   "note": "importé au Sahel ; cultivable seulement en terrain adapté"
+   "note": "importé au Sahel ; cultivable seulement en terrain adapté",
+   "sous_categorie": "cereale",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "achat à un autre clan, sauf terrain adapté"
   },
   "niebe": {
    "nom": "Niébé (haricot)",
-   "categorie": "legume",
+   "categorie": "alimentaire",
    "kcal_kg": 3400,
    "perte_jour": 0.001,
    "sec": true,
@@ -122,11 +210,23 @@
    "terrains": [
     "savane"
    ],
-   "decouverte": "agriculture"
+   "decouverte": "agriculture",
+   "sous_categorie": "legume",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    8,
+    9
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "igname": {
    "nom": "Igname",
-   "categorie": "legume",
+   "categorie": "alimentaire",
    "kcal_kg": 1200,
    "perte_jour": 0.003,
    "sec": false,
@@ -137,11 +237,24 @@
     "foret",
     "humide"
    ],
-   "decouverte": "agriculture"
+   "decouverte": "agriculture",
+   "sous_categorie": "legume",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    9,
+    10,
+    11
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "arachide": {
    "nom": "Arachide",
-   "categorie": "legume",
+   "categorie": "alimentaire",
    "kcal_kg": 5700,
    "perte_jour": 0.001,
    "sec": true,
@@ -152,11 +265,24 @@
     "savane"
    ],
    "decouverte": "agriculture",
-   "note": "venue d'Amérique"
+   "note": "venue d'Amérique",
+   "sous_categorie": "legume",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    8,
+    9
+   ],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "arrive par les échanges, puis se cultive si le terrain le permet"
   },
   "gombo": {
    "nom": "Gombo",
-   "categorie": "legume",
+   "categorie": "alimentaire",
    "kcal_kg": 330,
    "perte_jour": 0.1,
    "sec": false,
@@ -167,11 +293,24 @@
     "savane",
     "humide"
    ],
-   "decouverte": "agriculture"
+   "decouverte": "agriculture",
+   "sous_categorie": "legume",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    6,
+    7,
+    8
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "culture (découverte de l'agriculture)"
   },
   "karite_amande": {
    "nom": "Amandes de karité",
-   "categorie": "cueillette",
+   "categorie": "alimentaire",
    "kcal_kg": 6000,
    "perte_jour": 0.001,
    "sec": true,
@@ -180,11 +319,25 @@
    "disponibilite": "locale",
    "terrains": [
     "savane"
-   ]
+   ],
+   "sous_categorie": "cueillette",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "nere_graine": {
    "nom": "Graines de néré",
-   "categorie": "cueillette",
+   "categorie": "alimentaire",
    "kcal_kg": 4500,
    "perte_jour": 0.001,
    "sec": true,
@@ -193,11 +346,25 @@
    "disponibilite": "locale",
    "terrains": [
     "savane"
-   ]
+   ],
+   "sous_categorie": "cueillette",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "baobab_feuille": {
    "nom": "Feuilles de baobab séchées",
-   "categorie": "cueillette",
+   "categorie": "alimentaire",
    "kcal_kg": 2700,
    "perte_jour": 0.002,
    "sec": true,
@@ -207,11 +374,26 @@
    "terrains": [
     "savane",
     "desert"
-   ]
+   ],
+   "sous_categorie": "cueillette",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "baobab_pulpe": {
    "nom": "Pulpe de baobab (pain de singe)",
-   "categorie": "cueillette",
+   "categorie": "alimentaire",
    "kcal_kg": 2800,
    "perte_jour": 0.002,
    "sec": true,
@@ -221,11 +403,25 @@
    "terrains": [
     "savane",
     "desert"
-   ]
+   ],
+   "sous_categorie": "cueillette",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    0,
+    1,
+    10,
+    11
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "tamarin": {
    "nom": "Tamarin",
-   "categorie": "cueillette",
+   "categorie": "alimentaire",
    "kcal_kg": 2400,
    "perte_jour": 0.002,
    "sec": true,
@@ -234,11 +430,25 @@
    "disponibilite": "locale",
    "terrains": [
     "savane"
-   ]
+   ],
+   "sous_categorie": "cueillette",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    0,
+    1,
+    2,
+    11
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "miel": {
    "nom": "Miel",
-   "categorie": "cueillette",
+   "categorie": "alimentaire",
    "kcal_kg": 3000,
    "perte_jour": 0.0001,
    "sec": true,
@@ -248,11 +458,25 @@
    "terrains": [
     "savane",
     "foret"
-   ]
+   ],
+   "sous_categorie": "cueillette",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    2,
+    3,
+    4
+   ],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "pasteque": {
    "nom": "Pastèque sauvage",
-   "categorie": "fruit",
+   "categorie": "alimentaire",
    "kcal_kg": 300,
    "perte_jour": 0.05,
    "sec": false,
@@ -263,11 +487,23 @@
     "savane",
     "desert"
    ],
-   "note": "originaire d'Afrique"
+   "note": "originaire d'Afrique",
+   "sous_categorie": "fruit",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    7,
+    8
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "mangue": {
    "nom": "Mangue",
-   "categorie": "fruit",
+   "categorie": "alimentaire",
    "kcal_kg": 600,
    "perte_jour": 0.08,
    "sec": false,
@@ -278,11 +514,24 @@
     "savane",
     "humide"
    ],
-   "note": "introduction progressive selon les échanges et les plants"
+   "note": "introduction progressive selon les échanges et les plants",
+   "sous_categorie": "fruit",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    3,
+    4,
+    5
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "arrive par les échanges, puis se cultive si le terrain le permet"
   },
   "orange": {
    "nom": "Orange",
-   "categorie": "fruit",
+   "categorie": "alimentaire",
    "kcal_kg": 470,
    "perte_jour": 0.04,
    "sec": false,
@@ -292,11 +541,24 @@
    "terrains": [
     "humide"
    ],
-   "note": "introduction progressive selon les échanges et les plants"
+   "note": "introduction progressive selon les échanges et les plants",
+   "sous_categorie": "fruit",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    10,
+    11,
+    0
+   ],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "arrive par les échanges, puis se cultive si le terrain le permet"
   },
   "raisin": {
    "nom": "Raisin",
-   "categorie": "fruit",
+   "categorie": "alimentaire",
    "kcal_kg": 690,
    "perte_jour": 0.1,
    "sec": false,
@@ -306,11 +568,21 @@
    "terrains": [
     "tempere"
    ],
-   "note": "commerce surtout ; culture seulement en terrain adapté"
+   "note": "commerce surtout ; culture seulement en terrain adapté",
+   "sous_categorie": "fruit",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "achat à un autre clan, sauf terrain adapté"
   },
   "datte": {
    "nom": "Datte",
-   "categorie": "fruit",
+   "categorie": "alimentaire",
    "kcal_kg": 2800,
    "perte_jour": 0.002,
    "sec": true,
@@ -320,11 +592,21 @@
    "terrains": [
     "oasis"
    ],
-   "note": "oasis du Sahara"
+   "note": "oasis du Sahara",
+   "sous_categorie": "fruit",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "achat à un autre clan, sauf terrain adapté"
   },
   "gibier": {
    "nom": "Gibier (viande fraîche)",
-   "categorie": "viande",
+   "categorie": "alimentaire",
    "kcal_kg": 1500,
    "perte_jour": 0.2,
    "sec": false,
@@ -334,11 +616,22 @@
    "terrains": [
     "savane",
     "foret"
-   ]
+   ],
+   "sous_categorie": "viande",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce",
+    "peau"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "poisson": {
    "nom": "Poisson frais",
-   "categorie": "viande",
+   "categorie": "alimentaire",
    "kcal_kg": 1000,
    "perte_jour": 0.25,
    "sec": false,
@@ -348,11 +641,22 @@
    "terrains": [
     "riviere",
     "humide"
-   ]
+   ],
+   "sous_categorie": "viande",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce",
+    "peau"
+   ],
+   "obtention": "cueillette, chasse ou culture sur place selon le terrain"
   },
   "pintade": {
    "nom": "Pintade",
-   "categorie": "viande",
+   "categorie": "alimentaire",
    "kcal_kg": 1600,
    "perte_jour": 0.2,
    "sec": false,
@@ -363,11 +667,22 @@
     "savane"
    ],
    "decouverte": "elevage",
-   "note": "oiseau d'Afrique de l'Ouest"
+   "note": "oiseau d'Afrique de l'Ouest",
+   "sous_categorie": "viande",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce",
+    "peau"
+   ],
+   "obtention": "élevage (découverte de l'élevage)"
   },
   "chevre": {
    "nom": "Chèvre",
-   "categorie": "viande",
+   "categorie": "alimentaire",
    "kcal_kg": 1400,
    "perte_jour": 0.2,
    "sec": false,
@@ -378,11 +693,22 @@
     "savane",
     "desert"
    ],
-   "decouverte": "elevage"
+   "decouverte": "elevage",
+   "sous_categorie": "viande",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce",
+    "peau"
+   ],
+   "obtention": "élevage (découverte de l'élevage)"
   },
   "boeuf": {
    "nom": "Bœuf",
-   "categorie": "viande",
+   "categorie": "alimentaire",
    "kcal_kg": 2500,
    "perte_jour": 0.2,
    "sec": false,
@@ -392,11 +718,22 @@
    "terrains": [
     "savane"
    ],
-   "decouverte": "elevage"
+   "decouverte": "elevage",
+   "sous_categorie": "viande",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce",
+    "peau"
+   ],
+   "obtention": "élevage (découverte de l'élevage)"
   },
   "lait": {
    "nom": "Lait",
-   "categorie": "viande",
+   "categorie": "alimentaire",
    "kcal_kg": 650,
    "perte_jour": 0.5,
    "sec": false,
@@ -406,11 +743,20 @@
    "terrains": [
     "savane"
    ],
-   "decouverte": "elevage"
+   "decouverte": "elevage",
+   "sous_categorie": "produit_animal",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "élevage (découverte de l'élevage)"
   },
   "beurre_karite": {
    "nom": "Beurre de karité",
-   "categorie": "transforme",
+   "categorie": "transformee",
    "kcal_kg": 8800,
    "perte_jour": 0.0005,
    "sec": true,
@@ -419,11 +765,22 @@
    "disponibilite": "transformation",
    "terrains": [],
    "transforme_de": "karite_amande",
-   "note": "transformation des amandes"
+   "note": "transformation des amandes",
+   "sous_categorie": "transforme",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce",
+    "soins"
+   ],
+   "obtention": "amandes de karité concassées, grillées, barattées"
   },
   "soumbala": {
    "nom": "Soumbala",
-   "categorie": "transforme",
+   "categorie": "transformee",
    "kcal_kg": 4000,
    "perte_jour": 0.002,
    "sec": true,
@@ -432,11 +789,21 @@
    "disponibilite": "transformation",
    "terrains": [],
    "transforme_de": "nere_graine",
-   "note": "graines de néré fermentées"
+   "note": "graines de néré fermentées",
+   "sous_categorie": "transforme",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "graines de néré bouillies et fermentées"
   },
   "viande_sechee": {
    "nom": "Viande séchée",
-   "categorie": "transforme",
+   "categorie": "transformee",
    "kcal_kg": 3500,
    "perte_jour": 0.005,
    "sec": true,
@@ -445,11 +812,21 @@
    "disponibilite": "transformation",
    "terrains": [],
    "transforme_de": "gibier",
-   "note": "séchage au soleil et à la fumée"
+   "note": "séchage au soleil et à la fumée",
+   "sous_categorie": "transforme",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "viande séchée au soleil et à la fumée"
   },
   "farine_mil": {
    "nom": "Farine de mil",
-   "categorie": "transforme",
+   "categorie": "transformee",
    "kcal_kg": 3500,
    "perte_jour": 0.002,
    "sec": true,
@@ -458,11 +835,21 @@
    "disponibilite": "transformation",
    "terrains": [],
    "decouverte": "agriculture",
-   "transforme_de": "mil"
+   "transforme_de": "mil",
+   "sous_categorie": "transforme",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "mil pilé ou moulu (meule)"
   },
   "sel": {
    "nom": "Sel",
-   "categorie": "condiment",
+   "categorie": "miniere",
    "kcal_kg": 0,
    "perte_jour": 0.0,
    "sec": true,
@@ -472,11 +859,22 @@
    "terrains": [
     "saline"
    ],
-   "note": "mines et salines du Sahara ; besoin à part, pas de calories"
+   "note": "mines et salines du Sahara ; besoin à part, pas de calories",
+   "sous_categorie": "sel",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "conservation",
+    "commerce"
+   ],
+   "obtention": "salines et mines de sel (Sahara) ; sinon par le commerce"
   },
   "sel_vegetal": {
    "nom": "Sel végétal (cendres)",
-   "categorie": "condiment",
+   "categorie": "transformee",
    "kcal_kg": 0,
    "perte_jour": 0.0,
    "sec": true,
@@ -484,11 +882,21 @@
    "epoque": "pierre",
    "disponibilite": "transformation",
    "terrains": [],
-   "note": "tiré des cendres de certaines plantes ; moins bon que le sel"
+   "note": "tiré des cendres de certaines plantes ; moins bon que le sel",
+   "sous_categorie": "condiment",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture"
+   ],
+   "obtention": "lessivage des cendres de certaines plantes, puis évaporation",
+   "transforme_de": "cendres"
   },
   "sucre": {
    "nom": "Sucre",
-   "categorie": "condiment",
+   "categorie": "alimentaire",
    "kcal_kg": 4000,
    "perte_jour": 0.0,
    "sec": true,
@@ -499,11 +907,21 @@
     "humide"
    ],
    "decouverte": "agriculture",
-   "note": "canne à sucre"
+   "note": "canne à sucre",
+   "sous_categorie": "condiment",
+   "alimentaire": true,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "achat à un autre clan, sauf terrain adapté"
   },
   "coton": {
    "nom": "Coton (fibre)",
-   "categorie": "fibre",
+   "categorie": "agricole",
    "kcal_kg": 0,
    "perte_jour": 0.0,
    "sec": true,
@@ -514,7 +932,1227 @@
     "savane"
    ],
    "decouverte": "agriculture",
-   "note": "matière première, jamais nourriture"
+   "note": "matière première, jamais nourriture",
+   "sous_categorie": "fibre",
+   "alimentaire": false,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "saisons": [
+    9,
+    10,
+    11
+   ],
+   "usages": [
+    "textile",
+    "commerce"
+   ],
+   "obtention": "culture du cotonnier"
+  },
+  "eau": {
+   "nom": "Eau",
+   "categorie": "naturelle",
+   "sous_categorie": "eau",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "L",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.002,
+   "sec": false,
+   "valeur": 0.05,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "riviere",
+    "humide"
+   ],
+   "saisons": [],
+   "usages": [
+    "boisson",
+    "cuisine",
+    "construction",
+    "artisanat"
+   ],
+   "obtention": "puisée à la rivière ou à la mare ; pluie",
+   "note": "gérée à part dans les stocks (porteurs d'eau)"
+  },
+  "bois": {
+   "nom": "Bois",
+   "categorie": "naturelle",
+   "sous_categorie": "bois",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.2,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "foret"
+   ],
+   "saisons": [],
+   "usages": [
+    "combustible",
+    "construction",
+    "outil",
+    "artisanat"
+   ],
+   "obtention": "coupe et ramassage",
+   "note": "géré à part dans les stocks (bâtisseurs)"
+  },
+  "paille": {
+   "nom": "Paille et chaume",
+   "categorie": "naturelle",
+   "sous_categorie": "vegetal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0005,
+   "sec": true,
+   "valeur": 0.1,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "saisons": [
+    9,
+    10,
+    11
+   ],
+   "usages": [
+    "construction",
+    "vannerie"
+   ],
+   "obtention": "coupe des hautes herbes en fin de saison des pluies"
+  },
+  "pierre": {
+   "nom": "Pierre",
+   "categorie": "naturelle",
+   "sous_categorie": "mineral",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.1,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "colline",
+    "massif"
+   ],
+   "saisons": [],
+   "usages": [
+    "construction",
+    "outil",
+    "meule"
+   ],
+   "obtention": "ramassage, puis extraction en carrière"
+  },
+  "argile": {
+   "nom": "Argile",
+   "categorie": "naturelle",
+   "sous_categorie": "mineral",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.1,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "humide",
+    "riviere"
+   ],
+   "saisons": [],
+   "usages": [
+    "poterie",
+    "construction"
+   ],
+   "obtention": "creusée au bord des mares et des rivières"
+  },
+  "sable": {
+   "nom": "Sable",
+   "categorie": "naturelle",
+   "sous_categorie": "mineral",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.05,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "riviere",
+    "desert"
+   ],
+   "saisons": [],
+   "usages": [
+    "construction",
+    "poterie"
+   ],
+   "obtention": "lit des rivières"
+  },
+  "laterite": {
+   "nom": "Latérite",
+   "categorie": "naturelle",
+   "sous_categorie": "mineral",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.1,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "saisons": [],
+   "usages": [
+    "construction"
+   ],
+   "obtention": "sol rouge du plateau, taillé en blocs"
+  },
+  "cendres": {
+   "nom": "Cendres",
+   "categorie": "naturelle",
+   "sous_categorie": "residu",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.05,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "sel_vegetal",
+    "savon",
+    "teinture"
+   ],
+   "obtention": "restes des foyers et des fourneaux"
+  },
+  "peau": {
+   "nom": "Peau brute",
+   "categorie": "naturelle",
+   "sous_categorie": "animal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.05,
+   "sec": false,
+   "valeur": 1.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "foret"
+   ],
+   "saisons": [],
+   "usages": [
+    "cuir"
+   ],
+   "obtention": "retirée du gibier ou du bétail abattu"
+  },
+  "os_corne": {
+   "nom": "Os et cornes",
+   "categorie": "naturelle",
+   "sous_categorie": "animal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "parure"
+   ],
+   "obtention": "restes de la chasse"
+  },
+  "minerai_fer": {
+   "nom": "Minerai de fer",
+   "categorie": "miniere",
+   "sous_categorie": "fer",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "colline",
+    "savane"
+   ],
+   "saisons": [],
+   "usages": [
+    "metallurgie"
+   ],
+   "obtention": "ramassé en surface, puis extrait en puits (gisement)",
+   "note": "gisement évolutif : quantité, teneur et capacité d'extraction séparées"
+  },
+  "or_alluvionnaire": {
+   "nom": "Or alluvionnaire (paillettes)",
+   "categorie": "miniere",
+   "sous_categorie": "or",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "g",
+   "masse_unite_kg": 0.001,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 60.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "riviere"
+   ],
+   "saisons": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    11
+   ],
+   "usages": [
+    "commerce",
+    "parure",
+    "monnaie"
+   ],
+   "obtention": "orpaillage dans les sables des rivières, en saison sèche",
+   "note": "unité : gramme"
+  },
+  "minerai_or": {
+   "nom": "Minerai d'or (filon)",
+   "categorie": "miniere",
+   "sous_categorie": "or",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.0,
+   "epoque": "fer",
+   "disponibilite": "locale",
+   "terrains": [
+    "colline",
+    "massif"
+   ],
+   "saisons": [],
+   "usages": [
+    "metallurgie"
+   ],
+   "obtention": "puits et galeries sur un filon (gisement évolutif)"
+  },
+  "minerai_cuivre": {
+   "nom": "Minerai de cuivre",
+   "categorie": "miniere",
+   "sous_categorie": "cuivre",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "fer",
+   "disponibilite": "commerce",
+   "terrains": [
+    "sahara"
+   ],
+   "saisons": [],
+   "usages": [
+    "metallurgie"
+   ],
+   "obtention": "mines lointaines (Sahara) : par le commerce"
+  },
+  "calcaire": {
+   "nom": "Calcaire",
+   "categorie": "miniere",
+   "sous_categorie": "mineral",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.2,
+   "epoque": "royaumes",
+   "disponibilite": "locale",
+   "terrains": [
+    "colline"
+   ],
+   "saisons": [],
+   "usages": [
+    "chaux",
+    "construction"
+   ],
+   "obtention": "carrière"
+  },
+  "manganese": {
+   "nom": "Minerai de manganèse",
+   "categorie": "miniere",
+   "sous_categorie": "manganese",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.8,
+   "epoque": "industriel",
+   "disponibilite": "locale",
+   "terrains": [
+    "colline"
+   ],
+   "saisons": [],
+   "usages": [
+    "acier",
+    "commerce"
+   ],
+   "obtention": "mine industrielle"
+  },
+  "petrole": {
+   "nom": "Pétrole brut",
+   "categorie": "miniere",
+   "sous_categorie": "energie",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "L",
+   "masse_unite_kg": 0.85,
+   "perte_jour": 0.0,
+   "sec": false,
+   "valeur": 1.5,
+   "epoque": "contemporain",
+   "disponibilite": "commerce",
+   "terrains": [
+    "bassin_sedimentaire"
+   ],
+   "saisons": [],
+   "usages": [
+    "energie",
+    "commerce"
+   ],
+   "obtention": "forage : par le commerce"
+  },
+  "semences_mil": {
+   "nom": "Semences de mil",
+   "categorie": "agricole",
+   "sous_categorie": "graine",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0005,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "saisons": [
+    8,
+    9
+   ],
+   "usages": [
+    "semis"
+   ],
+   "obtention": "part de la récolte gardée pour semer",
+   "decouverte": "agriculture"
+  },
+  "indigo": {
+   "nom": "Indigo (feuilles)",
+   "categorie": "agricole",
+   "sous_categorie": "tinctoriale",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.01,
+   "sec": false,
+   "valeur": 2.0,
+   "epoque": "fer",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "humide"
+   ],
+   "saisons": [
+    7,
+    8,
+    9
+   ],
+   "usages": [
+    "teinture",
+    "commerce"
+   ],
+   "obtention": "culture ou cueillette de l'indigotier",
+   "decouverte": "agriculture"
+  },
+  "kapok": {
+   "nom": "Kapok",
+   "categorie": "agricole",
+   "sous_categorie": "fibre",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane",
+    "foret"
+   ],
+   "saisons": [
+    1,
+    2,
+    3
+   ],
+   "usages": [
+    "rembourrage",
+    "commerce"
+   ],
+   "obtention": "fibres des fruits du kapokier"
+  },
+  "sesame": {
+   "nom": "Sésame",
+   "categorie": "alimentaire",
+   "sous_categorie": "graine",
+   "alimentaire": true,
+   "kcal_kg": 5700,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 2.5,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [
+    "savane"
+   ],
+   "saisons": [
+    9,
+    10
+   ],
+   "usages": [
+    "nourriture",
+    "huile",
+    "commerce"
+   ],
+   "obtention": "culture",
+   "decouverte": "agriculture"
+  },
+  "charbon_bois": {
+   "nom": "Charbon de bois",
+   "categorie": "transformee",
+   "sous_categorie": "combustible",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.6,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "combustible",
+    "metallurgie"
+   ],
+   "obtention": "bois brûlé lentement en meule couverte",
+   "transforme_de": "bois"
+  },
+  "fil_coton": {
+   "nom": "Fil de coton",
+   "categorie": "transformee",
+   "sous_categorie": "textile",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 6.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "tissage",
+    "commerce"
+   ],
+   "obtention": "coton égrené, cardé et filé",
+   "transforme_de": "coton"
+  },
+  "teinture_indigo": {
+   "nom": "Teinture d'indigo",
+   "categorie": "transformee",
+   "sous_categorie": "tinctoriale",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.001,
+   "sec": true,
+   "valeur": 8.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "teinture",
+    "commerce"
+   ],
+   "obtention": "feuilles d'indigo fermentées avec des cendres",
+   "transforme_de": "indigo"
+  },
+  "fer_brut": {
+   "nom": "Fer brut (loupe)",
+   "categorie": "transformee",
+   "sous_categorie": "metal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 8.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "forge",
+    "commerce"
+   ],
+   "obtention": "minerai de fer fondu au charbon de bois dans un fourneau",
+   "decouverte": "metallurgie",
+   "transforme_de": "minerai_fer"
+  },
+  "or_fondu": {
+   "nom": "Or fondu (lingot)",
+   "categorie": "transformee",
+   "sous_categorie": "metal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "g",
+   "masse_unite_kg": 0.001,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 70.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "commerce",
+    "parure",
+    "monnaie"
+   ],
+   "obtention": "or fondu au creuset",
+   "decouverte": "metallurgie",
+   "transforme_de": "or_alluvionnaire",
+   "note": "unité : gramme"
+  },
+  "cuivre": {
+   "nom": "Cuivre",
+   "categorie": "transformee",
+   "sous_categorie": "metal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 15.0,
+   "epoque": "fer",
+   "disponibilite": "commerce",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "parure",
+    "commerce"
+   ],
+   "obtention": "minerai de cuivre fondu ; surtout par le commerce",
+   "transforme_de": "minerai_cuivre"
+  },
+  "brique_banco": {
+   "nom": "Brique de banco",
+   "categorie": "transformee",
+   "sous_categorie": "construction",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 8.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 0.3,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    10,
+    11
+   ],
+   "usages": [
+    "construction"
+   ],
+   "obtention": "argile, sable et paille moulés puis séchés au soleil (saison sèche)",
+   "transforme_de": "argile"
+  },
+  "chaux": {
+   "nom": "Chaux",
+   "categorie": "transformee",
+   "sous_categorie": "construction",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.0,
+   "epoque": "royaumes",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "construction",
+    "enduit"
+   ],
+   "obtention": "calcaire cuit au four",
+   "transforme_de": "calcaire"
+  },
+  "cuir": {
+   "nom": "Cuir",
+   "categorie": "transformee",
+   "sous_categorie": "animal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 5.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "artisanat",
+    "commerce"
+   ],
+   "obtention": "peau tannée",
+   "transforme_de": "peau"
+  },
+  "huile_sesame": {
+   "nom": "Huile de sésame",
+   "categorie": "transformee",
+   "sous_categorie": "huile",
+   "alimentaire": true,
+   "kcal_kg": 8800,
+   "unite": "L",
+   "masse_unite_kg": 0.9,
+   "perte_jour": 0.0005,
+   "sec": true,
+   "valeur": 6.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "nourriture",
+    "commerce"
+   ],
+   "obtention": "graines pressées",
+   "transforme_de": "sesame"
+  },
+  "acier": {
+   "nom": "Acier",
+   "categorie": "transformee",
+   "sous_categorie": "metal",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 20.0,
+   "epoque": "industriel",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "construction",
+    "arme"
+   ],
+   "obtention": "fer affiné en haut-fourneau",
+   "transforme_de": "fer_brut"
+  },
+  "ciment": {
+   "nom": "Ciment",
+   "categorie": "transformee",
+   "sous_categorie": "construction",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 2.0,
+   "epoque": "industriel",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "construction"
+   ],
+   "obtention": "calcaire et argile cuits puis broyés",
+   "transforme_de": "calcaire"
+  },
+  "canari": {
+   "nom": "Canari (poterie)",
+   "categorie": "artisanale",
+   "sous_categorie": "poterie",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 6.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 3.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "stockage",
+    "cuisine",
+    "commerce"
+   ],
+   "obtention": "argile modelée puis cuite",
+   "transforme_de": "argile"
+  },
+  "jarre": {
+   "nom": "Grande jarre",
+   "categorie": "artisanale",
+   "sous_categorie": "poterie",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 20.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 8.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "stockage"
+   ],
+   "obtention": "argile modelée puis cuite ; garde l'eau et le grain",
+   "transforme_de": "argile"
+  },
+  "panier": {
+   "nom": "Panier",
+   "categorie": "artisanale",
+   "sous_categorie": "vannerie",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "transport",
+    "stockage",
+    "commerce"
+   ],
+   "obtention": "paille et fibres tressées",
+   "transforme_de": "paille"
+  },
+  "natte": {
+   "nom": "Natte",
+   "categorie": "artisanale",
+   "sous_categorie": "vannerie",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 2.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "habitat",
+    "commerce"
+   ],
+   "obtention": "paille tressée",
+   "transforme_de": "paille"
+  },
+  "meule": {
+   "nom": "Meule de pierre",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 15.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 6.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "moudre"
+   ],
+   "obtention": "pierre taillée",
+   "transforme_de": "pierre"
+  },
+  "hache_pierre": {
+   "nom": "Hache de pierre",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 1.5,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 3.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "coupe_bois"
+   ],
+   "obtention": "pierre polie emmanchée",
+   "transforme_de": "pierre"
+  },
+  "houe_bois": {
+   "nom": "Houe en bois",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 1.5,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1.5,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "agriculture"
+   ],
+   "obtention": "bois taillé",
+   "decouverte": "agriculture",
+   "transforme_de": "bois"
+  },
+  "arc": {
+   "nom": "Arc et flèches",
+   "categorie": "artisanale",
+   "sous_categorie": "arme",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 4.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "chasse",
+    "defense"
+   ],
+   "obtention": "bois, fibres, pointes de pierre ou d'os",
+   "transforme_de": "bois"
+  },
+  "lance": {
+   "nom": "Lance",
+   "categorie": "artisanale",
+   "sous_categorie": "arme",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 1.5,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 3.0,
+   "epoque": "pierre",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "chasse",
+    "defense"
+   ],
+   "obtention": "bois et pointe de pierre, puis de fer",
+   "transforme_de": "bois"
+  },
+  "houe_fer": {
+   "nom": "Houe en fer",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 2.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 20.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "agriculture",
+    "commerce"
+   ],
+   "obtention": "fer forgé et manche en bois",
+   "decouverte": "metallurgie",
+   "transforme_de": "fer_brut"
+  },
+  "hache_fer": {
+   "nom": "Hache en fer",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 2.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 20.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "coupe_bois",
+    "commerce"
+   ],
+   "obtention": "fer forgé et manche en bois",
+   "decouverte": "metallurgie",
+   "transforme_de": "fer_brut"
+  },
+  "pioche_fer": {
+   "nom": "Pioche en fer",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 3.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 25.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "extraction",
+    "commerce"
+   ],
+   "obtention": "fer forgé et manche en bois",
+   "decouverte": "metallurgie",
+   "transforme_de": "fer_brut"
+  },
+  "couteau_fer": {
+   "nom": "Couteau en fer",
+   "categorie": "artisanale",
+   "sous_categorie": "outil",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 0.3,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 8.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "outil",
+    "commerce"
+   ],
+   "obtention": "fer forgé",
+   "decouverte": "metallurgie",
+   "transforme_de": "fer_brut"
+  },
+  "metier_tisser": {
+   "nom": "Métier à tisser",
+   "categorie": "artisanale",
+   "sous_categorie": "equipement",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 25.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 30.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "tissage"
+   ],
+   "obtention": "bois assemblé",
+   "transforme_de": "bois"
+  },
+  "tissu_coton": {
+   "nom": "Tissu de coton (pagne)",
+   "categorie": "artisanale",
+   "sous_categorie": "textile",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 0.6,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 15.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "vetement",
+    "commerce",
+    "dot"
+   ],
+   "obtention": "fil de coton tissé en bandes",
+   "transforme_de": "fil_coton"
+  },
+  "vetement": {
+   "nom": "Vêtement",
+   "categorie": "artisanale",
+   "sous_categorie": "textile",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 0.8,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 20.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "vetement",
+    "commerce"
+   ],
+   "obtention": "tissu cousu, parfois teint à l'indigo",
+   "transforme_de": "tissu_coton"
+  },
+  "bijou_or": {
+   "nom": "Bijou en or",
+   "categorie": "artisanale",
+   "sous_categorie": "parure",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 0.02,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 1500.0,
+   "epoque": "fer",
+   "disponibilite": "transformation",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "parure",
+    "commerce",
+    "reserve_valeur"
+   ],
+   "obtention": "or fondu travaillé par l'orfèvre",
+   "decouverte": "metallurgie",
+   "transforme_de": "or_fondu"
+  },
+  "cellule_solaire": {
+   "nom": "Cellule solaire",
+   "categorie": "artisanale",
+   "sous_categorie": "electronique",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "piece",
+   "masse_unite_kg": 0.02,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 50.0,
+   "epoque": "technologique",
+   "disponibilite": "commerce",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "energie"
+   ],
+   "obtention": "industrie : par le commerce, puis fabrication",
+   "note": "exemple de ressource d'époque future"
   }
- }
+ },
+ "version_catalogue": 2
 }
