@@ -2,8 +2,8 @@
   "hutte": {
     "nom": "Hutte",
     "niveaux": [
-      {"nom": "Hutte de paille", "cout": {"bois": 60}, "travail": 20, "entretien": {"bois": 2}, "effet": {"logement": 5}},
-      {"nom": "Hutte renforcée", "cout": {"bois": 120}, "travail": 35, "entretien": {"bois": 3}, "effet": {"logement": 7}}
+      {"nom": "Hutte de paille", "cout": {"bois": 60}, "travail": 20, "entretien": {"bois": 2}, "effet": {"logement": 5, "stock_nourriture": 450, "stock_eau": 750}},
+      {"nom": "Hutte renforcée", "cout": {"bois": 120}, "travail": 35, "entretien": {"bois": 3}, "effet": {"logement": 7, "stock_nourriture": 630, "stock_eau": 1050}}
     ]
   },
   "grenier": {

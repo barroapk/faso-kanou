@@ -16,7 +16,7 @@ func _initialize() -> void:
     _cas("Eau : aucun porteur, 40 L", func(pop, res, cons): pop.postes["porteur d'eau"] = 0; res.stocks["eau"] = 40.0, "eau", "deficit", false, false)
     _cas("Nourriture : 10 kg, saison sèche", func(pop, res, cons): pop.postes["chasseur"] = 0; pop.postes["cueilleur"] = 0; pop.postes["porteur d'eau"] = 4; res.stocks["nourriture"] = 10.0, "nourriture", "deficit", false, false)
     _cas("Bois : chantier en cours, 5 kg", func(pop, res, cons): res.stocks["bois"] = 5.0, "bois", "deficit", false, true)
-    _cas("Eau : 3 porteurs, stock plein mais petit", func(pop, res, cons): pop.postes["porteur d'eau"] = 3; res.stocks["eau"] = 600.0, "eau", "stockage", false, false)
+    _cas("Eau : 3 porteurs, aucune hutte (réserve de base seule), stock plein", func(pop, res, cons): pop.postes["porteur d'eau"] = 3; cons.batiments = []; res.stocks["eau"] = 600.0, "eau", "stockage", false, false)
     _cas("Eau : 1 porteur, marge trop faible", func(pop, res, cons): res.stocks["eau"] = 600.0, "eau", "marge", false, false)
     _cas("Nourriture : 3 chasseurs, 3 cueilleurs", func(pop, res, cons): pop.postes["chasseur"] = 3; pop.postes["cueilleur"] = 3; pop.postes["porteur d'eau"] = 0; pop.postes["bâtisseur"] = 0, "nourriture", "surplus", false, false)
     _cas("Nourriture : départ du jeu, marge faible", func(pop, res, cons): pass, "nourriture", "marge", false, false)

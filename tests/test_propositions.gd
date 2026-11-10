@@ -67,6 +67,7 @@ func _initialize() -> void:
 
     # Une seule solution existe : il n'en invente pas d'autre.
     _monde()
+    cons.batiments = []   # aucune hutte : seule la réserve de base (600 L)
     res.stocks["eau"] = 600.0
     pop.postes["porteur d'eau"] = 3
     var chef3 = CHEF.new()

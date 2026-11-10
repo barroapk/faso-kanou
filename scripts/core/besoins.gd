@@ -5,7 +5,8 @@ extends RefCounted
 # puis liste les problèmes avec leurs solutions possibles :
 #   deficit  : la production prévue ne couvre pas la consommation
 #   marge    : elle la couvre, mais sans la marge de sécurité
-#   stockage : la réserve maximale tient moins de 30 jours
+#   stockage : la réserve maximale tient moins que l'autonomie visée
+#              (90 jours de nourriture, 30 jours d'eau et de bois)
 #   surplus  : un poste peut être libéré sans danger
 #   logement : moins de places libres que de couples qui peuvent avoir un enfant
 # Ce module ne change rien tout seul en mode "conseil".
@@ -21,6 +22,7 @@ const MARGES := [0.15, 0.25, 0.40, 0.60]
 const ACTIONS_MAX := [1, 1, 2, 3]
 const MOIS_VERROU := 6
 const MARGE_FERMETURE := 0.35
+const AUTONOMIE_VISEE := {"nourriture": 90.0, "eau": 30.0, "bois": 30.0}
 
 var mode := "auto"
 var verrou := {}
@@ -53,7 +55,7 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
     problemes = diagnostiquer()
     for p in problemes:
         if p["type"] == "stockage":
-            _avis(p["ressource"], "Réserve de %s trop petite pour 30 jours : construisez du stockage." % p["ressource"])
+            _avis(p["ressource"], "Réserve de %s trop petite pour %d jours : construisez du stockage." % [p["ressource"], int(AUTONOMIE_VISEE[p["ressource"]])])
         elif p["type"] == "logement":
             _avis("logement", "Logement : %d place(s) libre(s) pour %d couple(s) qui peuvent avoir un enfant. Construisez des huttes." % [maxi(0, p["places"]), int(p["besoin"])])
         elif p["type"] == "deficit" and p["solutions"].is_empty():
@@ -155,7 +157,7 @@ func _diagnostic(r: String) -> Dictionary:
         p["type"] = "deficit" if prod < conso else "marge"
         p["solutions"] = _solutions_deficit(r, niveau)
         return p
-    if plein and capacite / conso < 30.0:
+    if plein and capacite / conso < float(AUTONOMIE_VISEE.get(r, 30.0)):
         p["type"] = "stockage"
         var b := _batiment_pour("stock_" + r)
         if b != "":
@@ -335,12 +337,19 @@ func _meilleur_metier(r: String, niveau: int) -> String:
             meilleur = m
     return meilleur
 
+# Le bâtiment fait pour cet effet (son premier effet), sinon un autre qui l'a.
+# Ex. : pour l'eau, des jarres plutôt qu'une hutte.
 func _batiment_pour(effet_cherche: String) -> String:
+    var secours := ""
     for type in _cons.definitions:
         var effet: Dictionary = _cons.definitions[type]["niveaux"][0].get("effet", {})
-        if effet.has(effet_cherche):
+        if not effet.has(effet_cherche):
+            continue
+        if effet.keys()[0] == effet_cherche:
             return type
-    return ""
+        if secours == "":
+            secours = type
+    return secours
 
 func _metiers(r: String) -> Array:
     var liste := []

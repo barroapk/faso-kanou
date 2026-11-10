@@ -14,6 +14,10 @@ const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
 const BASE := {"nourriture": 300.0, "eau": 600.0, "bois": 500.0}
 const UNITES := {"nourriture": "kg", "eau": "L", "bois": "kg"}
+# Pertes de stockage par jour (part du stock).
+const PERTES_NOURRITURE := 0.001        # sans grenier : environ 30 % par an
+const PERTES_NOURRITURE_GRENIER := 0.0003
+const EVAPORATION_EAU := 0.002          # jarres et canaris : 0,2 % par jour
 
 var construction
 var stocks := {"nourriture": 300.0, "eau": 120.0, "bois": 100.0}
@@ -26,7 +30,20 @@ func capacite(r: String) -> float:
     return BASE[r] + construction.effet_total("stock_" + r)
 
 func taux_pertes() -> float:
-    return 0.0003 if construction.effet_total("conservation") > 0.0 else 0.002
+    return PERTES_NOURRITURE_GRENIER if construction.effet_total("conservation") > 0.0 else PERTES_NOURRITURE
+
+# Autonomie : nombre de jours que le clan peut tenir sur ses stocks,
+# sans rien produire ni importer.
+func autonomie(population, jour: int) -> Dictionary:
+    var conso := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0}
+    for h in population.habitants:
+        var c: Dictionary = CONSO_ENFANT if population.age(h, jour) < 14 else CONSO_ADULTE
+        for r in c:
+            conso[r] += c[r]
+    var a := {}
+    for r in conso:
+        a[r] = stocks[r] / conso[r] if conso[r] > 0.0 else 9999.0
+    return a
 
 func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> void:
     var s := 1 if pluie else 0
@@ -45,6 +62,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     if pluie:
         variation["eau"] += 20.0
     variation["nourriture"] -= stocks["nourriture"] * taux_pertes()
+    variation["eau"] -= stocks["eau"] * EVAPORATION_EAU
     for r in variation:
         stocks[r] = clampf(stocks[r] + variation[r], 0.0, capacite(r))
     bilan = variation
