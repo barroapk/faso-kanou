@@ -79,6 +79,7 @@ var faim := false
 var soif := false
 var jours_sans_sel := 0
 var richesse := {}   # richesse naturelle de l'île (data/iles.json), 1 = normal
+var routes = null    # routes.gd : une route vers l'eau ou la forêt rend le travail plus efficace
 var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (argile, canari...)
 # Flux du mois, pour la comptabilité (economie.gd) : motif -> {ressource: quantité}
 # (+ entrée, - sortie). La nourriture est comptée en kgEM sous "nourriture".
@@ -215,6 +216,16 @@ func _richesse(metier: String, r: String) -> float:
         return 1.0
     return 0.5 + 0.5 * float(richesse.get(cle, 1.0))
 
+# Sans route, on porte l'eau et le bois à pied ; une route fait gagner du temps.
+func _acces(metier: String, r: String) -> float:
+    if routes == null:
+        return 1.0
+    if metier == "porteur d'eau" and r == "eau":
+        return 1.0 + routes.bonus("eau")
+    if metier == "bâtisseur" and r == "bois":
+        return 1.0 + routes.bonus("foret")
+    return 1.0
+
 func quantite(id: String) -> float:
     match _lieu(id):
         "stocks":
@@ -342,7 +353,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
             p = PRODUCTION["aide"] if population.age(h, jour) >= AGE_AIDE else {}
         var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0))
         for r in p:
-            var q: float = p[r][s] * efficacite * _richesse(h["metier"], r)
+            var q: float = p[r][s] * efficacite * _richesse(h["metier"], r) * _acces(h["metier"], r)
             if r == "nourriture":
                 if h["metier"] == "pêcheur":
                     _recolter(q, {"poisson": 1.0})

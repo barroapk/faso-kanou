@@ -97,6 +97,12 @@ func protection(cible: String) -> float:
 func perte_champ(id_champ: int) -> float:
     return PERTE_CHAMP * (1.0 - protection("champ_%d" % id_champ))
 
+func en_travaux() -> bool:
+    for cible in enceintes:
+        if float(enceintes[cible]["travail_restant"]) > 0.0:
+            return true
+    return false
+
 # Chaque jour : les bâtisseurs libres (pas de chantier) montent les clôtures.
 func jour_passe(travail: float) -> void:
     for cible in enceintes:

@@ -25,6 +25,13 @@ var eau_retenue := 0.0                # m³ gardés par les retenues
 var semences := {}                    # réserve de semences, mise à part : on ne la mange pas
 var territoire = null                 # territoire.gd : on ne cultive que ses propres parcelles
 var clotures = null                   # clotures.gd : un champ clôturé perd moins de récolte
+var routes = null                     # routes.gd : un champ hors du village doit être relié par la route
+
+# Un champ hors de la parcelle du village ne fonctionne que s'il est relié.
+func accessible(c: Dictionary) -> bool:
+    if routes == null or territoire == null:
+        return true
+    return routes.parcelle_reliee(str(c.get("parcelle", territoire.cle(territoire.centre))), territoire)
 
 func _init() -> void:
     var c = JSON.parse_string(FileAccess.get_file_as_string("res://data/cultures.json"))
@@ -132,7 +139,7 @@ func amender(id: int, res) -> String:
     return ""
 
 func _defricher(force: float) -> float:
-    var a_faire: Array = champs.filter(func(c): return not bool(c["defriche"]))
+    var a_faire: Array = champs.filter(func(c): return not bool(c["defriche"]) and accessible(c))
     if a_faire.is_empty() or force <= 0.0:
         return force
     var c: Dictionary = a_faire[0]
@@ -182,6 +189,8 @@ func semer(id: int, culture: String, res, jour: int, connait: Callable) -> Strin
         return "Culture inconnue."
     if c["etat"] == "seme":
         return "Le champ est déjà semé."
+    if not accessible(c):
+        return "Ce champ n'est pas relié au village : construisez d'abord un sentier jusqu'à sa parcelle."
     if not bool(c["defriche"]):
         return "Il faut d'abord défricher ce champ (les cultivateurs le font quand ils ne sont pas aux semis)."
     var mois := (jour / 30) % 12
@@ -218,7 +227,7 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     for h in pop.habitants:
         if h["metier"] == "cultivateur" and not h.get("occupe", false):
             force += (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
-    var semes: Array = champs.filter(func(c): return c["etat"] == "seme")
+    var semes: Array = champs.filter(func(c): return c["etat"] == "seme" and accessible(c))
     var reste_total := 0.0
     for c in semes:
         reste_total += maxf(0.0, travail_requis(c) - float(c["travail"]))
@@ -226,6 +235,8 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     if reste_total <= 0.0:
         _defricher(force)
     var eau_puits: float = cons.effet_total("irrigation_m3_jour")
+    if routes != null and not routes.relie("eau"):
+        eau_puits = 0.0   # puits sans route : il ne sert pas
     for c in semes:
         var reste := maxf(0.0, travail_requis(c) - float(c["travail"]))
         if reste_total > 0.0:
@@ -249,6 +260,8 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
 
 func _remplir_retenue(cons, pluie: bool, mois: int) -> void:
     var cap: float = cons.effet_total("retenue_m3")
+    if routes != null and not routes.relie("eau"):
+        cap = 0.0         # retenue sans route : elle ne sert pas
     eau_retenue *= 1.0 - RETENUE_EVAPORATION
     if pluie and cap > 0.0:
         # Pluie qui ruisselle sur l'île, par jour de pluie (1 mm sur 1 ha = 10 m³).

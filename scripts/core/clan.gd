@@ -21,6 +21,7 @@ const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 const PRESSION = preload("res://scripts/core/pression.gd")
 const TERRITOIRE = preload("res://scripts/core/territoire.gd")
 const CLOTURES = preload("res://scripts/core/clotures.gd")
+const ROUTES = preload("res://scripts/core/routes.gd")
 
 var id := ""
 var nom := ""
@@ -42,6 +43,7 @@ var agriculture
 var pression
 var territoire
 var clotures
+var routes
 
 func _modules() -> void:
     population = POPULATION.new()
@@ -62,6 +64,9 @@ func _modules() -> void:
     agriculture.territoire = territoire
     clotures = CLOTURES.new()
     agriculture.clotures = clotures
+    routes = ROUTES.new()
+    agriculture.routes = routes
+    ressources.routes = routes
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -71,6 +76,7 @@ func _identite(cle: String, fiche: Dictionary) -> void:
     chef_fixe = fiche.get("chef_fixe", {})
     outils_voulus = fiche.get("outils", {})
     agriculture.choisir_ile(fiche.get("ile", "kossi"))
+    routes.installer(agriculture.ile)
     ressources.richesse = agriculture.ile.get("richesse", {})
 
 func creer(cle: String, fiche: Dictionary, jour: int) -> void:
@@ -111,6 +117,9 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
                 break
         for ch in agriculture.champs:
             ch["defriche"] = true
+    # Un clan installé avant le joueur a déjà ses sentiers (eau, forêt, champs).
+    if int(fiche.get("anciennete", 0)) > 0 or not chef_fixe.is_empty():
+        routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c["parcelle"])))
     conseil.etat_initial(population, jour, graine + 1)
     _appliquer_chef_fixe(false)
     economie.commencer(ressources)
@@ -143,7 +152,10 @@ func jour_passe(jour: int, pluie: bool) -> void:
     ressources.jour_passe(population, jour, pluie, chantier)
     construction.jour_passe(travail_batisseurs())
     if construction.chantiers.is_empty():
-        clotures.jour_passe(travail_batisseurs())
+        if clotures.en_travaux():
+            clotures.jour_passe(travail_batisseurs())
+        else:
+            routes.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, jour, pluie)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, jour)
     pression.jour_passe(ressources)
@@ -153,6 +165,7 @@ func mois_passe(jour: int, pluie: bool) -> void:
         return
     construction.mois_passe(ressources)
     clotures.mois_passe(ressources, (jour / 30) % 12)
+    routes.mois_passe(ressources, (jour / 30) % 12)
     population.mois_passe(jour, ressources.stocks["nourriture"] > 100.0, int(construction.effet_total("logement")))
     conseil.mois_passe(population, jour)
     _gouverner(jour)
@@ -161,6 +174,7 @@ func mois_passe(jour: int, pluie: bool) -> void:
     agriculture.gerer_auto(population, ressources, jour, decouvertes.connait)
     if decouvertes.connait("agriculture"):
         territoire.gerer_auto(agriculture, ressources, jour, 4.0)
+    routes.gerer_auto(ressources, territoire, agriculture)
     if agriculture.prochaine_recolte() > jour:
         besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     pression.mois_passe(population, ressources, equipement, jour)
@@ -264,6 +278,7 @@ func vers_dict() -> Dictionary:
         "pression": pression.vers_dict(),
         "territoire": territoire.vers_dict(),
         "clotures": clotures.vers_dict(),
+        "routes": routes.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -289,5 +304,9 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     pression.depuis_dict(d.get("pression", {}))
     territoire.depuis_dict(d.get("territoire", {}))
     clotures.depuis_dict(d.get("clotures", {}))
+    routes.depuis_dict(d.get("routes", {}))
+    routes.installer(agriculture.ile)
+    if not d.has("routes"):
+        routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     territoire.installer(agriculture.ile_id, agriculture.ile, 1 + int(ceil(agriculture.surface_cultivee() / 30.0)), jour)
     ressources.richesse = agriculture.ile.get("richesse", {})

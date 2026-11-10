@@ -68,6 +68,7 @@ func remplir() -> void:
     _section_territoire(C)
     _section_agriculture(C, jour)
     _section_clotures(C)
+    _section_routes(C)
     _section_mode(C)
 
 # ---------- 1. Chef et conseil ----------
@@ -214,6 +215,38 @@ func _section_clotures(C) -> void:
             var cb2: String = cible
             enfants.append(_bouton("+ porte", true, func(): _faire(C.changer_portes(cb2, 1), "Passage ouvert.")))
             enfants.append(_bouton("- porte", int(e["portes"]) > 0, func(): _faire(C.changer_portes(cb2, -1), "Passage fermé.")))
+        boite.add_child(_ligne(enfants))
+
+# ---------- Routes (un réseau qui part du village) ----------
+
+func _section_routes(C) -> void:
+    var ro = C.routes
+    boite.add_child(_label("Routes", 30))
+    boite.add_child(_label("Un champ hors du village, un puits ou une retenue ne fonctionnent que reliés par la route. Une route vers l'eau ou la forêt rend le travail plus rapide.", 21))
+    var dests: Array = ro.destinations().keys()
+    # Parcelles acquises : celles déjà reliées, et celles qu'on peut relier maintenant.
+    for k in C.territoire.possedees:
+        if k == C.territoire.cle(C.territoire.centre):
+            continue
+        if ro.troncons.has("parcelle_" + k) or ro._parcelle_atteignable(k, C.territoire):
+            dests.append("parcelle_" + k)
+    for dest in dests:
+        var t: Dictionary = ro.troncons.get(dest, {})
+        var txt := "Vers %s (%.1f km) : " % [ro.nom(dest), ro.km(dest)]
+        if t.is_empty():
+            txt += "pas de route"
+        else:
+            txt += ro.DEF[t["niveau"]]["nom"]
+            if float(t["travail_restant"]) > 0.0:
+                txt += " — travaux : %d jours de travail" % int(ceil(float(t["travail_restant"])))
+            else:
+                txt += " — travail +%d %%" % int(ro.bonus(dest) * 100)
+        var enfants: Array = [_label(txt, 22)]
+        var actuel: int = ro.NIVEAUX.find(t.get("niveau", "")) if not t.is_empty() else -1
+        if actuel + 1 < ro.NIVEAUX.size():
+            var niv: String = ro.NIVEAUX[actuel + 1]
+            var de: String = dest
+            enfants.append(_bouton("%s (%s)" % [ro.DEF[niv]["nom"], ro.texte_cout(ro.cout(dest, niv))], true, func(): _faire(C.construire_route(de, niv), "Travaux commencés.")))
         boite.add_child(_ligne(enfants))
 
 # ---------- 5. Mode de gestion ----------
