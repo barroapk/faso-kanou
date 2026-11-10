@@ -232,9 +232,16 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
                     gens += 1
             if gens < 2:
                 return "Pas assez d'adultes disponibles pour veiller."
+            for h in C.population.habitants:
+                if occupes.get(int(h["id"]), -1) == jour + 10:
+                    h["exploit"] = "protecteur"
             evenement.emit("Les veilleurs ont protégé le champ : les bêtes sont reparties.")
         elif not champ.is_empty():
-            champ["degats"] = minf(0.9, float(champ.get("degats", 0.0)) + 0.25)
+            var garde := 0.0
+            for h in C.population.habitants:
+                if not h.has("expedition"):
+                    garde = maxf(garde, C.heros.bonus(h, "protecteur"))
+            champ["degats"] = minf(0.9, float(champ.get("degats", 0.0)) + 0.25 * (1.0 - garde))
             evenement.emit("Les bêtes ont ravagé une partie du champ %d." % int(d["donnees"]["champ"]))
     elif cle.begins_with("secheresse_"):
         if option == 0:
@@ -250,6 +257,9 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
                     gens += 1
             if gens < 3:
                 return "Il faut 3 adultes disponibles."
+            for h in C.population.habitants:
+                if occupes.get(int(h["id"]), -1) == jour + 20:
+                    h["exploit"] = "protecteur"
             C.pression.noter("eau", 40.0)
             C.ressources.ajouter("eau", 300.0, "puits")
             evenement.emit("Les puiseurs creusent : un peu d'eau, et le clan cherche à maîtriser l'irrigation.")
@@ -281,6 +291,12 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
             evenement.emit("Le %s envoie ses pêcheurs fouiller la mer." % C.voisin(ami).nom)
         else:
             C.expeditions.secourir(jour + 20, 0.25, "")
+    elif cle.begins_with("recrue_"):
+        if option == 0:
+            C.heros.laisser_partir(C, jour)
+        else:
+            renommee += 2
+            evenement.emit("Notre héros reste fidèle au clan (renommée +2).")
     elif cle == "marchand":
         if option == 0:
             if C.ressources.total_aliments() < float(d["donnees"]["prix"]):

@@ -14,6 +14,7 @@ extends RefCounted
 
 signal evenement(texte)
 
+const HEROS = preload("res://scripts/core/heros.gd")
 const FICHIER := "res://data/decouvertes.json"
 const SEUIL_OUBLI := 10.0
 const MOIS_OUBLI := 120
@@ -157,7 +158,11 @@ func chance(id: String, pop, pression) -> float:
             s += pop.savoir(h, k)
         savoir = maxf(savoir, s / maxf(1.0, cond.size()))
     var c := 0.10 + savoir / 250.0 + _pression(id, pression) / 250.0 + 0.08 * int(essais.get(id, 0)) + 0.07 * float(observees.get(id, 0.0))
-    return clampf(c, 0.05, 0.8) * float(DIFFICULTE.get(_epoque(id), 1.0))
+    var heros := 0.0
+    for h in pop.habitants:
+        if h.get("experience", "") == id:
+            heros = maxf(heros, HEROS.bonus(h, "savant"))
+    return clampf(c * (1.0 + heros), 0.05, 0.8) * float(DIFFICULTE.get(_epoque(id), 1.0))
 
 # Lance une expérience. Renvoie "" si elle commence.
 func lancer(id: String, pop, res, recettes, jour: int, pression, par := "joueur") -> String:
@@ -197,6 +202,8 @@ func jour_passe(pop, recettes, jour: int, pression) -> void:
     var reussi := rng.randf() < chance(id, pop, pression)
     for h in gens:
         h.erase("experience")
+        if reussi:
+            h["exploit"] = "savant"
         if not reussi:
             for s in definitions[id]["conditions"].get("savoirs", {}):
                 pop.donner_savoir(h, s, minf(100.0, pop.savoir(h, s) + 2.0))

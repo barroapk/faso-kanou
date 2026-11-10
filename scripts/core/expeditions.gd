@@ -21,6 +21,7 @@ const RISQUE_MORT_JOUR := 0.003  # chance par jour en mer de perdre un membre
 const CHANCE_DECOUVERTE := 0.6   # une exploration trouve une île 6 fois sur 10
 const AMITIE_VISITE := 8.0       # points d'amitié d'une visite (divisés si visites rapprochées)
 const DELAI_PLEIN := 180         # jours entre deux visites pour le gain complet
+const HEROS = preload("res://scripts/core/heros.gd")
 const MEMBRES := {"exploration": 2, "visite": 2}
 const GARDER_AU_VILLAGE := 2     # adultes qui restent au travail (on ne vide pas le village)
 # Bateau égaré (v0.3.27) : risque par jour en mer, selon le bateau, son état et la saison.
@@ -141,6 +142,7 @@ func jour_passe(pop, jour: int, maison: String, clans: Dictionary, moi_id: Strin
         evenement.emit("Tempête en mer : %s %s a péri pendant l'expédition." % [perdu["prenom"], perdu["nom"]])
         pop.faire_sortir(perdu, jour)
         en_cours["membres"].erase(int(perdu["id"]))
+    _equipage = membres
     if en_cours.get("disparu", false):
         _attendre_disparu(pop, membres, jour, moi_id, diplomatie)
         return
@@ -162,7 +164,7 @@ func jour_passe(pop, jour: int, maison: String, clans: Dictionary, moi_id: Strin
     en_cours = {}
     if type == "exploration":
         var trouvee := _inconnue_proche(maison)
-        if trouvee == "" or (trouvee != "wobe" and rng.randf() > CHANCE_DECOUVERTE):
+        if trouvee == "" or (trouvee != "wobe" and rng.randf() > CHANCE_DECOUVERTE + _bonus_equipage("navigateur")):
             evenement.emit("L'expédition revient sans avoir trouvé de nouvelle terre.")
             return
         connues[trouvee] = 1
@@ -190,8 +192,16 @@ func _risque_mer(jour: int) -> void:
     var r := RISQUE_EGARE_JOUR * (1.6 if mois >= 5 and mois <= 9 else 1.0)
     if not b.is_empty():
         r *= float(SOLIDITE.get(b["type"], 1.0)) * (1.5 - float(b["etat"]))
+    r *= 1.0 - _bonus_equipage("navigateur")
     if rng.randf() < r:
         en_cours["egare"] = true
+# Bonus du héros s'il fait partie de l'équipage (v0.3.29).
+var _equipage: Array = []
+func _bonus_equipage(type: String) -> float:
+    var b := 0.0
+    for h in _equipage:
+        b = maxf(b, HEROS.bonus(h, type))
+    return b
 # Le joueur choisit les secours (defis.gd) ; sans choix, on attend.
 func secourir(jusqu_a: int, chance: float, aide: String) -> void:
     en_cours["secours"] = jusqu_a
@@ -213,6 +223,8 @@ func _attendre_disparu(pop, membres: Array, jour: int, moi_id: String, diplomati
         if not b.is_empty():
             b["occupe_jusqu"] = jour
             b["etat"] = minf(float(b["etat"]), 0.3)
+        for h in membres:
+            h["exploit"] = "navigateur"
         var t := "Le bateau disparu est retrouvé : l'équipage rentre épuisé, le bateau est très abîmé."
         if aide != "":
             diplomatie.noter(moi_id, aide, "secours", 6.0, "sauvetage en mer", jour)
@@ -226,6 +238,8 @@ func _attendre_disparu(pop, membres: Array, jour: int, moi_id: String, diplomati
             if rng.randf() < 0.25:
                 perdus.append(h["prenom"])
                 pop.faire_sortir(h, jour)
+            else:
+                h["exploit"] = "navigateur"
         var t := "Le bateau est perdu en mer."
         if perdus.is_empty():
             t += " L'équipage a pu regagner la côte sur une épave."

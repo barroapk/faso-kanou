@@ -103,6 +103,7 @@ func _section_ascension(C) -> void:
         rangs.append("%d. %s — %s, %d habitants" % [i, r["nom"], df.EPOQUES[int(r["epoque"])], int(r["habitants"])])
         i += 1
     boite.add_child(_label("Clans connus de l'archipel (visitez-les pour les connaître) :\n%s" % "\n".join(rangs), 21))
+    boite.add_child(_label(C.heros.texte(), 21))
 
 # ---------- 1. Chef et conseil ----------
 

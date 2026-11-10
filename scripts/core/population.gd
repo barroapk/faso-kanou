@@ -507,6 +507,12 @@ func maj_competence(h: Dictionary) -> void:
 # sinon le savoir de son métier. Les enfants initiés apprennent dès 8 ans.
 func pratiquer(jour: int) -> void:
     var maitres := {}
+    var heros := {}               # savoir -> bonus du héros artisan présent qui l'exerce
+    for h in habitants:
+        if h.get("heros", {}).get("type", "") == "artisan" and not h.get("occupe", false) and not h.has("expedition"):
+            var sh: String = savoir_du_metier(h["metier"])
+            if sh != "":
+                heros[sh] = [0.10, 0.15, 0.20][clampi(int(h["heros"]["niveau"]), 0, 2)]
     for h in habitants:
         var s: String = h.get("tache", savoir_du_metier(h["metier"]))
         if s != "" and savoir(h, s) >= NIVEAU_MAITRE:
@@ -529,6 +535,8 @@ func pratiquer(jour: int) -> void:
                 var gain := GAIN_PRATIQUE * (1.0 - n / 100.0)
                 if maitres.has(pratique) and n < NIVEAU_MAITRE:
                     gain *= COEF_APPRENTI
+                if heros.has(pratique) and not h.has("heros"):
+                    gain *= 1.0 + float(heros[pratique])
                 donner_savoir(h, pratique, n + gain)
         for s in h.get("savoirs", {}).keys():
             if s == pratique:
