@@ -67,6 +67,7 @@ func remplir() -> void:
     _section_experiences(C, jour)
     _section_territoire(C)
     _section_agriculture(C, jour)
+    _section_clotures(C)
     _section_mode(C)
 
 # ---------- 1. Chef et conseil ----------
@@ -183,6 +184,37 @@ func _section_agriculture(C, jour: int) -> void:
         if float(ag.semences[s]) >= 0.1:
             sem.append("%s %.0f kg" % [s, float(ag.semences[s])])
     boite.add_child(_label("Semences mises de côté : %s" % (", ".join(sem) if sem.size() > 0 else "aucune"), 21))
+
+# ---------- Clôtures (libre choix : sécurité et décor) ----------
+
+func _section_clotures(C) -> void:
+    var cl = C.clotures
+    boite.add_child(_label("Clôtures", 30))
+    boite.add_child(_label("Au choix : rien n'oblige à clôturer. Une clôture protège (un champ ouvert perd 12 % de sa récolte) et chaque porte est un passage, mais aussi un point faible.", 21))
+    var cibles: Array = ["village"]
+    for c in C.agriculture.champs:
+        cibles.append("champ_%d" % int(c["id"]))
+    for cible in cibles:
+        var e: Dictionary = cl.enceintes.get(cible, {})
+        var nom: String = "Village" if cible == "village" else "Champ %s" % cible.trim_prefix("champ_")
+        var t := "%s : pas de clôture" % nom
+        if not e.is_empty():
+            t = "%s : %s, %d porte(s), état %d %%, protection %d %%" % [nom, cl.NIVEAUX[e["niveau"]]["nom"], int(e["portes"]), int(float(e["etat"]) * 100), int(cl.protection(cible) * 100)]
+            if float(e["travail_restant"]) > 0.0:
+                t += " — en construction (%d jours de travail)" % int(ceil(float(e["travail_restant"])))
+        var enfants: Array = [_label(t, 22)]
+        var m: float = cl.longueur(cible, C.agriculture, C.construction)
+        for niv in cl.ORDRE:
+            if e.get("niveau", "") == niv:
+                continue
+            var n: String = niv
+            var cb: String = cible
+            enfants.append(_bouton("%s (%s)" % [cl.NIVEAUX[niv]["nom"], cl.texte_cout(cl.cout(niv, m))], true, func(): _faire(C.cloturer(cb, n), "Clôture commencée.")))
+        if not e.is_empty():
+            var cb2: String = cible
+            enfants.append(_bouton("+ porte", true, func(): _faire(C.changer_portes(cb2, 1), "Passage ouvert.")))
+            enfants.append(_bouton("- porte", int(e["portes"]) > 0, func(): _faire(C.changer_portes(cb2, -1), "Passage fermé.")))
+        boite.add_child(_ligne(enfants))
 
 # ---------- 5. Mode de gestion ----------
 

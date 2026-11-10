@@ -24,6 +24,7 @@ var prochain_id := 1
 var eau_retenue := 0.0                # m³ gardés par les retenues
 var semences := {}                    # réserve de semences, mise à part : on ne la mange pas
 var territoire = null                 # territoire.gd : on ne cultive que ses propres parcelles
+var clotures = null                   # clotures.gd : un champ clôturé perd moins de récolte
 
 func _init() -> void:
     var c = JSON.parse_string(FileAccess.get_file_as_string("res://data/cultures.json"))
@@ -260,6 +261,8 @@ func _recolter(c: Dictionary, res, pop, jour: int) -> void:
     var part_travail := clampf(float(c["travail"]) / travail_requis(c), 0.0, 1.0)
     var part_eau := clampf(float(c["eau"]) / float(f["cycle"]), 0.0, 1.0)
     var kg: float = float(f["rendement"]) * float(c["ha"]) * float(c["fertilite"]) * pow(part_travail, 0.7) * part_eau
+    if clotures != null:
+        kg *= 1.0 - clotures.perte_champ(int(c["id"]))   # bêtes, oiseaux, vols
     res.ajouter(f["produit"], kg, "production")
     # Le paysan garde de quoi ressemer le même champ (+20 % de sécurité).
     garder_semences(f["produit"], float(f["semence_ha"]) * float(c["ha"]) * 1.2, res)

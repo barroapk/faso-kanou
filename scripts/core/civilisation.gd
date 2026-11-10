@@ -23,6 +23,7 @@ const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 const MONDE = preload("res://scripts/core/monde.gd")
 const PRESSION = preload("res://scripts/core/pression.gd")
 const TERRITOIRE = preload("res://scripts/core/territoire.gd")
+const CLOTURES = preload("res://scripts/core/clotures.gd")
 
 var temps
 var population
@@ -43,6 +44,7 @@ var caravanes
 var agriculture
 var pression
 var territoire
+var clotures
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -75,6 +77,8 @@ func _creer_modules() -> void:
     pression = PRESSION.new()
     territoire = TERRITOIRE.new()
     agriculture.territoire = territoire
+    clotures = CLOTURES.new()
+    agriculture.clotures = clotures
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -174,6 +178,13 @@ func acquerir_parcelle(x: int, z: int) -> String:
 func creer_champ(ha: float, parcelle := "") -> String:
     return agriculture.creer_champ(ha, parcelle)
 
+# Clôtures du joueur : cible = "village" ou "champ_<id>".
+func cloturer(cible: String, niveau: String) -> String:
+    return clotures.construire(cible, niveau, agriculture, construction, ressources)
+
+func changer_portes(cible: String, delta: int) -> String:
+    return clotures.changer_portes(cible, delta, ressources)
+
 func amender_champ(id_champ: int) -> String:
     return agriculture.amender(id_champ, ressources)
 
@@ -229,6 +240,8 @@ func _jour_passe() -> void:
     equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
+    if construction.chantiers.is_empty():
+        clotures.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     pression.jour_passe(ressources)
@@ -242,6 +255,7 @@ func _jour_passe() -> void:
 
 func _mois_passe() -> void:
     construction.mois_passe(ressources)
+    clotures.mois_passe(ressources, temps.mois())
     var logement: float = construction.effet_total("logement")
     population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0, int(logement))
     conseil.mois_passe(population, temps.jour_total)
@@ -292,6 +306,7 @@ func sauvegarder() -> void:
         "agriculture": agriculture.vers_dict(),
         "pression": pression.vers_dict(),
         "territoire": territoire.vers_dict(),
+        "clotures": clotures.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -332,6 +347,7 @@ func _charger(nom: String) -> bool:
     agriculture.depuis_dict(donnees.get("agriculture", {}))
     pression.depuis_dict(donnees.get("pression", {}))
     territoire.depuis_dict(donnees.get("territoire", {}))
+    clotures.depuis_dict(donnees.get("clotures", {}))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
     ile_confirmee = bool(donnees.get("ile_confirmee", true))
     graine_monde = int(donnees.get("graine_monde", 0))

@@ -20,6 +20,7 @@ const ECONOMIE = preload("res://scripts/core/economie.gd")
 const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 const PRESSION = preload("res://scripts/core/pression.gd")
 const TERRITOIRE = preload("res://scripts/core/territoire.gd")
+const CLOTURES = preload("res://scripts/core/clotures.gd")
 
 var id := ""
 var nom := ""
@@ -40,6 +41,7 @@ var economie
 var agriculture
 var pression
 var territoire
+var clotures
 
 func _modules() -> void:
     population = POPULATION.new()
@@ -58,6 +60,8 @@ func _modules() -> void:
     pression = PRESSION.new()
     territoire = TERRITOIRE.new()
     agriculture.territoire = territoire
+    clotures = CLOTURES.new()
+    agriculture.clotures = clotures
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -138,6 +142,8 @@ func jour_passe(jour: int, pluie: bool) -> void:
     equipement.jour_passe(population, chantier)
     ressources.jour_passe(population, jour, pluie, chantier)
     construction.jour_passe(travail_batisseurs())
+    if construction.chantiers.is_empty():
+        clotures.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, jour, pluie)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, jour)
     pression.jour_passe(ressources)
@@ -146,6 +152,7 @@ func mois_passe(jour: int, pluie: bool) -> void:
     if not vivant():
         return
     construction.mois_passe(ressources)
+    clotures.mois_passe(ressources, (jour / 30) % 12)
     population.mois_passe(jour, ressources.stocks["nourriture"] > 100.0, int(construction.effet_total("logement")))
     conseil.mois_passe(population, jour)
     _gouverner(jour)
@@ -256,6 +263,7 @@ func vers_dict() -> Dictionary:
         "agriculture": agriculture.vers_dict(),
         "pression": pression.vers_dict(),
         "territoire": territoire.vers_dict(),
+        "clotures": clotures.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -280,5 +288,6 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     agriculture.depuis_dict(d.get("agriculture", {}))
     pression.depuis_dict(d.get("pression", {}))
     territoire.depuis_dict(d.get("territoire", {}))
+    clotures.depuis_dict(d.get("clotures", {}))
     territoire.installer(agriculture.ile_id, agriculture.ile, 1 + int(ceil(agriculture.surface_cultivee() / 30.0)), jour)
     ressources.richesse = agriculture.ile.get("richesse", {})
