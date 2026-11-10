@@ -291,6 +291,10 @@ func _appliquer(C, d: Dictionary, option: int) -> String:
             evenement.emit("Le %s envoie ses pêcheurs fouiller la mer." % C.voisin(ami).nom)
         else:
             C.expeditions.secourir(jour + 20, 0.25, "")
+    elif cle.begins_with("honneur_"):
+        var r: String = C.heros.honorer(C, int(d["donnees"]["ancetre"]), option)
+        if r != "":
+            return r
     elif cle.begins_with("recrue_"):
         if option == 0:
             C.heros.laisser_partir(C, jour)

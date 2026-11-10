@@ -32,6 +32,8 @@ const AGE_AIDE := 8
 # kg par pêcheur et par jour, multiplié par le sel de l'île (amorti).
 const SEL_MARIN := 0.03
 const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
+var honneur_grenier := 0.0     # héritage d'un héros (v0.3.30), recalculé par heros.gd
+var honneur_route := 0.0
 var ration := 1.0              # 0.8 = rationnement (chacun mange 20 % de moins)
 var ration_jusqu := -1
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
@@ -223,7 +225,7 @@ func _acces(metier: String, r: String) -> float:
     if routes == null:
         return 1.0
     if metier == "porteur d'eau" and r == "eau":
-        return 1.0 + routes.bonus("eau")
+        return 1.0 + routes.bonus("eau") + honneur_route
     if metier == "bâtisseur" and r == "bois":
         return 1.0 + routes.bonus("foret")
     return 1.0
@@ -309,7 +311,7 @@ func taux_pertes() -> float:
         if grenier and bool(fiche.get("sec", false)):
             taux *= COEF_GRENIER
         p += float(aliments[id]) * facteur(id) * taux
-    return p / t
+    return p / t * (1.0 - honneur_grenier)
 
 # Autonomie : nombre de jours tenables sur les stocks, sans produire ni importer.
 func autonomie(population, jour: int) -> Dictionary:

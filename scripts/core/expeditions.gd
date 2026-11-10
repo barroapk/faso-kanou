@@ -237,6 +237,7 @@ func _attendre_disparu(pop, membres: Array, jour: int, moi_id: String, diplomati
         for h in membres:
             if rng.randf() < 0.25:
                 perdus.append(h["prenom"])
+                h["perdu_en_mer"] = true
                 pop.faire_sortir(h, jour)
             else:
                 h["exploit"] = "navigateur"

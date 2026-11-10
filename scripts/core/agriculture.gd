@@ -15,6 +15,7 @@ signal evenement(texte)
 const RETENUE_EVAPORATION := 0.005    # part perdue par jour
 const MOIS_PLUIES := [5, 6, 7, 8, 9]  # juin à octobre
 
+var honneur_puits := 0.0       # puits portant le nom d'un héros (v0.3.30)
 var cultures := {}
 var regle := {}
 var ile_id := ""
@@ -235,7 +236,7 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     # Sans travaux aux champs semés, les cultivateurs défrichent.
     if reste_total <= 0.0:
         _defricher(force)
-    var eau_puits: float = cons.effet_total("irrigation_m3_jour")
+    var eau_puits: float = cons.effet_total("irrigation_m3_jour") * (1.0 + honneur_puits)
     if routes != null and not routes.relie("eau"):
         eau_puits = 0.0   # puits sans route : il ne sert pas
     for c in semes:

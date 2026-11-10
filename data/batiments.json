@@ -289,5 +289,24 @@
         }
       }
     ]
+  },
+  "monument": {
+    "nom": "Monument",
+    "niveaux": [
+      {
+        "nom": "Monument d'un héros",
+        "cout": {
+          "bois": 60,
+          "pierre": 80
+        },
+        "travail": 60,
+        "entretien": {
+          "bois": 0.1
+        },
+        "effet": {
+          "memoire": 1
+        }
+      }
+    ]
   }
 }

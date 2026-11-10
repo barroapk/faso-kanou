@@ -104,6 +104,8 @@ func _creer_modules() -> void:
     defis = DEFIS.new()
     rival = RIVAL.new()
     heros = HEROS.new()
+    population.deces.connect(heros.sur_depart.bind(true))
+    population.sortie.connect(heros.sur_depart.bind(false))
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -488,6 +490,7 @@ func _charger(nom: String) -> bool:
     defis.depuis_dict(donnees.get("defis", {}))
     rival.depuis_dict(donnees.get("rival", {}))
     heros.depuis_dict(donnees.get("heros", {}))
+    heros.appliquer(self)
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))

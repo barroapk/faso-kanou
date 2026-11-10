@@ -22,6 +22,7 @@ const TYPES := {
 const USURE_MER := 0.002         # état perdu par jour en mer
 const ENTRETIEN := 0.05          # entretien annuel : 5 % du prix du bateau
 
+var honneur_port := 0.0         # port portant le nom d'un héros (v0.3.30)
 var bateaux: Array = []          # {id, type, etat, occupe_jusqu: jour, mission}
 var chantier := {}               # {type, travail_restant}
 var prochain_id := 1
@@ -67,7 +68,7 @@ func vitesse_libre(jour: int, personnes: int, kg: float) -> float:
     for b in libres(jour):
         var t: Dictionary = TYPES[b["type"]]
         if int(t["personnes"]) >= personnes and float(t["kg"]) >= kg:
-            v = maxf(v, float(t["km_jour"]))
+            v = maxf(v, float(t["km_jour"]) * (1.0 + honneur_port))
     return v
 
 func raison_aucun(jour: int, personnes: int, kg: float) -> String:
