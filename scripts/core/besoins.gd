@@ -329,7 +329,7 @@ func _ajuster_postes() -> void:
         var choix := ""
         var max_jours := -1.0
         for m in _pop.postes:
-            if int(_pop.postes[m]) <= 0:
+            if int(_pop.postes[m]) <= 0 or not _res.PRODUCTION.has(m):
                 continue
             var jours := 99999.0
             for r2 in ORDRE:

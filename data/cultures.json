@@ -1,0 +1,11 @@
+{
+  "_notes": "Chiffres de l'agriculture traditionnelle sahélienne (houe, sans engrais). rendement = kg récoltés par hectare avec fertilité 1, travail complet et eau complète. travail = jours de travail d'un adulte par hectare et par cycle (préparation, semis, sarclages, récolte). eau_m3_ha_jour = besoin si on irrigue hors saison des pluies. mois_semis = mois où l'on peut semer sans irrigation (0 = janvier).",
+  "cultures": {
+    "fonio": {"nom": "Fonio", "produit": "fonio", "semences": ["fonio", "fonio_sauvage"], "semence_ha": 25.0, "rendement": 450.0, "cycle": 80, "travail": 45.0, "mois_semis": [5, 6], "eau_m3_ha_jour": 30.0, "epuisement": 0.03},
+    "mil": {"nom": "Mil", "produit": "mil", "semences": ["mil"], "semence_ha": 5.0, "rendement": 600.0, "cycle": 100, "travail": 60.0, "mois_semis": [5, 6], "eau_m3_ha_jour": 35.0, "epuisement": 0.04},
+    "sorgho": {"nom": "Sorgho", "produit": "sorgho", "semences": ["sorgho"], "semence_ha": 8.0, "rendement": 700.0, "cycle": 120, "travail": 65.0, "mois_semis": [5], "eau_m3_ha_jour": 40.0, "epuisement": 0.05}
+  },
+  "defrichage": 20.0,
+  "ha_par_cultivateur": 1.5,
+  "recuperation_jachere_an": 0.08
+}

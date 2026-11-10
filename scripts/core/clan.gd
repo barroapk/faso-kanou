@@ -17,6 +17,7 @@ const RECETTES = preload("res://scripts/core/recettes.gd")
 const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
 const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 const ECONOMIE = preload("res://scripts/core/economie.gd")
+const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 
 var id := ""
 var nom := ""
@@ -35,6 +36,7 @@ var recettes
 var equipement
 var decouvertes
 var economie
+var agriculture
 
 func _modules() -> void:
     population = POPULATION.new()
@@ -49,6 +51,7 @@ func _modules() -> void:
     decouvertes = DECOUVERTES.new()
     construction.connaissances = decouvertes
     economie = ECONOMIE.new()
+    agriculture = AGRICULTURE.new()
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -58,6 +61,7 @@ func _identite(cle: String, fiche: Dictionary) -> void:
     territoire = fiche.get("territoire", {})
     chef_fixe = fiche.get("chef_fixe", {})
     outils_voulus = fiche.get("outils", {})
+    agriculture.choisir_region(fiche.get("region", "centre"))
 
 func creer(cle: String, fiche: Dictionary, jour: int) -> void:
     _modules()
@@ -71,6 +75,8 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
     var st: Dictionary = fiche.get("stocks", {})
     for r in ["eau", "bois", "sel"]:
         ressources.stocks[r] = float(st.get(r, ressources.stocks[r]))
+    for s in fiche.get("semences", {}):
+        agriculture.semences[s] = float(fiche["semences"][s])
     var k: float = float(st.get("nourriture", 300.0)) / maxf(1.0, ressources.total_aliments())
     for a in ressources.aliments:
         ressources.aliments[a] = float(ressources.aliments[a]) * k
@@ -114,6 +120,7 @@ func jour_passe(jour: int, pluie: bool) -> void:
     equipement.jour_passe(population, chantier)
     ressources.jour_passe(population, jour, pluie, chantier)
     construction.jour_passe(travail_batisseurs())
+    agriculture.jour_passe(population, ressources, construction, jour, pluie)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, jour)
 
 func mois_passe(jour: int, pluie: bool) -> void:
@@ -125,6 +132,9 @@ func mois_passe(jour: int, pluie: bool) -> void:
     _gouverner(jour)
     besoins.mois_passe(population, ressources, construction, jour, pluie, not construction.chantiers.is_empty())
     _gerer(jour)
+    agriculture.gerer_auto(population, ressources, jour, decouvertes.connait)
+    if agriculture.prochaine_recolte() > jour:
+        besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     decouvertes.mois_passe(population, ressources, recettes, jour)
     economie.mois_passe(population, ressources, construction, equipement, jour)
     population.repartir(jour)
@@ -213,6 +223,7 @@ func vers_dict() -> Dictionary:
         "equipement": equipement.vers_dict(),
         "decouvertes": decouvertes.vers_dict(),
         "economie": economie.vers_dict(),
+        "agriculture": agriculture.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -235,3 +246,4 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     equipement.depuis_dict(d.get("equipement", {}))
     decouvertes.depuis_dict(d.get("decouvertes", {}))
     economie.depuis_dict(d.get("economie", {}), ressources)
+    agriculture.depuis_dict(d.get("agriculture", {}))

@@ -19,6 +19,7 @@ const CLAN = preload("res://scripts/core/clan.gd")
 const DIPLOMATIE = preload("res://scripts/core/diplomatie.gd")
 const MARCHE = preload("res://scripts/core/marche.gd")
 const CARAVANES = preload("res://scripts/core/caravanes.gd")
+const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 
 var temps
 var population
@@ -36,6 +37,7 @@ var voisins: Array = []
 var diplomatie
 var marche
 var caravanes
+var agriculture
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -61,6 +63,7 @@ func _creer_modules() -> void:
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
+    agriculture = AGRICULTURE.new()
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -112,6 +115,13 @@ func commercer(acheteur: String, vendeur: String, produit: String, q: float, pai
     var d := devis_commerce(acheteur, vendeur, produit, q, paiement)
     return marche.conclure(_clan(acheteur), acheteur, _clan(vendeur), vendeur, d, temps.jour_total, diplomatie)
 
+# Agriculture du joueur : créer un champ (hectares) et le semer.
+func creer_champ(ha: float) -> String:
+    return agriculture.creer_champ(ha)
+
+func semer(id_champ: int, culture: String) -> String:
+    return agriculture.semer(id_champ, culture, ressources, temps.jour_total, decouvertes.connait)
+
 func voisin(cle: String):
     for c in voisins:
         if c.id == cle:
@@ -156,6 +166,7 @@ func _jour_passe() -> void:
     equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
+    agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     for c in voisins:
         c.jour_passe(temps.jour_total, temps.saison_des_pluies())
@@ -171,6 +182,10 @@ func _mois_passe() -> void:
     population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0, int(logement))
     conseil.mois_passe(population, temps.jour_total)
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
+    if besoins.mode == "auto":
+        agriculture.gerer_auto(population, ressources, temps.jour_total, decouvertes.connait)
+    if agriculture.prochaine_recolte() > temps.jour_total:
+        besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     migration.mois_passe(population, ressources, construction, temps.jour_total)
     decouvertes.mois_passe(population, ressources, recettes, temps.jour_total)
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
@@ -207,6 +222,7 @@ func sauvegarder() -> void:
         "diplomatie": diplomatie.vers_dict(),
         "marche": marche.vers_dict(),
         "caravanes": caravanes.vers_dict(),
+        "agriculture": agriculture.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -241,6 +257,7 @@ func _charger(nom: String) -> bool:
     economie.depuis_dict(donnees.get("economie", {}), ressources)
     marche.depuis_dict(donnees.get("marche", {}))
     caravanes.depuis_dict(donnees.get("caravanes", {}))
+    agriculture.depuis_dict(donnees.get("agriculture", {}))
     if donnees.has("voisins"):
         voisins = []
         var ids := ["joueur"]

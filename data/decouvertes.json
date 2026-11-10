@@ -163,6 +163,52 @@
    "savoir_cle": "metallurgie",
    "savoir_initial": {},
    "origine": "haut-fourneau ; les recettes viendront avec l'époque industrielle"
+  },
+  "irrigation": {
+   "nom": "Irrigation simple",
+   "epoque": "pierre",
+   "prerequis": [
+    "agriculture"
+   ],
+   "conditions": {
+    "savoirs": {
+     "agriculture": 30
+    },
+    "matieres": {},
+    "pratique": {},
+    "population_min": 20
+   },
+   "chance_mois": 0.02,
+   "debloque": [],
+   "savoir_cle": "agriculture",
+   "savoir_initial": {
+    "agriculture": 35
+   },
+   "origine": "observation : les plantes près de l'eau poussent en saison sèche ; puits et petits canaux"
+  },
+  "irrigation_amenagee": {
+   "nom": "Irrigation aménagée",
+   "epoque": "pierre",
+   "prerequis": [
+    "irrigation"
+   ],
+   "conditions": {
+    "savoirs": {
+     "agriculture": 50
+    },
+    "matieres": {
+     "pierre": 100
+    },
+    "pratique": {},
+    "population_min": 40
+   },
+   "chance_mois": 0.01,
+   "debloque": [],
+   "savoir_cle": "agriculture",
+   "savoir_initial": {
+    "agriculture": 55
+   },
+   "origine": "retenir l'eau de pluie derrière une digue de terre et de pierre"
   }
  }
 }

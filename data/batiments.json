@@ -168,5 +168,77 @@
         "effet": {}
       }
     ]
+  },
+  "puits": {
+    "nom": "Puits",
+    "decouverte": "irrigation",
+    "niveaux": [
+      {
+        "nom": "Puits creusé",
+        "cout": {
+          "bois": 20,
+          "pierre": 30
+        },
+        "travail": 30,
+        "entretien": {
+          "bois": 0.2
+        },
+        "effet": {
+          "irrigation_m3_jour": 8,
+          "stock_eau": 300
+        }
+      },
+      {
+        "nom": "Puits maçonné",
+        "cout": {
+          "bois": 20,
+          "pierre": 80
+        },
+        "travail": 45,
+        "entretien": {
+          "bois": 0.2
+        },
+        "effet": {
+          "irrigation_m3_jour": 15,
+          "stock_eau": 500
+        }
+      }
+    ]
+  },
+  "retenue": {
+    "nom": "Retenue d'eau",
+    "decouverte": "irrigation_amenagee",
+    "niveaux": [
+      {
+        "nom": "Petite digue en terre",
+        "cout": {
+          "bois": 80,
+          "pierre": 200
+        },
+        "travail": 400,
+        "entretien": {
+          "bois": 2,
+          "pierre": 1
+        },
+        "effet": {
+          "retenue_m3": 20000
+        }
+      },
+      {
+        "nom": "Barrage en pierre",
+        "cout": {
+          "bois": 150,
+          "pierre": 800
+        },
+        "travail": 1200,
+        "entretien": {
+          "bois": 3,
+          "pierre": 3
+        },
+        "effet": {
+          "retenue_m3": 100000
+        }
+      }
+    ]
   }
 }
