@@ -48,20 +48,12 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
     _contexte(population, ressources, construction, jour, pluie, chantier_actif)
     if mode == "auto":
         _ajuster_postes()
-        var calme := jour - dernier_changement < DELAI_CHANGEMENT and not _urgence()
+        var calme := jour - dernier_changement < DELAI_CHANGEMENT and not _urgence_plan()
         if not calme:
             var avant: Dictionary = population.postes.duplicate()
-            _equilibrer()
-            for r in ORDRE:
-                for i in 3:
-                    var p := _diagnostic(r)
-                    if p.is_empty() or i >= ACTIONS_MAX[p["niveau"]]:
-                        break
-                    var sol := _premiere_action(p)
-                    if sol.is_empty():
-                        break
-                    if appliquer(sol) != "":
-                        break
+            _planifier()
+            _res.prod_metier = {}
+            _jour_plan = jour
             if population.postes != avant:
                 dernier_changement = jour
     problemes = diagnostiquer()
@@ -80,6 +72,7 @@ func actualiser(population, ressources, construction, jour: int, pluie: bool, ch
 
 func _contexte(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
     _pop = population
+    _cache = {}
     _res = ressources
     _cons = construction
     _jour = jour
@@ -347,7 +340,7 @@ func _ajuster_postes() -> void:
         for m in _pop.postes:
             if int(_pop.postes[m]) <= 0:
                 continue
-            var jours := _pire({m: -1})
+            var jours := _score({m: -1}, false)
             if jours > max_jours:
                 max_jours = jours
                 choix = m
@@ -543,6 +536,225 @@ func _avis(cle: String, texte: String) -> void:
     dernier_avis[cle] = _jour
     evenement.emit(texte)
 
+# ---------- Planificateur unique (v0.3.34) ----------
+# Un seul mécanisme décide des postes : il SIMULE les 60 prochains jours, jour par
+# jour, pour chaque répartition envisagée (saison de chaque jour, pluie, eau qui
+# s'évapore, viande et poisson qui se gâtent, bois brûlé, capacités de stockage),
+# puis garde celle qui éloigne le plus le danger.
+# Ordre des priorités (score) : 1) ni soif ni faim ni manque de bois pendant
+# 60 jours ; 2) réserves en fin de période (nourriture d'abord) ; 3) un
+# bâtisseur quand il y a des chantiers. Un changement doit gagner nettement.
+const HORIZON := 60
+const METIERS_VITAUX := ["porteur d'eau", "cueilleur", "chasseur", "pêcheur", "bâtisseur", "cultivateur"]
+const GAIN_MIN := 40.0
+var _cache := {}                  # rendements et consommation du mois
+var _survie := 0.0                # jours sans pénurie de la dernière simulation
+var _jour_plan := -1               # début de la période observée (prod_metier)
+func _rend(m: String, r: String, s: int) -> float:
+    var k := "%s|%s|%d" % [m, r, s]
+    if not _cache.has(k):
+        _cache[k] = _rend_calcul(m, r, s)
+    return _cache[k]
+func _rend_calcul(m: String, r: String, s: int) -> float:
+    var p: Dictionary = _res.PRODUCTION.get(m, {})
+    if not p.has(r):
+        return 0.0
+    return float(p[r][s]) * _efficacite(m) * _res.outils * _res._richesse(m, r) * _res._acces(m, r)
+func _perte_frais() -> float:
+    var p := 0.0
+    for id in ["gibier", "poisson"]:
+        p = maxf(p, float(_res.produits.get(id, {}).get("perte_jour", 0.2)))
+    return p
+# Score d'une répartition (postes actuels + delta). Plus c'est grand, mieux c'est.
+func _score(delta: Dictionary, strict := true) -> float:
+    var postes := {}
+    var total := 0
+    for m in _pop.postes:
+        postes[m] = int(_pop.postes[m]) + int(delta.get(m, 0))
+        if postes[m] < 0:
+            return -1.0e9
+        total += postes[m]
+    for m in delta:
+        if not postes.has(m):
+            postes[m] = int(delta[m])
+            total += int(delta[m])
+    if not _cache.has("conso"):
+        var cs := {"eau": _conso("eau"), "bois": _conso("bois"), "nourriture": 0.0, "adultes": _adultes(), "aides": _aides()}
+        for h in _pop.habitants:
+            var t: Dictionary = _res.CONSO_ENFANT if _pop.age(h, _jour) < _pop.AGE_ADULTE else _res.CONSO_ADULTE
+            cs["nourriture"] += float(t["nourriture"])
+        _cache["conso"] = cs
+    var conso: Dictionary = _cache["conso"]
+    if not _cache.has("calib"):
+        _cache["calib"] = _calibrer()
+    var k: Dictionary = _cache["calib"]
+    var frais_ids: Array = _res._frais()
+    var frais := 0.0
+    for id in frais_ids:
+        frais += float(_res.aliments[id]) * _res.facteur(id)
+    var sec: float = _res.total_aliments() - frais
+    var eau: float = float(_res.stocks["eau"])
+    var bois: float = float(_res.stocks["bois"])
+    var cap_eau: float = _res.capacite("eau")
+    var cap_bois: float = _res.capacite("bois")
+    var cap_n: float = _res.capacite("nourriture")
+    var perte := _perte_frais()
+    var tenue := {"eau": HORIZON + 1, "nourriture": HORIZON + 1, "bois": HORIZON + 1}
+    var manque := {"eau": 0.0, "nourriture": 0.0, "bois": 0.0}   # jours de besoin non couverts
+    var aides: int = int(conso["aides"])
+    # Chantier en cours : les bâtisseurs y travaillent (pas de bois) jusqu'à la fin.
+    var reste_chantier := 0.0
+    for ch in _cons.chantiers:
+        reste_chantier += float(ch["reste"])
+    var force_bat: float = int(postes.get("bâtisseur", 0)) * _efficacite("bâtisseur")
+    var libres: int = int(conso["adultes"]) - total
+    if libres < 0:
+        if strict:
+            return -1.0e9
+        libres = 0          # postes en trop (absents) : on compare seulement
+    var chef := 0
+    for h in _pop.habitants:
+        if h["metier"] == "chef":
+            chef += 1
+    for j in HORIZON:
+        var mois := ((_jour + j) / 30) % 12
+        var s := 1 if mois >= 5 and mois <= 9 else 0
+        var p_eau := 20.0 * s + aides * float(_res.PRODUCTION["aide"]["eau"][s]) * 0.7
+        var p_sec := libres * _rend("sans métier", "nourriture", s) + aides * float(_res.PRODUCTION["aide"]["nourriture"][s]) * 0.7
+        var p_frais := 0.0
+        var p_bois := 0.0
+        for m in postes:
+            var n := int(postes[m])
+            if n <= 0:
+                continue
+            p_eau += n * _rend(m, "eau", s)
+            if not (m == "bâtisseur" and reste_chantier > 0.0):
+                p_bois += n * _rend(m, "bois", s)
+            var km: float = float(k["metier"].get(m, 1.0))
+            if m in ["chasseur", "pêcheur"]:
+                p_frais += n * _rend(m, "nourriture", s) * km
+            else:
+                p_sec += n * _rend(m, "nourriture", s) * km
+        p_sec += chef * _rend("chef", "nourriture", s)
+        p_eau *= float(k["eau"])
+        p_bois *= float(k["bois"])
+        reste_chantier = maxf(0.0, reste_chantier - force_bat)
+        eau = minf(cap_eau, eau * (1.0 - _res.EVAPORATION_EAU) + p_eau - conso["eau"])
+        bois = minf(cap_bois, bois + p_bois - conso["bois"])
+        frais = (frais + p_frais) * (1.0 - perte)
+        sec -= float(k["perte_sec"])
+        var faim: float = conso["nourriture"]
+        var pris := minf(frais, faim)
+        frais -= pris
+        faim -= pris
+        sec = minf(cap_n, sec + p_sec) - faim
+        manque["eau"] += maxf(0.0, -eau) / maxf(0.1, conso["eau"])
+        manque["bois"] += maxf(0.0, -bois) / maxf(0.1, conso["bois"])
+        manque["nourriture"] += maxf(0.0, -sec) / maxf(0.1, conso["nourriture"])
+        if eau < 0.0 and tenue["eau"] > HORIZON:
+            tenue["eau"] = j
+        if bois < 0.0 and tenue["bois"] > HORIZON:
+            tenue["bois"] = j
+        if sec < 0.0 and tenue["nourriture"] > HORIZON:
+            tenue["nourriture"] = j
+        eau = maxf(eau, 0.0)
+        bois = maxf(bois, 0.0)
+        sec = maxf(sec, 0.0)
+    # Le manque de bois ne tue pas (il gêne) : la survie se juge sur l'eau et la nourriture.
+    var survie := minf(tenue["eau"], tenue["nourriture"])
+    _survie = survie
+    # Le pire besoin d'abord, puis chaque besoin compte (l'eau avant la
+    # nourriture, avant le bois) : sinon, un besoin déjà perdu masque les autres.
+    var score: float = survie * 1000.0 + tenue["eau"] * 300.0 + tenue["nourriture"] * 200.0 + tenue["bois"] * 30.0
+    score -= manque["eau"] * 300.0 + manque["nourriture"] * 200.0 + manque["bois"] * 30.0
+    # Réserves en fin de période : la nourriture compte beaucoup (ne pas manger
+    # la réserve pour autre chose), l'eau ensuite.
+    score += minf(90.0, (sec + frais) / maxf(0.1, conso["nourriture"])) * 40.0
+    score += minf(30.0, eau / maxf(0.1, conso["eau"])) * 10.0
+    score += minf(30.0, bois / maxf(0.1, conso["bois"])) * 2.0
+    if _chantier and int(postes.get("bâtisseur", 0)) >= 1:
+        score += 30.0
+    return score
+# Calibrage sur le mois écoulé (registre des flux) : ce que le clan a VRAIMENT
+# produit, comparé à ce que le modèle prévoyait pour les postes actuels
+# (fruits qui pourrissent, gibier, efficacité réelle...). Borné de 0,5 à 1,2.
+# Les pertes de nourriture du mois (hors viande et poisson) sont reprises aussi.
+func _calibrer() -> Dictionary:
+    var k := {"eau": 1.0, "bois": 1.0, "nourriture": 1.0, "perte_sec": 0.0, "metier": {}}
+    # Nourriture : calibrage par métier (ce que chaque métier a vraiment rapporté).
+    var jm := float(_jour - _jour_plan) if _jour_plan >= 0 and _jour > _jour_plan else 0.0
+    if jm >= 10.0:
+        for m in _res.prod_metier:
+            var n := 0
+            for h in _pop.habitants:
+                if h["metier"] == m and not h.has("expedition"):
+                    n += 1
+            var prevu_m := 0.0
+            for d in int(jm):
+                var mo := ((_jour - int(jm) + d) / 30) % 12
+                prevu_m += n * _rend(m, "nourriture", 1 if mo >= 5 and mo <= 9 else 0)
+            if prevu_m > 1.0:
+                k["metier"][m] = clampf(float(_res.prod_metier[m]) / prevu_m, 0.3, 1.2)
+    var prod: Dictionary = _res.flux.get("production", {})
+    var jours := float(_jour % 30) if _jour % 30 != 0 else 30.0
+    for r in ["eau", "bois", "nourriture"]:
+        var prevu := 0.0
+        for m in _pop.postes:
+            prevu += int(_pop.postes[m]) * _rend(m, r, _s)
+        if r == "eau":
+            prevu += 20.0 * _s
+        var vu := float(prod.get(r, 0.0)) / jours
+        if prevu > 0.5 and vu > 0.0:
+            k[r] = clampf(vu / prevu, 0.5, 1.2)
+    k["perte_sec"] = maxf(0.0, -float(_res.flux.get("perte", {}).get("nourriture", 0.0)) / jours * 0.5)
+    return k
+# Urgence : la simulation actuelle voit une pénurie dans moins de 20 jours.
+func _urgence_plan() -> bool:
+    _score({})
+    return _survie < URGENCE_JOURS
+# Jusqu'à 3 changements par décision : ouvrir un poste (adulte libre) ou
+# déplacer un travailleur, seulement si le score gagne nettement.
+func _planifier() -> void:
+    var metiers: Array = []
+    for m in _pop.postes:
+        metiers.append(m)
+    for m in METIERS_VITAUX:
+        if not metiers.has(m) and _pop.postes.has(m):
+            metiers.append(m)
+    for i in 3:
+        var base := _score({})
+        var meilleur := {}
+        var gain := base + GAIN_MIN
+        for vers in metiers:
+            if not _res.PRODUCTION.has(vers) or (_verrouille(vers) and base > 40000.0):
+                continue
+            var d := {vers: 1}
+            var v := _score(d)
+            if v > gain:
+                gain = v
+                meilleur = d
+            for de in metiers:
+                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or (_verrouille(de) and base > 40000.0):
+                    continue
+                d = {de: -1, vers: 1}
+                v = _score(d)
+                if v > gain:
+                    gain = v
+                    meilleur = d
+        if meilleur.is_empty():
+            return
+        var de2 := ""
+        var vers2 := ""
+        for m in meilleur:
+            _pop.postes[m] = int(_pop.postes.get(m, 0)) + int(meilleur[m])
+            if int(meilleur[m]) < 0:
+                de2 = m
+            else:
+                vers2 = m
+        if de2 == "":
+            evenement.emit("Le chef ouvre un poste de %s." % vers2)
+        else:
+            evenement.emit("Le chef réorganise : un %s devient %s." % [de2, vers2])
 func vers_dict() -> Dictionary:
     return {"mode": mode, "verrou": verrou, "dernier_changement": dernier_changement}
 

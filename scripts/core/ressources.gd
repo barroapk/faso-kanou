@@ -88,6 +88,7 @@ var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (a
 # Flux du mois, pour la comptabilité (economie.gd) : motif -> {ressource: quantité}
 # (+ entrée, - sortie). La nourriture est comptée en kgEM sous "nourriture".
 var flux := {}
+var prod_metier := {}            # nourriture produite par métier depuis le dernier plan du chef (v0.3.34)
 
 func _init() -> void:
     var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/produits.json"))
@@ -367,6 +368,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
                 else:
                     _recolter(q, CHASSE if h["metier"] == "chasseur" else CUEILLETTE[mois])
                 noter("production", "nourriture", q)
+                prod_metier[h["metier"]] = float(prod_metier.get(h["metier"], 0.0)) + q
                 if h["metier"] == "chasseur":
                     var viande := q / facteur("gibier")
                     objets["os_corne"] = float(objets.get("os_corne", 0.0)) + viande * OS_PAR_KG_VIANDE
