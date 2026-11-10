@@ -22,6 +22,26 @@ var definitions := {}
 var connues := {}          # id -> {"jour": jour, "origine": texte, "mois_sans_pratique": n}
 var rng := RandomNumberGenerator.new()
 
+# ---------- Expériences (v0.3.17 E2) ----------
+# Plus aucune découverte gratuite tirée au hasard chaque mois. Une découverte
+# s'obtient par une EXPÉRIENCE : des adultes quittent leur métier pendant des
+# semaines, des matières sont consommées, et l'essai peut échouer.
+# Une expérience devient possible quand les conditions sont réunies ET que le
+# clan en ressent le besoin (pression de son domaine >= 20).
+# Chance de réussite = 10 % + savoir des essayeurs + pression + essais passés,
+# au plus 80 %, réduite pour les techniques difficiles (âge du fer).
+# Un échec apprend quelque chose : savoir des essayeurs +2, essai suivant +8 %.
+const SEUIL_POSSIBLE := 20.0     # pression minimum pour avoir l'idée d'essayer
+const SEUIL_URGENCE := 40.0      # l'ordinateur essaie quand la survie l'exige
+const DUREE := {"pierre": 30, "fer": 45}
+const ESSAYEURS := {"pierre": 1, "fer": 2}
+const DIFFICULTE := {"pierre": 1.0, "fer": 0.75}
+const PART_MATIERES := 0.2       # part des matières de la découverte consommée par essai
+
+var en_cours := {}               # {id, essayeurs: [id habitant], fin, par}
+var essais := {}                 # id -> nombre d'échecs
+var annoncees := {}              # id -> déjà signalée comme possible
+
 func _init() -> void:
     var d = JSON.parse_string(FileAccess.get_file_as_string(FICHIER))
     if typeof(d) == TYPE_DICTIONARY:
@@ -55,19 +75,130 @@ func manque(id: String, pop, res, recettes, jour: int) -> Array:
         m.append("il faut %d habitants" % int(c["population_min"]))
     return m
 
-# pression (pression.gd) : la difficulté vécue rend la découverte plus probable.
-func mois_passe(pop, res, recettes, jour: int, pression = null) -> void:
+# auto : vrai pour l'ordinateur (et le joueur en mode automatique).
+func mois_passe(pop, res, recettes, jour: int, pression = null, auto := true) -> void:
+    for id in possibles(pop, res, recettes, jour, pression):
+        if not annoncees.get(id, false):
+            annoncees[id] = true
+            evenement.emit("Expérience possible : %s (%d jours, %d personne(s), réussite %d %%)." % [definitions[id]["nom"], _duree(id), _nb(id), int(chance(id, pop, pression) * 100)])
+    if auto and en_cours.is_empty():
+        var choix := ""
+        var max_p := -1.0
+        for id in possibles(pop, res, recettes, jour, pression):
+            var p := _pression(id, pression)
+            var urgent := p >= SEUIL_URGENCE or (_domaine(id) == "" and rng.randf() < 0.05)
+            if urgent and p > max_p:
+                max_p = p
+                choix = id
+        if choix != "":
+            lancer(choix, pop, res, recettes, jour, pression, "ordinateur")
+    _entretenir(pop, recettes)
+
+func _domaine(id: String) -> String:
+    return str(load("res://scripts/core/pression.gd").DOMAINE_DECOUVERTE.get(id, ""))
+
+func _pression(id: String, pression) -> float:
+    var d := _domaine(id)
+    if pression == null or d == "":
+        return 0.0
+    return float(pression.niveaux.get(d, 0.0))
+
+func _epoque(id: String) -> String:
+    return str(definitions[id].get("epoque", "pierre"))
+
+func _duree(id: String) -> int:
+    return int(DUREE.get(_epoque(id), 30))
+
+func _nb(id: String) -> int:
+    return int(ESSAYEURS.get(_epoque(id), 1))
+
+# Ce que le clan peut essayer maintenant.
+func possibles(pop, res, recettes, jour: int, pression) -> Array:
+    var l: Array = []
     for id in definitions:
-        if connait(id):
+        if connait(id) or (not en_cours.is_empty() and en_cours["id"] == id):
             continue
         if not manque(id, pop, res, recettes, jour).is_empty():
             continue
-        var chance := float(definitions[id]["chance_mois"])
-        if pression != null:
-            chance *= pression.facteur(id)
-        if rng.randf() < chance:
-            _decouvrir(id, pop, recettes, jour, "expérimentation")
-    _entretenir(pop, recettes)
+        if _domaine(id) != "" and _pression(id, pression) < SEUIL_POSSIBLE:
+            continue
+        l.append(id)
+    return l
+
+# Meilleurs essayeurs : adultes (ni chef ni ancien) qui ont le plus de savoir utile.
+func _essayeurs(id: String, pop, jour: int) -> Array:
+    var cond: Dictionary = definitions[id]["conditions"].get("savoirs", {})
+    var candidats: Array = []
+    for h in pop.habitants:
+        if pop.age(h, jour) >= pop.AGE_ADULTE and not h["metier"] in ["chef", "ancien"] and not h.has("experience"):
+            candidats.append(h)
+    candidats.sort_custom(func(a, b):
+        var sa := 0.0
+        var sb := 0.0
+        for s in cond:
+            sa += pop.savoir(a, s)
+            sb += pop.savoir(b, s)
+        return sa > sb)
+    return candidats.slice(0, _nb(id))
+
+func chance(id: String, pop, pression) -> float:
+    var cond: Dictionary = definitions[id]["conditions"].get("savoirs", {})
+    var savoir := 0.0
+    for h in pop.habitants:
+        var s := 0.0
+        for k in cond:
+            s += pop.savoir(h, k)
+        savoir = maxf(savoir, s / maxf(1.0, cond.size()))
+    var c := 0.10 + savoir / 250.0 + _pression(id, pression) / 250.0 + 0.08 * int(essais.get(id, 0))
+    return clampf(c, 0.05, 0.8) * float(DIFFICULTE.get(_epoque(id), 1.0))
+
+# Lance une expérience. Renvoie "" si elle commence.
+func lancer(id: String, pop, res, recettes, jour: int, pression, par := "joueur") -> String:
+    if not en_cours.is_empty():
+        return "Une expérience est déjà en cours."
+    if not possibles(pop, res, recettes, jour, pression).has(id):
+        return "Cette expérience n'est pas possible maintenant."
+    var gens := _essayeurs(id, pop, jour)
+    if gens.size() < _nb(id):
+        return "Pas assez d'adultes disponibles."
+    var mat: Dictionary = definitions[id]["conditions"].get("matieres", {})
+    for m in mat:
+        res.retirer(m, float(mat[m]) * PART_MATIERES, "experience")
+    var ids: Array = []
+    for h in gens:
+        h["experience"] = id
+        ids.append(int(h["id"]))
+    en_cours = {"id": id, "essayeurs": ids, "fin": jour + _duree(id), "par": par}
+    evenement.emit("Expérience lancée : %s (%s, %d jours)." % [definitions[id]["nom"], ", ".join(gens.map(func(h): return h["prenom"])), _duree(id)])
+    return ""
+
+# Chaque jour, APRÈS les recettes : les essayeurs ne travaillent pas à leur métier.
+func jour_passe(pop, recettes, jour: int, pression) -> void:
+    if en_cours.is_empty():
+        return
+    var gens: Array = []
+    for h in pop.habitants:
+        if en_cours["essayeurs"].has(int(h["id"])):
+            h["occupe"] = true
+            gens.append(h)
+    if gens.is_empty():
+        en_cours = {}
+        return
+    if jour < int(en_cours["fin"]):
+        return
+    var id: String = en_cours["id"]
+    var reussi := rng.randf() < chance(id, pop, pression)
+    for h in gens:
+        h.erase("experience")
+        if not reussi:
+            for s in definitions[id]["conditions"].get("savoirs", {}):
+                pop.donner_savoir(h, s, minf(100.0, pop.savoir(h, s) + 2.0))
+    en_cours = {}
+    if reussi:
+        _decouvrir(id, pop, recettes, jour, "expérience de %s" % ", ".join(gens.map(func(h): return h["prenom"])))
+    else:
+        essais[id] = int(essais.get(id, 0)) + 1
+        evenement.emit("L'expérience « %s » a échoué (essai n° %d). Les essayeurs ont appris : le prochain essai aura plus de chances." % [definitions[id]["nom"], int(essais[id])])
 
 func _decouvrir(id: String, pop, recettes, jour: int, origine: String) -> void:
     var d: Dictionary = definitions[id]
@@ -121,9 +252,16 @@ func _entretenir(pop, recettes) -> void:
             evenement.emit("Savoir perdu : plus personne ne pratique %s." % definitions[id]["nom"])
 
 func vers_dict() -> Dictionary:
-    return {"connues": connues, "graine": str(rng.seed), "etat": str(rng.state)}
+    return {"connues": connues, "graine": str(rng.seed), "etat": str(rng.state), "en_cours": en_cours, "essais": essais, "annoncees": annoncees}
 
 func depuis_dict(d: Dictionary) -> void:
+    en_cours = d.get("en_cours", {})
+    if en_cours.has("essayeurs"):
+        en_cours["essayeurs"] = en_cours["essayeurs"].map(func(x): return int(x))
+    essais = {}
+    for k in d.get("essais", {}):
+        essais[str(k)] = int(d["essais"][k])
+    annoncees = d.get("annoncees", {})
     connues = {}
     for id in d.get("connues", {}):
         var x: Dictionary = d["connues"][id]

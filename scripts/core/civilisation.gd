@@ -153,6 +153,13 @@ func _installer_ile() -> void:
     agriculture.choisir_ile(ile_joueur)
     ressources.richesse = agriculture.ile.get("richesse", {})
 
+# Expériences du joueur : ce qu'il peut essayer, et lancer un essai.
+func experiences_possibles() -> Array:
+    return decouvertes.possibles(population, ressources, recettes, temps.jour_total, pression)
+
+func lancer_experience(id: String) -> String:
+    return decouvertes.lancer(id, population, ressources, recettes, temps.jour_total, pression, "joueur")
+
 # Agriculture du joueur : créer un champ (hectares) et le semer.
 func creer_champ(ha: float) -> String:
     return agriculture.creer_champ(ha)
@@ -205,6 +212,7 @@ func ignorer_alerte(cle: String) -> String:
 func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, temps.jour_total)
+    decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
     equipement.jour_passe(population, chantier_actif)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
@@ -231,7 +239,7 @@ func _mois_passe() -> void:
         besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     migration.mois_passe(population, ressources, construction, temps.jour_total)
     pression.mois_passe(population, ressources, equipement, temps.jour_total)
-    decouvertes.mois_passe(population, ressources, recettes, temps.jour_total, pression)
+    decouvertes.mois_passe(population, ressources, recettes, temps.jour_total, pression, besoins.mode == "auto")
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())

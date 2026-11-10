@@ -128,6 +128,7 @@ func jour_passe(jour: int, pluie: bool) -> void:
         return
     var chantier: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, jour)
+    decouvertes.jour_passe(population, recettes, jour, pression)
     equipement.jour_passe(population, chantier)
     ressources.jour_passe(population, jour, pluie, chantier)
     construction.jour_passe(travail_batisseurs())

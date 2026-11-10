@@ -77,7 +77,7 @@ func bilan_masse(id: String) -> Dictionary:
 func _libres(pop, jour: int) -> Array:
     var l := []
     for h in pop.habitants:
-        if h["metier"] == "sans métier" and pop.age(h, jour) >= pop.AGE_ADULTE:
+        if h["metier"] == "sans métier" and pop.age(h, jour) >= pop.AGE_ADULTE and not h.has("experience"):
             l.append(h)
     return l
 
