@@ -2152,6 +2152,48 @@
    ],
    "obtention": "industrie : par le commerce, puis fabrication",
    "note": "exemple de ressource d'époque future"
+  },
+  "scories": {
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "terrains": [],
+   "saisons": [],
+   "epoque": "fer",
+   "nom": "Scories (laitier)",
+   "categorie": "transformee",
+   "sous_categorie": "residu",
+   "valeur": 0.05,
+   "disponibilite": "transformation",
+   "usages": [
+    "remblai"
+   ],
+   "obtention": "déchet de la fonte du fer au fourneau",
+   "transforme_de": "minerai_fer"
+  },
+  "son_mil": {
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "terrains": [],
+   "saisons": [],
+   "epoque": "pierre",
+   "nom": "Son de mil",
+   "categorie": "transformee",
+   "sous_categorie": "residu",
+   "valeur": 0.2,
+   "disponibilite": "transformation",
+   "usages": [
+    "alimentation_animale"
+   ],
+   "obtention": "enveloppes retirées au pilage du mil",
+   "transforme_de": "mil"
   }
  },
  "version_catalogue": 2

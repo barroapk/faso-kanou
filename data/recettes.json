@@ -1,0 +1,235 @@
+{
+ "_notes": {
+  "entrees": "matières consommées",
+  "combustible": "bois ou charbon brûlé, séparé des matières",
+  "sorties": "produit fini",
+  "sous_produits": "autres produits récupérés",
+  "pertes": "masse perdue (kg), avec sa raison : le bilan de masse doit tomber juste",
+  "jours_travail": "jours de travail d'une personne",
+  "connue_au_depart": "le clan sait la faire dès le début ; sinon, il faut la découvrir ou l'apprendre",
+  "competence": "savoir-faire nécessaire (vérifié à l'étape 4)"
+ },
+ "recettes": {
+  "cendres": {
+   "nom": "Brûler de la paille pour faire des cendres",
+   "entrees": {
+    "paille": 20
+   },
+   "combustible": {},
+   "sorties": {
+    "cendres": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "fumée": 19
+   },
+   "jours_travail": 0.2,
+   "competence": "",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "sel_vegetal": {
+   "nom": "Sel végétal",
+   "entrees": {
+    "cendres": 10,
+    "eau": 20
+   },
+   "combustible": {
+    "bois": 4
+   },
+   "sorties": {
+    "sel_vegetal": 0.5
+   },
+   "sous_produits": {
+    "cendres": 0.06
+   },
+   "pertes": {
+    "eau évaporée": 20,
+    "cendres lessivées (résidu jeté)": 9.5,
+    "bois brûlé (fumée)": 3.94
+   },
+   "jours_travail": 1,
+   "competence": "artisanat",
+   "outil": "canari",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "canari": {
+   "nom": "Canari (poterie)",
+   "entrees": {
+    "argile": 8,
+    "eau": 2
+   },
+   "combustible": {
+    "bois": 6
+   },
+   "sorties": {
+    "canari": 1
+   },
+   "sous_produits": {
+    "cendres": 0.09
+   },
+   "pertes": {
+    "eau évaporée": 2,
+    "argile perdue (taille, casse)": 2,
+    "bois brûlé (fumée)": 5.91
+   },
+   "jours_travail": 2,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": []
+  },
+  "brique_banco": {
+   "nom": "Brique de banco",
+   "entrees": {
+    "argile": 6,
+    "sable": 1.5,
+    "paille": 0.5,
+    "eau": 2
+   },
+   "combustible": {},
+   "sorties": {
+    "brique_banco": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "eau évaporée au séchage": 2
+   },
+   "jours_travail": 0.2,
+   "competence": "construction",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "",
+   "connue_au_depart": true,
+   "saisons": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    10,
+    11
+   ]
+  },
+  "charbon_bois": {
+   "nom": "Charbon de bois",
+   "entrees": {
+    "bois": 100
+   },
+   "combustible": {},
+   "sorties": {
+    "charbon_bois": 20
+   },
+   "sous_produits": {
+    "cendres": 1
+   },
+   "pertes": {
+    "gaz et fumée": 79
+   },
+   "jours_travail": 3,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "fer_brut": {
+   "nom": "Fonte du fer",
+   "entrees": {
+    "minerai_fer": 30
+   },
+   "combustible": {
+    "charbon_bois": 30
+   },
+   "sorties": {
+    "fer_brut": 5
+   },
+   "sous_produits": {
+    "scories": 22
+   },
+   "pertes": {
+    "charbon brûlé (gaz)": 30,
+    "oxygène du minerai parti en gaz": 3
+   },
+   "jours_travail": 4,
+   "competence": "metallurgie",
+   "outil": "",
+   "batiment": "fourneau",
+   "decouverte": "metallurgie",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "fil_coton": {
+   "nom": "Filage du coton",
+   "entrees": {
+    "coton": 1.25
+   },
+   "combustible": {},
+   "sorties": {
+    "fil_coton": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "graines et déchets d'égrenage": 0.25
+   },
+   "jours_travail": 3,
+   "competence": "artisanat",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "tissage",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "tissu_coton": {
+   "nom": "Tissage d'un pagne",
+   "entrees": {
+    "fil_coton": 0.65
+   },
+   "combustible": {},
+   "sorties": {
+    "tissu_coton": 1
+   },
+   "sous_produits": {},
+   "pertes": {
+    "bouts de fil": 0.05
+   },
+   "jours_travail": 3,
+   "competence": "artisanat",
+   "outil": "metier_tisser",
+   "batiment": "",
+   "decouverte": "tissage",
+   "connue_au_depart": false,
+   "saisons": []
+  },
+  "farine_mil": {
+   "nom": "Pilage du mil",
+   "entrees": {
+    "mil": 10
+   },
+   "combustible": {},
+   "sorties": {
+    "farine_mil": 8.5
+   },
+   "sous_produits": {
+    "son_mil": 1.5
+   },
+   "pertes": {},
+   "jours_travail": 0.5,
+   "competence": "cuisine",
+   "outil": "",
+   "batiment": "",
+   "decouverte": "agriculture",
+   "connue_au_depart": false,
+   "saisons": []
+  }
+ }
+}

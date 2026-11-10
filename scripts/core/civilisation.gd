@@ -11,6 +11,7 @@ const BESOINS = preload("res://scripts/core/besoins.gd")
 const CONSEIL = preload("res://scripts/core/conseil.gd")
 const CHEF = preload("res://scripts/core/chef.gd")
 const MIGRATION = preload("res://scripts/core/migration.gd")
+const RECETTES = preload("res://scripts/core/recettes.gd")
 
 var temps
 var population
@@ -20,6 +21,7 @@ var besoins
 var conseil
 var chef
 var migration
+var recettes
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -36,6 +38,7 @@ func _creer_modules() -> void:
     chef = CHEF.new()
     migration = MIGRATION.new()
     migration.initialiser(2026)
+    recettes = RECETTES.new()
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -69,11 +72,16 @@ func appliquer_proposition(cle: String, index: int) -> String:
         population.repartir(temps.jour_total)
     return raison
 
+# Lancer une fabrication (pour l'écran d'artisanat à venir).
+func commander_recette(id: String, nombre := 1) -> String:
+    return recettes.commander(id, population, ressources, construction, temps.jour_total, nombre)
+
 func ignorer_alerte(cle: String) -> String:
     return chef.ignorer(cle, temps.jour_total)
 
 func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
+    recettes.jour_passe(population, ressources, temps.jour_total)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel)
@@ -110,6 +118,7 @@ func sauvegarder() -> void:
         "conseil": conseil.vers_dict(),
         "chef": chef.vers_dict(),
         "migration": migration.vers_dict(),
+        "recettes": recettes.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -138,5 +147,6 @@ func _charger(nom: String) -> bool:
     conseil.depuis_dict(donnees.get("conseil", {}), population, temps.jour_total)
     chef.depuis_dict(donnees.get("chef", {}))
     migration.depuis_dict(donnees.get("migration", {}), 2026)
+    recettes.depuis_dict(donnees.get("recettes", {}))
     temps.vitesse = 1
     return true

@@ -30,6 +30,8 @@ const PERTES_NOURRITURE := 0.001        # valeur moyenne, utilisée si le stock 
 const PERTES_NOURRITURE_GRENIER := 0.0003
 const COEF_GRENIER := 0.3               # un grenier divise les pertes des produits secs
 const EVAPORATION_EAU := 0.002          # jarres et canaris : 0,2 % par jour
+const CENDRES_PAR_KG_BOIS := 0.015      # le bois brûlé chaque jour laisse des cendres
+const SEL_PAR_SEL_VEGETAL := 0.5        # 1 kg de sel végétal remplace 0,5 kg de sel
 
 # Cueillette par mois (janvier = 0) : part de chaque produit, total = 1.
 # Saison sèche : pulpe de baobab, tamarin, néré, miel. Début des pluies : karité.
@@ -59,6 +61,7 @@ var outils := 1.0
 var faim := false
 var soif := false
 var jours_sans_sel := 0
+var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (argile, canari...)
 
 func _init() -> void:
     var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/produits.json"))
@@ -159,6 +162,53 @@ func _synchroniser() -> void:
         aliments["fonio_sauvage"] = voulu / facteur("fonio_sauvage")
     _nettoyer()
 
+# ---------- Inventaire général (pour les recettes) ----------
+# Chaque identifiant du catalogue va au bon endroit :
+# eau, bois, sel -> stocks ; aliments à calories -> aliments ; le reste -> objets.
+
+func _lieu(id: String) -> String:
+    if id == "eau" or id == "bois" or id == "sel":
+        return "stocks"
+    var f: Dictionary = produits.get(id, {})
+    if bool(f.get("alimentaire", false)) and float(f.get("kcal_kg", 0.0)) > 0.0:
+        return "aliments"
+    return "objets"
+
+func quantite(id: String) -> float:
+    match _lieu(id):
+        "stocks":
+            return float(stocks.get(id, 0.0))
+        "aliments":
+            return float(aliments.get(id, 0.0))
+    return float(objets.get(id, 0.0))
+
+func ajouter(id: String, q: float) -> void:
+    match _lieu(id):
+        "stocks":
+            stocks[id] = minf(float(stocks.get(id, 0.0)) + q, capacite(id))
+        "aliments":
+            aliments[id] = float(aliments.get(id, 0.0)) + q
+            stocks["nourriture"] = total_aliments()
+        _:
+            objets[id] = float(objets.get(id, 0.0)) + q
+
+# Retire q si c'est possible ; sinon ne retire rien et renvoie false.
+func retirer(id: String, q: float) -> bool:
+    if quantite(id) + 0.000001 < q:
+        return false
+    match _lieu(id):
+        "stocks":
+            stocks[id] = maxf(0.0, float(stocks[id]) - q)
+        "aliments":
+            aliments[id] = maxf(0.0, float(aliments[id]) - q)
+            _nettoyer()
+            stocks["nourriture"] = total_aliments()
+        _:
+            objets[id] = maxf(0.0, float(objets[id]) - q)
+            if float(objets[id]) < 0.000001:
+                objets.erase(id)
+    return true
+
 # ---------- Mesures ----------
 
 func capacite(r: String) -> float:
@@ -210,6 +260,8 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         variation["bois"] -= conso["bois"]
         if h["metier"] == "bâtisseur" and chantier_actif:
             continue
+        if h.get("occupe", false):
+            continue
         var p = PRODUCTION.get(h["metier"], {})
         var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils
         for r in p:
@@ -230,14 +282,27 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     bilan["nourriture"] = stocks["nourriture"] - avant
     # Eau et bois.
     variation["eau"] -= stocks["eau"] * EVAPORATION_EAU
+    var bois_brule := 0.0
+    for h in population.habitants:
+        bois_brule += (CONSO_ENFANT if population.age(h, jour) < 14 else CONSO_ADULTE)["bois"]
+    if stocks["bois"] + variation["bois"] + bois_brule < bois_brule:
+        bois_brule = maxf(0.0, stocks["bois"] + variation["bois"] + bois_brule)
     for r in variation:
         stocks[r] = clampf(stocks[r] + variation[r], 0.0, capacite(r))
         bilan[r] = variation[r]
-    # Sel.
+    objets["cendres"] = float(objets.get("cendres", 0.0)) + bois_brule * CENDRES_PAR_KG_BOIS
+    # Sel : le sel d'abord, puis le sel végétal (moins efficace).
     var sel_avant: float = stocks["sel"]
-    stocks["sel"] = maxf(0.0, stocks["sel"] - n * SEL_PAR_PERSONNE)
+    var besoin_sel: float = n * SEL_PAR_PERSONNE
+    var pris_sel := minf(stocks["sel"], besoin_sel)
+    stocks["sel"] -= pris_sel
+    besoin_sel -= pris_sel
+    if besoin_sel > 0.0 and float(objets.get("sel_vegetal", 0.0)) > 0.0:
+        var vegetal := minf(float(objets["sel_vegetal"]), besoin_sel / SEL_PAR_SEL_VEGETAL)
+        objets["sel_vegetal"] = float(objets["sel_vegetal"]) - vegetal
+        besoin_sel -= vegetal * SEL_PAR_SEL_VEGETAL
     bilan["sel"] = stocks["sel"] - sel_avant
-    jours_sans_sel = jours_sans_sel + 1 if stocks["sel"] <= 0.0 and n > 0 else 0
+    jours_sans_sel = jours_sans_sel + 1 if besoin_sel > 0.000001 and n > 0 else 0
     var avait_faim := faim
     var avait_soif := soif
     faim = manque > 0.001 or stocks["nourriture"] <= 0.0
@@ -275,7 +340,7 @@ func texte_aliments() -> String:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"stocks": stocks, "aliments": aliments, "jours_sans_sel": jours_sans_sel, "outils": outils, "faim": faim, "soif": soif}
+    return {"stocks": stocks, "aliments": aliments, "objets": objets, "jours_sans_sel": jours_sans_sel, "outils": outils, "faim": faim, "soif": soif}
 
 func depuis_dict(d: Dictionary) -> void:
     var st: Dictionary = d.get("stocks", {})
@@ -290,6 +355,10 @@ func depuis_dict(d: Dictionary) -> void:
         # Ancienne sauvegarde : la nourriture devient du fonio sauvage.
         aliments["fonio_sauvage"] = stocks["nourriture"] / facteur("fonio_sauvage")
     stocks["nourriture"] = total_aliments()
+    objets = {}
+    var ob: Dictionary = d.get("objets", {})
+    for id in ob:
+        objets[str(id)] = float(ob[id])
     jours_sans_sel = int(d.get("jours_sans_sel", 0))
     outils = float(d.get("outils", 1.0))
     faim = bool(d.get("faim", false))
