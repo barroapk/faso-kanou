@@ -5,7 +5,6 @@
       "nom": "BARRO FASO",
       "chef_fixe": {"prenom": "Clavers", "nom": "BARRO"},
       "origine": "clan ancien venu de l'ouest, le plus avancé de la région",
-      "territoire": {"zone": "Nord, au pied du massif", "x": 250.0, "z": -650.0},
       "graine": 7001,
       "fondateurs": [
         {"prenom": "Clavers", "nom": "BARRO", "sexe": "H", "age": 40, "famille": 1, "metier": "chef"},
@@ -30,13 +29,12 @@
       "outils": {"hache_pierre": 2, "arc": 2, "lance": 2, "meule": 1},
       "connaissances": ["charbonnage", "agriculture"],
       "semences": {"mil": 40.0, "sorgho": 30.0},
-      "region": "nord"
+      "ile": "wobe"
     },
     "konate": {
       "nom": "Clan KONATÉ",
       "chef_fixe": {},
       "origine": "clan venu de Dédougou, arrivé en même temps que le joueur",
-      "territoire": {"zone": "Sud, au bord de la rivière", "x": -420.0, "z": 520.0},
       "graine": 7002,
       "fondateurs": [
         {"prenom": "Moussa", "nom": "KONATÉ", "sexe": "H", "age": 36, "famille": 1, "metier": "chef"},
@@ -56,7 +54,7 @@
       "stocks": {"nourriture": 300.0, "eau": 150.0, "bois": 100.0, "sel": 20.0},
       "outils": {"hache_pierre": 1, "arc": 1, "lance": 1},
       "connaissances": [],
-      "region": "sud"
+      "ile": "dafra"
     }
   }
 }

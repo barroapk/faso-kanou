@@ -61,7 +61,8 @@ func _identite(cle: String, fiche: Dictionary) -> void:
     territoire = fiche.get("territoire", {})
     chef_fixe = fiche.get("chef_fixe", {})
     outils_voulus = fiche.get("outils", {})
-    agriculture.choisir_region(fiche.get("region", "centre"))
+    agriculture.choisir_ile(fiche.get("ile", "kossi"))
+    ressources.richesse = agriculture.ile.get("richesse", {})
 
 func creer(cle: String, fiche: Dictionary, jour: int) -> void:
     _modules()
@@ -247,3 +248,4 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     decouvertes.depuis_dict(d.get("decouvertes", {}))
     economie.depuis_dict(d.get("economie", {}), ressources)
     agriculture.depuis_dict(d.get("agriculture", {}))
+    ressources.richesse = agriculture.ile.get("richesse", {})

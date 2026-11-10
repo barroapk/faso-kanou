@@ -1,6 +1,7 @@
 extends RefCounted
 
-# Caravanes entre clans (v0.3.15 B).
+# Bateaux entre les îles (v0.3.15 B, archipel en v0.3.16 A2).
+# Chaque clan vit sur son île : toute marchandise traverse la mer.
 # Au départ, la marchandise du vendeur ET le paiement de l'acheteur sont
 # retirés des stocks (motif « transport ») : ils sont réservés, personne ne
 # peut les vendre une deuxième fois pendant le trajet.
@@ -11,13 +12,12 @@ extends RefCounted
 
 signal evenement(texte)
 
-const VITESSE := 150.0          # unités de carte parcourues par jour
-const DUREE_MIN := 2            # jours
-const RISQUE_BASE := 0.03       # chance d'incident par voyage
-const RISQUE_JOUR := 0.01       # + par jour de route
+const VITESSE := 40.0           # km par jour (grande pirogue à voile et rames)
+const DUREE_MIN := 1            # jours
+const RISQUE_BASE := 0.05       # chance d'incident par traversée (tempête, chavirement)
+const RISQUE_JOUR := 0.01       # + par jour en mer
 const PERTE_MIN := 0.1          # part perdue lors d'un incident
 const PERTE_MAX := 0.4
-const POSITION_JOUEUR := {"x": 0.0, "z": 0.0}
 
 var en_route: Array = []
 var rng := RandomNumberGenerator.new()
@@ -30,9 +30,9 @@ func duree(terr_a: Dictionary, terr_b: Dictionary) -> int:
     var dz := float(terr_a.get("z", 0.0)) - float(terr_b.get("z", 0.0))
     return maxi(DUREE_MIN, int(ceil(sqrt(dx * dx + dz * dz) / VITESSE)))
 
+# Position de l'île du clan sur la carte de l'archipel (km).
 func territoire(c) -> Dictionary:
-    var t = c.get("territoire")
-    return t if t is Dictionary and not t.is_empty() else POSITION_JOUEUR
+    return c.agriculture.ile.get("carte", {"x": 0.0, "z": 0.0})
 
 # Lance la caravane à partir d'un devis du marché. Renvoie "" si elle part.
 func envoyer(a, id_a: String, b, id_b: String, d: Dictionary, jour: int, num: String) -> String:
@@ -53,7 +53,7 @@ func envoyer(a, id_a: String, b, id_b: String, d: Dictionary, jour: int, num: St
         "depart": jour, "arrivee": jour + jours,
         "risque": RISQUE_BASE + RISQUE_JOUR * jours,
     })
-    evenement.emit("Caravane %s : %.1f %s part de %s vers %s (%d jours)." % [num, q, produit, id_b, id_a, jours])
+    evenement.emit("Bateau %s : %.1f %s part de %s vers %s (%d jours de mer)." % [num, q, produit, id_b, id_a, jours])
     return ""
 
 # trouver : Callable(id) -> clan. Appelé chaque jour.
@@ -93,9 +93,9 @@ func _arriver(c: Dictionary, trouver: Callable, jour: int) -> void:
     a.economie.transactions.append(t)
     b.economie.transactions.append(t.duplicate(true))
     if perte > 0.0:
-        evenement.emit("Caravane %s : incident en route, %.1f %s perdus. %s paie seulement ce qui est arrivé." % [c["id"], perte, c["produit"], c["acheteur"]])
+        evenement.emit("Bateau %s : tempête en mer, %.1f %s perdus. %s paie seulement ce qui est arrivé." % [c["id"], perte, c["produit"], c["acheteur"]])
     else:
-        evenement.emit("Caravane %s arrivée : %.1f %s livrés à %s." % [c["id"], arrive, c["produit"], c["acheteur"]])
+        evenement.emit("Bateau %s arrivé : %.1f %s livrés à %s." % [c["id"], arrive, c["produit"], c["acheteur"]])
 
 # Quantité en route, pour qu'un clan ne relance pas le même achat.
 func en_attente(id_clan: String, produit: String) -> float:

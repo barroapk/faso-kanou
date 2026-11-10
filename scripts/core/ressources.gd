@@ -70,6 +70,7 @@ var outils := 1.0
 var faim := false
 var soif := false
 var jours_sans_sel := 0
+var richesse := {}   # richesse naturelle de l'île (data/iles.json), 1 = normal
 var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (argile, canari...)
 # Flux du mois, pour la comptabilité (economie.gd) : motif -> {ressource: quantité}
 # (+ entrée, - sortie). La nourriture est comptée en kgEM sous "nourriture".
@@ -188,6 +189,16 @@ func _lieu(id: String) -> String:
     if bool(f.get("alimentaire", false)) and float(f.get("kcal_kg", 0.0)) > 0.0:
         return "aliments"
     return "objets"
+
+# Ce que l'île donne : forêts (bois), gibier (chasse), fruits et graines (cueillette).
+func _richesse(metier: String, r: String) -> float:
+    if r == "bois":
+        return float(richesse.get("bois", 1.0))
+    if metier == "chasseur":
+        return float(richesse.get("chasse", 1.0))
+    if r == "nourriture":
+        return float(richesse.get("cueillette", 1.0))
+    return 1.0
 
 func quantite(id: String) -> float:
     match _lieu(id):
@@ -316,7 +327,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
             p = PRODUCTION["aide"] if population.age(h, jour) >= AGE_AIDE else {}
         var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0))
         for r in p:
-            var q: float = p[r][s] * efficacite
+            var q: float = p[r][s] * efficacite * _richesse(h["metier"], r)
             if r == "nourriture":
                 _recolter(q, CHASSE if h["metier"] == "chasseur" else CUEILLETTE[mois])
                 noter("production", "nourriture", q)

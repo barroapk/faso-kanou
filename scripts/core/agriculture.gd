@@ -2,7 +2,7 @@ extends RefCounted
 
 # Agriculture et irrigation (v0.3.16 A).
 # Les champs sont des données (la 3D les montrera plus tard).
-# La terre est limitée : un clan ne cultive que dans sa région (data/terres.json).
+# La terre est limitée : chaque clan cultive seulement son île (data/iles.json).
 # Aucune terre n'est créée ; les améliorations augmentent le rendement, pas la surface.
 # Rendement d'une récolte = rendement de la culture × hectares × fertilité
 #   × part du travail fait^0,7 × part de l'eau reçue.
@@ -17,8 +17,8 @@ const MOIS_PLUIES := [5, 6, 7, 8, 9]  # juin à octobre
 
 var cultures := {}
 var regle := {}
-var region_id := ""
-var region := {}
+var ile_id := ""
+var ile := {}
 var champs: Array = []
 var prochain_id := 1
 var eau_retenue := 0.0                # m³ gardés par les retenues
@@ -29,13 +29,17 @@ func _init() -> void:
     if typeof(c) == TYPE_DICTIONARY:
         cultures = c["cultures"]
         regle = c
-    choisir_region("centre")
+    choisir_ile("kossi")
 
-func choisir_region(id: String) -> void:
-    var t = JSON.parse_string(FileAccess.get_file_as_string("res://data/terres.json"))
-    if typeof(t) == TYPE_DICTIONARY and t["regions"].has(id):
-        region_id = id
-        region = t["regions"][id]
+static func catalogue_iles() -> Dictionary:
+    var t = JSON.parse_string(FileAccess.get_file_as_string("res://data/iles.json"))
+    return t["iles"] if typeof(t) == TYPE_DICTIONARY else {}
+
+func choisir_ile(id: String) -> void:
+    var iles := catalogue_iles()
+    if iles.has(id):
+        ile_id = id
+        ile = iles[id]
 
 # ---------- Terre ----------
 
@@ -46,18 +50,18 @@ func surface_cultivee() -> float:
     return s
 
 func terre_libre() -> float:
-    return maxf(0.0, float(region.get("cultivable_ha", 0.0)) - surface_cultivee())
+    return maxf(0.0, float(ile.get("cultivable_ha", 0.0)) - surface_cultivee())
 
 # Un nouveau champ : il faudra le défricher (travail) avant la première récolte.
 func creer_champ(ha: float) -> String:
     ha = minf(ha, terre_libre())
     if ha < 0.1:
-        return "Plus de terre cultivable libre dans la région."
+        return "Plus de terre cultivable libre sur l'île."
     champs.append({"id": prochain_id, "ha": ha, "culture": "", "etat": "friche",
-        "fertilite": float(region.get("fertilite", 1.0)), "defriche": false,
+        "fertilite": float(ile.get("fertilite", 1.0)), "defriche": false,
         "semis": -1, "jours": 0, "eau": 0.0, "travail": 0.0, "irrigue": false})
     prochain_id += 1
-    evenement.emit("Nouveau champ de %.1f ha (région : %s)." % [ha, region.get("nom", region_id)])
+    evenement.emit("Nouveau champ de %.1f ha (%s)." % [ha, ile.get("nom", ile_id)])
     return ""
 
 func champ(id: int) -> Dictionary:
@@ -159,14 +163,14 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     var rec := float(regle.get("recuperation_jachere_an", 0.08)) / 360.0
     for c in champs:
         if c["etat"] != "seme":
-            c["fertilite"] = minf(float(region.get("fertilite", 1.0)), float(c["fertilite"]) + rec)
+            c["fertilite"] = minf(float(ile.get("fertilite", 1.0)), float(c["fertilite"]) + rec)
 
 func _remplir_retenue(cons, pluie: bool, mois: int) -> void:
     var cap: float = cons.effet_total("retenue_m3")
     eau_retenue *= 1.0 - RETENUE_EVAPORATION
     if pluie and cap > 0.0:
-        # Pluie qui ruisselle sur la région, par jour de pluie (1 mm sur 1 ha = 10 m³).
-        var arrivee: float = float(region.get("pluie_mm", 0.0)) * 10.0 * float(region.get("surface_ha", 0.0)) * float(region.get("ruissellement", 0.0)) / (MOIS_PLUIES.size() * 30.0)
+        # Pluie qui ruisselle sur l'île, par jour de pluie (1 mm sur 1 ha = 10 m³).
+        var arrivee: float = float(ile.get("pluie_mm", 0.0)) * 10.0 * float(ile.get("surface_ha", 0.0)) * float(ile.get("ruissellement", 0.0)) / (MOIS_PLUIES.size() * 30.0)
         eau_retenue = minf(cap, eau_retenue + arrivee)
     eau_retenue = minf(eau_retenue, cap)
 
@@ -238,12 +242,14 @@ func _postes_cultivateurs(pop, jour: int) -> void:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"region": region_id, "champs": champs, "prochain_id": prochain_id, "eau_retenue": eau_retenue, "semences": semences}
+    return {"ile": ile_id, "champs": champs, "prochain_id": prochain_id, "eau_retenue": eau_retenue, "semences": semences}
 
 func depuis_dict(d: Dictionary) -> void:
     if d.is_empty():
         return
-    choisir_region(str(d.get("region", region_id)))
+    # Sauvegarde v0.3.16 A (régions) : chaque ancienne région devient l'île du clan.
+    var ancien := {"centre": "kossi", "nord": "wobe", "sud": "dafra"}
+    choisir_ile(str(d.get("ile", ancien.get(str(d.get("region", "")), ile_id))))
     champs = d.get("champs", [])
     for c in champs:
         c["id"] = int(c["id"])

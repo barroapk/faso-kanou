@@ -1,0 +1,60 @@
+{
+  "_notes": "Archipel de Faso Kanou. Chaque clan vit sur sa propre île ; on passe d'une île à l'autre seulement par bateau. carte : position en km sur la carte du monde. surface_ha et cultivable_ha : hectares (1 km² = 100 ha). fertilite : 1 = sol moyen. pluie_mm : pluie d'une année normale. ruissellement : part de la pluie qui coule (retenues). richesse : 1 = normal ; multiplie ce que rapportent la coupe de bois, la chasse, la cueillette et, plus tard, les carrières, les mines et la pêche. Les terres ne grandissent jamais : seules les améliorations augmentent ce qu'un hectare produit.",
+  "archipel": {"nom": "Archipel de Faso Kanou", "largeur_km": 900, "hauteur_km": 700},
+  "iles": {
+    "kossi": {
+      "nom": "Île de Kossi", "forme": "grande plaine centrale entourée de collines basses", "relief": "plaine",
+      "carte": {"x": 420.0, "z": 330.0},
+      "surface_ha": 1200000, "cultivable_ha": 520000, "fertilite": 1.0, "pluie_mm": 850, "ruissellement": 0.10,
+      "eau_douce": {"rivieres": 2, "sources": 3, "nappe": "peu profonde"},
+      "littoral": {"baies": 2, "port_naturel": true},
+      "richesse": {"bois": 1.0, "chasse": 1.1, "cueillette": 1.1, "pierre": 0.6, "argile": 1.2, "fer": 0.4, "or": 0.2, "sel": 0.3, "poisson": 0.9},
+      "clan": ""
+    },
+    "sanga": {
+      "nom": "Île de Sanga", "forme": "île longue et étroite, découpée de nombreuses baies", "relief": "dunes et plateaux bas",
+      "carte": {"x": 160.0, "z": 520.0},
+      "surface_ha": 650000, "cultivable_ha": 190000, "fertilite": 0.75, "pluie_mm": 700, "ruissellement": 0.08,
+      "eau_douce": {"rivieres": 0, "sources": 4, "nappe": "moyenne"},
+      "littoral": {"baies": 7, "port_naturel": true},
+      "richesse": {"bois": 0.6, "chasse": 0.7, "cueillette": 0.9, "pierre": 0.8, "argile": 0.7, "fer": 0.3, "or": 0.1, "sel": 1.6, "poisson": 1.6},
+      "clan": ""
+    },
+    "kouri": {
+      "nom": "Île de Kouri", "forme": "grande île sèche, plateaux de latérite et oasis", "relief": "plateaux",
+      "carte": {"x": 700.0, "z": 120.0},
+      "surface_ha": 1500000, "cultivable_ha": 300000, "fertilite": 0.65, "pluie_mm": 450, "ruissellement": 0.18,
+      "eau_douce": {"rivieres": 0, "sources": 2, "nappe": "profonde"},
+      "littoral": {"baies": 1, "port_naturel": false},
+      "richesse": {"bois": 0.5, "chasse": 0.8, "cueillette": 0.6, "pierre": 1.3, "argile": 0.8, "fer": 1.0, "or": 1.5, "sel": 1.2, "poisson": 0.7},
+      "clan": ""
+    },
+    "bane": {
+      "nom": "Île de Bané", "forme": "petite île ronde autour d'un ancien volcan", "relief": "volcan et pentes",
+      "carte": {"x": 560.0, "z": 600.0},
+      "surface_ha": 280000, "cultivable_ha": 120000, "fertilite": 1.3, "pluie_mm": 1050, "ruissellement": 0.20,
+      "eau_douce": {"rivieres": 1, "sources": 6, "nappe": "peu profonde"},
+      "littoral": {"baies": 1, "port_naturel": false},
+      "richesse": {"bois": 1.2, "chasse": 0.8, "cueillette": 1.3, "pierre": 1.4, "argile": 0.6, "fer": 0.5, "or": 0.1, "sel": 0.2, "poisson": 1.0},
+      "clan": ""
+    },
+    "wobe": {
+      "nom": "Île de Wobé", "forme": "île de montagnes, vallées étroites", "relief": "montagnes",
+      "carte": {"x": 250.0, "z": 120.0},
+      "surface_ha": 900000, "cultivable_ha": 210000, "fertilite": 0.85, "pluie_mm": 650, "ruissellement": 0.22,
+      "eau_douce": {"rivieres": 3, "sources": 5, "nappe": "moyenne"},
+      "littoral": {"baies": 2, "port_naturel": true},
+      "richesse": {"bois": 0.9, "chasse": 1.0, "cueillette": 0.8, "pierre": 1.6, "argile": 0.9, "fer": 1.6, "or": 0.6, "sel": 0.4, "poisson": 0.8},
+      "clan": "barro_faso"
+    },
+    "dafra": {
+      "nom": "Île de Dafra", "forme": "île de forêts et de collines, coupée par un grand fleuve", "relief": "collines boisées",
+      "carte": {"x": 800.0, "z": 480.0},
+      "surface_ha": 800000, "cultivable_ha": 330000, "fertilite": 1.1, "pluie_mm": 1000, "ruissellement": 0.10,
+      "eau_douce": {"rivieres": 4, "sources": 3, "nappe": "peu profonde"},
+      "littoral": {"baies": 3, "port_naturel": false},
+      "richesse": {"bois": 1.5, "chasse": 1.3, "cueillette": 1.2, "pierre": 0.7, "argile": 1.1, "fer": 0.5, "or": 0.3, "sel": 0.2, "poisson": 1.2},
+      "clan": "konate"
+    }
+  }
+}

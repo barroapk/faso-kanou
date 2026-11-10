@@ -38,6 +38,7 @@ var diplomatie
 var marche
 var caravanes
 var agriculture
+var ile_joueur := ""
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -70,6 +71,9 @@ func _creer_modules() -> void:
 
 func _nouvelle() -> void:
     _creer_modules()
+    if ile_joueur == "" or not iles_au_choix().has(ile_joueur):
+        ile_joueur = iles_au_choix()[0]
+    _installer_ile()
     population.creer_clan_initial(temps.jour_total)
     construction.etat_initial()
     conseil.etat_initial(population, temps.jour_total)
@@ -115,6 +119,19 @@ func commercer(acheteur: String, vendeur: String, produit: String, q: float, pai
     var d := devis_commerce(acheteur, vendeur, produit, q, paiement)
     return marche.conclure(_clan(acheteur), acheteur, _clan(vendeur), vendeur, d, temps.jour_total, diplomatie)
 
+# Îles libres, que le joueur peut choisir (data/iles.json, "clan" vide).
+func iles_au_choix() -> Array:
+    var l: Array = []
+    var iles: Dictionary = AGRICULTURE.catalogue_iles()
+    for id in iles:
+        if str(iles[id].get("clan", "")) == "":
+            l.append(id)
+    return l
+
+func _installer_ile() -> void:
+    agriculture.choisir_ile(ile_joueur)
+    ressources.richesse = agriculture.ile.get("richesse", {})
+
 # Agriculture du joueur : créer un champ (hectares) et le semer.
 func creer_champ(ha: float) -> String:
     return agriculture.creer_champ(ha)
@@ -132,7 +149,9 @@ func _brancher() -> void:
     temps.nouveau_jour.connect(_jour_passe)
     temps.nouveau_mois.connect(_mois_passe)
 
-func nouvelle_partie() -> void:
+# Le joueur choisit son île parmi les îles libres (les rivaux ont déjà la leur).
+func nouvelle_partie(ile := "") -> void:
+    ile_joueur = ile
     _nouvelle()
     _brancher()
     sauvegarder()
@@ -223,6 +242,7 @@ func sauvegarder() -> void:
         "marche": marche.vers_dict(),
         "caravanes": caravanes.vers_dict(),
         "agriculture": agriculture.vers_dict(),
+        "ile_joueur": ile_joueur,
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -258,6 +278,8 @@ func _charger(nom: String) -> bool:
     marche.depuis_dict(donnees.get("marche", {}))
     caravanes.depuis_dict(donnees.get("caravanes", {}))
     agriculture.depuis_dict(donnees.get("agriculture", {}))
+    ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
+    _installer_ile()
     if donnees.has("voisins"):
         voisins = []
         var ids := ["joueur"]
