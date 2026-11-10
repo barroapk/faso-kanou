@@ -32,6 +32,7 @@ var connues := {}                # ile_id -> niveau de connaissance (1 = vue, 2+
 var visites := {}                # clan_id -> {"nb": n, "dernier": jour}
 var en_cours := {}               # {type, cible, membres: [id], retour, ...}
 var rng := RandomNumberGenerator.new()
+var bonus_reputation := 0.0      # 0 à 1, fixé chaque jour par civilisation (non sauvegardé)
 var flotte = null                # flotte.gd : chaque expédition prend un bateau
 
 func _init() -> void:
@@ -171,7 +172,7 @@ func jour_passe(pop, jour: int, maison: String, clans: Dictionary, moi_id: Strin
         var t := "Exploration : %s est découverte !" % _iles()[trouvee]["nom"]
         if clans.has(trouvee):
             t += " Elle est habitée par le %s." % clans[trouvee][1].nom
-            diplomatie.noter(moi_id, clans[trouvee][0], "contact", 3.0, "premier contact", jour)
+            diplomatie.noter(moi_id, clans[trouvee][0], "contact", 3.0 + 5.0 * bonus_reputation, "premier contact", jour)
         evenement.emit(t)
     else:
         _visiter(cible, clans, moi_id, moi, diplomatie, jour)
@@ -260,7 +261,7 @@ func _visiter(cible: String, clans: Dictionary, moi_id: String, moi, diplomatie,
     var autre_id: String = clans[cible][0]
     var autre = clans[cible][1]
     var v: Dictionary = visites.get(autre_id, {"nb": 0, "dernier": -99999})
-    var gain := AMITIE_VISITE * clampf(float(jour - int(v["dernier"])) / DELAI_PLEIN, 0.1, 1.0)
+    var gain := AMITIE_VISITE * clampf(float(jour - int(v["dernier"])) / DELAI_PLEIN, 0.1, 1.0) * (1.0 + 0.2 * bonus_reputation)
     diplomatie.noter(moi_id, autre_id, "visite", gain, "visite d'une délégation", jour)
     visites[autre_id] = {"nb": int(v["nb"]) + 1, "dernier": jour}
     var niveau: float = OBSERVATION.get(diplomatie.etat(moi_id, autre_id), 1.0)

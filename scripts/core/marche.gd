@@ -103,7 +103,7 @@ func place(c, id: String) -> float:
 # Diplomatie et commerce (v0.3.32) : frais selon la relation, retenus sur le
 # vendeur (rien ne disparaît). Hostilité : commerce ordinaire interdit.
 const FRAIS := {"rivalité": 0.10, "neutralité": 0.05, "amitié": 0.03, "alliance": 0.01}
-func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutralité") -> Dictionary:
+func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutralité", remise := 0.0) -> Dictionary:
     var d := {"possible": false, "raison": "", "produit": id, "quantite": q, "paiement": {}, "etat": etat}
     if etat == "hostilité":
         d["raison"] = "Commerce impossible : nos relations avec ce clan sont hostiles."
@@ -122,7 +122,8 @@ func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutr
         return d
     # Les frais (selon la relation) sont retenus sur ce que reçoit le vendeur,
     # au profit de l'acheteur qui l'accueille au port : rien ne disparaît (v0.3.32c).
-    var pu := (p_vendeur + p_acheteur) / 2.0 * (1.0 - float(FRAIS.get(etat, 0.05)))
+    var frais := maxf(0.01, float(FRAIS.get(etat, 0.05)) - remise)   # plancher 1 % (v0.3.32d)
+    var pu := (p_vendeur + p_acheteur) / 2.0 * (1.0 - frais)
     if paiement == "":
         paiement = _choisir_paiement(a, b, id, jour)
     if paiement == "" or paiement == id:

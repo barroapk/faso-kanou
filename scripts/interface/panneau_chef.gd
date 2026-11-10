@@ -100,7 +100,7 @@ func _section_ascension(C) -> void:
     var rangs: PackedStringArray = []
     var i := 1
     for r in C.classement():
-        rangs.append("%d. %s — %s, %d habitants" % [i, r["nom"], df.EPOQUES[int(r["epoque"])], int(r["habitants"])])
+        rangs.append("%d. %s — %s, %d habitants, réputation %d/100 (%s)" % [i, r["nom"], df.EPOQUES[int(r["epoque"])], int(r["habitants"]), int(r["reputation"]), C.niveau_reputation(int(r["reputation"]))])
         i += 1
     boite.add_child(_label("Clans connus de l'archipel (visitez-les pour les connaître) :\n%s" % "\n".join(rangs), 21))
     boite.add_child(_label(C.heros.texte(), 21))

@@ -178,7 +178,12 @@ func devis_commerce(acheteur: String, vendeur: String, produit: String, q: float
     var b = _clan(vendeur)
     if a == null or b == null:
         return {"possible": false, "raison": "Clan inconnu."}
-    return marche.devis(a, b, produit, q, temps.jour_total, paiement, diplomatie.etat(acheteur, vendeur))
+    # Réputation du joueur, si l'autre clan le connaît : frais -1 ou -2 points.
+    var autre = b if acheteur == "joueur" else a
+    var remise := 0.0
+    if autre != self and nous_connait(autre):
+        remise = 0.02 if reputation() >= 75 else (0.01 if reputation() >= 50 else 0.0)
+    return marche.devis(a, b, produit, q, temps.jour_total, paiement, diplomatie.etat(acheteur, vendeur), remise)
 # Qui connaît qui (v0.3.32c) : le joueur, les îles découvertes ; l'ordinateur,
 # les îles que ses délégations ont visitées. Pas de connaissance magique.
 func _connaissances_marche() -> void:
@@ -308,11 +313,43 @@ func _epoques_ordinateur() -> void:
             defis.evenement.emit(t)
 
 # Classement de l'archipel (connu du joueur : son clan et les îles visitées).
+# Réputation (v0.3.32d) : calculée à chaque fois, jamais sauvegardée. 0 à 100.
+# Époque atteinte x 8 (max 40) ; héros vivant présent 5/10/15 ; monuments
+# achevés 5 (max 15) ; ancêtres 2 (max 10) ; faits uniques : découvertes
+# connues et îles connues, 1 chacun (max 20).
+const NIVEAUX_REPUTATION := ["clan obscur", "clan connu", "clan respecté", "clan illustre"]
+func reputation(id := "joueur") -> int:
+    var r := 0
+    if id == "joueur":
+        r += mini(40, 8 * int(defis.epoque))
+        var hv = heros.heros(population)
+        if hv != null:
+            r += [5, 10, 15][clampi(int(hv["heros"]["niveau"]), 0, 2)]
+        r += mini(15, 5 * construction.nombre("monument"))
+        r += mini(10, 2 * heros.ancetres.size())
+        var iles := 0
+        for k in expeditions.connues:
+            if k != ile_joueur and int(expeditions.connues[k]) >= 1:
+                iles += 1
+        r += mini(20, decouvertes.connues.size() + iles)
+    else:
+        var v = voisin(id)
+        if v == null:
+            return 0
+        r += mini(40, 8 * int(v.epoque))
+        r += mini(15, 5 * v.construction.nombre("monument"))
+        r += mini(20, v.decouvertes.connues.size() + v.iles_connues.size())
+    return mini(100, r)
+func niveau_reputation(r: int) -> String:
+    return NIVEAUX_REPUTATION[clampi(r / 25, 0, 3)]
+# L'autre clan nous connaît-il ? (il a visité notre île, ou nous l'avons visité)
+func nous_connait(v) -> bool:
+    return v.iles_connues.has(ile_joueur) or expeditions.visites.has(v.id)
 func classement() -> Array:
-    var l: Array = [{"nom": "Notre clan", "epoque": defis.epoque, "habitants": population.habitants.size()}]
+    var l: Array = [{"nom": "Notre clan", "epoque": defis.epoque, "habitants": population.habitants.size(), "reputation": reputation()}]
     for c in voisins:
         if c.vivant() and int(expeditions.connues.get(c.agriculture.ile_id, 0)) >= 2:
-            l.append({"nom": c.nom, "epoque": c.epoque, "habitants": c.population.habitants.size()})
+            l.append({"nom": c.nom, "epoque": c.epoque, "habitants": c.population.habitants.size(), "reputation": reputation(c.id)})
     l.sort_custom(func(a, b): return a["epoque"] > b["epoque"] or (a["epoque"] == b["epoque"] and a["habitants"] > b["habitants"]))
     return l
 
@@ -391,6 +428,8 @@ func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, temps.jour_total)
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
+    # Réputation : délégations mieux reçues (+0 à 20 %), première rencontre (+0 à 5).
+    expeditions.bonus_reputation = float(reputation()) / 100.0
     expeditions.jour_passe(population, temps.jour_total, ile_joueur, _clans_par_ile(), "joueur", self, diplomatie)
     gisements.jour_passe(population, ressources, routes, temps.jour_total, expeditions.rng)
     defis.jour_passe(self)
