@@ -65,6 +65,8 @@ func _message(texte: String, module: String) -> void:
         if r[0] != module or (r[1] != "" and texte.find(r[1]) < 0):
             continue
         var t := texte.trim_prefix("DÉCISION : ").replace(" — ouvrez l'écran du chef.", "")
+        if texte.find("entre dans l'époque") >= 0 and not _clan_connu(texte):
+            return
         if module == "defis" and texte.begins_with("DÉCISION : Les pluies"):
             t = "Sécheresse : les pluies ne viennent pas."
         if bool(r[3]):
@@ -74,6 +76,12 @@ func _message(texte: String, module: String) -> void:
         noter(r[2], t)
         return
 
+# Un clan inconnu du joueur n'entre pas dans son histoire (v0.3.32).
+func _clan_connu(texte: String) -> bool:
+    for v in _C.voisins:
+        if texte.find(v.nom + " ") >= 0:
+            return int(_C.expeditions.connues.get(v.agriculture.ile_id, 0)) >= 1
+    return false
 func _naissance(h: Dictionary) -> void:
     if not premier_enfant:
         premier_enfant = true
@@ -95,7 +103,10 @@ func noter(cat: String, texte: String) -> void:
                 registre.remove_at(i)
                 break
         if registre.size() > MAX:
-            registre.remove_at(0)
+            for i in registre.size():
+                if registre[i]["cat"] != "Fondation":
+                    registre.remove_at(i)
+                    break
 
 func mois_passe(C) -> void:
     if not registre.any(func(e): return e["cat"] == "Fondation"):
