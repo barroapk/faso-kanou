@@ -10,6 +10,7 @@ var liste: VBoxContainer
 var panneau_fin: PanelContainer
 var panneau_travail: PanelContainer
 var panneau_construction: PanelContainer
+var panneau_chef: PanelContainer
 
 func _ready() -> void:
     var barre := HBoxContainer.new()
@@ -28,6 +29,12 @@ func _ready() -> void:
     clan.add_theme_font_size_override("font_size", 30)
     clan.pressed.connect(_basculer_panneau)
     barre.add_child(clan)
+
+    var chef := Button.new()
+    chef.text = "Chef"
+    chef.add_theme_font_size_override("font_size", 30)
+    chef.pressed.connect(_basculer_chef)
+    barre.add_child(chef)
 
     var travail := Button.new()
     travail.text = "Travail"
@@ -92,6 +99,9 @@ func _ready() -> void:
     panneau_construction = preload("res://scripts/interface/panneau_construction.gd").new()
     panneau_construction.visible = false
     add_child(panneau_construction)
+    panneau_chef = preload("res://scripts/interface/panneau_chef.gd").new()
+    panneau_chef.visible = false
+    add_child(panneau_chef)
     Civilisation.construction.evenement.connect(_afficher_message)
     Civilisation.besoins.evenement.connect(_afficher_message)
     Civilisation.conseil.evenement.connect(_afficher_message)
@@ -208,6 +218,14 @@ func _basculer_travail() -> void:
     panneau_travail.visible = not panneau_travail.visible
     if panneau_travail.visible:
         panneau.visible = false
+
+func _basculer_chef() -> void:
+    panneau_chef.visible = not panneau_chef.visible
+    if panneau_chef.visible:
+        panneau.visible = false
+        panneau_travail.visible = false
+        panneau_construction.visible = false
+        panneau_chef.remplir()
 
 func _basculer_construction() -> void:
     panneau_construction.visible = not panneau_construction.visible
