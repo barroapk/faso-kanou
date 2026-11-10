@@ -50,10 +50,10 @@ func _quantite(ressources, r: String) -> float:
         return ressources.quantite(r)
     return float(ressources.stocks.get(r, 0.0))
 
-func _payer(ressources, cout: Dictionary) -> void:
+func _payer(ressources, cout: Dictionary, motif := "construction") -> void:
     for r in cout:
         if ressources.has_method("retirer"):
-            ressources.retirer(r, float(cout[r]))
+            ressources.retirer(r, float(cout[r]), motif)
         else:
             ressources.stocks[r] -= float(cout[r])
 
@@ -117,7 +117,7 @@ func mois_passe(ressources) -> void:
     for b in batiments:
         var entretien: Dictionary = _niveau(b["type"], int(b["niveau"]))["entretien"]
         if peut_payer(entretien, ressources):
-            _payer(ressources, entretien)
+            _payer(ressources, entretien, "entretien")
             b["etat"] = mini(100, int(b["etat"]) + 10)
         else:
             var avant := int(b["etat"])

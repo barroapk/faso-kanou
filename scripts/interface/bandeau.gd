@@ -188,7 +188,7 @@ func _creer_panneau_fin() -> void:
 func _process(delta: float) -> void:
     etiquette_pop.text = "Habitants : %d" % Civilisation.population.habitants.size()
     etiquette_date.text = Civilisation.temps.texte()
-    etiquette_res.text = Civilisation.ressources.texte() + "\n" + Civilisation.ressources.texte_aliments()
+    etiquette_res.text = Civilisation.ressources.texte() + "\n" + Civilisation.ressources.texte_aliments() + "   Richesse du clan : %d" % int(Civilisation.economie.valeur_stocks(Civilisation.ressources) + Civilisation.economie.patrimoine(Civilisation.construction, Civilisation.equipement) + Civilisation.economie.tresorerie(Civilisation.ressources))
     panneau_fin.visible = Civilisation.population.habitants.is_empty()
     if temps_message > 0.0:
         temps_message -= delta

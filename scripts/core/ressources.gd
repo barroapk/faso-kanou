@@ -67,6 +67,9 @@ var faim := false
 var soif := false
 var jours_sans_sel := 0
 var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (argile, canari...)
+# Flux du mois, pour la comptabilité (economie.gd) : motif -> {ressource: quantité}
+# (+ entrée, - sortie). La nourriture est comptée en kgEM sous "nourriture".
+var flux := {}
 
 func _init() -> void:
     var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/produits.json"))
@@ -159,6 +162,7 @@ func _synchroniser() -> void:
     var voulu: float = stocks["nourriture"]
     if absf(t - voulu) < 0.01:
         return
+    noter("ajustement", "nourriture", voulu - t)
     if t > 0.0:
         var k := voulu / t
         for id in aliments:
@@ -191,7 +195,12 @@ func quantite(id: String) -> float:
             return float(equipement.nombre(id))
     return float(objets.get(id, 0.0))
 
-func ajouter(id: String, q: float) -> void:
+func ajouter(id: String, q: float, motif := "transfert") -> void:
+    if _lieu(id) != "outils":
+        var reel := q
+        if _lieu(id) == "stocks":
+            reel = minf(float(stocks.get(id, 0.0)) + q, capacite(id)) - float(stocks.get(id, 0.0))
+        noter(motif, _cle_compte(id), _q_compte(id, reel))
     match _lieu(id):
         "stocks":
             stocks[id] = minf(float(stocks.get(id, 0.0)) + q, capacite(id))
@@ -204,9 +213,11 @@ func ajouter(id: String, q: float) -> void:
             objets[id] = float(objets.get(id, 0.0)) + q
 
 # Retire q si c'est possible ; sinon ne retire rien et renvoie false.
-func retirer(id: String, q: float) -> bool:
+func retirer(id: String, q: float, motif := "transfert") -> bool:
     if quantite(id) + 0.000001 < q:
         return false
+    if _lieu(id) != "outils":
+        noter(motif, _cle_compte(id), -_q_compte(id, minf(q, quantite(id))))
     match _lieu(id):
         "stocks":
             stocks[id] = maxf(0.0, float(stocks[id]) - q)
@@ -221,6 +232,21 @@ func retirer(id: String, q: float) -> bool:
             if float(objets[id]) < 0.000001:
                 objets.erase(id)
     return true
+
+# ---------- Comptabilité des mouvements ----------
+
+func noter(motif: String, r: String, q: float) -> void:
+    if absf(q) < 0.0000001:
+        return
+    if not flux.has(motif):
+        flux[motif] = {}
+    flux[motif][r] = float(flux[motif].get(r, 0.0)) + q
+
+func _cle_compte(id: String) -> String:
+    return "nourriture" if _lieu(id) == "aliments" else id
+
+func _q_compte(id: String, q: float) -> float:
+    return q * facteur(id) if _lieu(id) == "aliments" else q
 
 # ---------- Mesures ----------
 
@@ -255,6 +281,12 @@ func autonomie(population, jour: int) -> Dictionary:
         a[r] = stocks[r] / conso[r] if conso[r] > 0.0 else 9999.0
     return a
 
+func _conso_jour(population, jour: int, r: String) -> float:
+    var c := 0.0
+    for h in population.habitants:
+        c += float((CONSO_ENFANT if population.age(h, jour) < 14 else CONSO_ADULTE)[r])
+    return c
+
 # ---------- Journée ----------
 
 func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> void:
@@ -281,42 +313,61 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
             var q: float = p[r][s] * efficacite
             if r == "nourriture":
                 _recolter(q, CHASSE if h["metier"] == "chasseur" else CUEILLETTE[mois])
+                noter("production", "nourriture", q)
                 if h["metier"] == "chasseur":
                     var viande := q / facteur("gibier")
                     objets["os_corne"] = float(objets.get("os_corne", 0.0)) + viande * OS_PAR_KG_VIANDE
                     objets["peau"] = float(objets.get("peau", 0.0)) + viande * PEAU_PAR_KG_VIANDE
+                    noter("production", "os_corne", viande * OS_PAR_KG_VIANDE)
+                    noter("production", "peau", viande * PEAU_PAR_KG_VIANDE)
             else:
                 variation[r] += q
+                noter("production", r, q)
     if pluie:
         variation["eau"] += 20.0
+        noter("production", "eau", 20.0)
+    noter("consommation", "eau", -_conso_jour(population, jour, "eau"))
+    noter("consommation", "bois", -_conso_jour(population, jour, "bois"))
     # Nourriture : pertes sur le stock du jour, puis repas, puis trop-plein.
-    _pertes_aliments()
+    noter("perte", "nourriture", -_pertes_aliments())
     var manque := _retirer(besoin_nourriture)
+    noter("consommation", "nourriture", -(besoin_nourriture - manque))
     var trop := total_aliments() - capacite("nourriture")
     if trop > 0.0:
         _retirer(trop)
+        noter("trop_plein", "nourriture", -trop)
     stocks["nourriture"] = total_aliments()
     bilan["nourriture"] = stocks["nourriture"] - avant
     # Eau et bois.
     variation["eau"] -= stocks["eau"] * EVAPORATION_EAU
+    noter("perte", "eau", -stocks["eau"] * EVAPORATION_EAU)
     var bois_brule := 0.0
     for h in population.habitants:
         bois_brule += (CONSO_ENFANT if population.age(h, jour) < 14 else CONSO_ADULTE)["bois"]
     if stocks["bois"] + variation["bois"] + bois_brule < bois_brule:
         bois_brule = maxf(0.0, stocks["bois"] + variation["bois"] + bois_brule)
     for r in variation:
-        stocks[r] = clampf(stocks[r] + variation[r], 0.0, capacite(r))
+        var brut: float = stocks[r] + variation[r]
+        stocks[r] = clampf(brut, 0.0, capacite(r))
         bilan[r] = variation[r]
+        # Ce qui n'a pas pu entrer (réserve pleine) ou pas pu être consommé (stock vide).
+        if stocks[r] - brut < 0.0:
+            noter("trop_plein", r, stocks[r] - brut)
+        elif stocks[r] - brut > 0.0:
+            noter("manque", r, stocks[r] - brut)
     objets["cendres"] = float(objets.get("cendres", 0.0)) + bois_brule * CENDRES_PAR_KG_BOIS
+    noter("production", "cendres", bois_brule * CENDRES_PAR_KG_BOIS)
     # Sel : le sel d'abord, puis le sel végétal (moins efficace).
     var sel_avant: float = stocks["sel"]
     var besoin_sel: float = n * SEL_PAR_PERSONNE
     var pris_sel := minf(stocks["sel"], besoin_sel)
     stocks["sel"] -= pris_sel
+    noter("consommation", "sel", -pris_sel)
     besoin_sel -= pris_sel
     if besoin_sel > 0.0 and float(objets.get("sel_vegetal", 0.0)) > 0.0:
         var vegetal := minf(float(objets["sel_vegetal"]), besoin_sel / SEL_PAR_SEL_VEGETAL)
         objets["sel_vegetal"] = float(objets["sel_vegetal"]) - vegetal
+        noter("consommation", "sel_vegetal", -vegetal)
         besoin_sel -= vegetal * SEL_PAR_SEL_VEGETAL
     bilan["sel"] = stocks["sel"] - sel_avant
     jours_sans_sel = jours_sans_sel + 1 if besoin_sel > 0.000001 and n > 0 else 0

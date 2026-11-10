@@ -14,6 +14,7 @@ const MIGRATION = preload("res://scripts/core/migration.gd")
 const RECETTES = preload("res://scripts/core/recettes.gd")
 const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
 const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
+const ECONOMIE = preload("res://scripts/core/economie.gd")
 
 var temps
 var population
@@ -26,6 +27,7 @@ var migration
 var recettes
 var equipement
 var decouvertes
+var economie
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -47,6 +49,7 @@ func _creer_modules() -> void:
     ressources.equipement = equipement
     decouvertes = DECOUVERTES.new()
     construction.connaissances = decouvertes
+    economie = ECONOMIE.new()
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -54,6 +57,7 @@ func _nouvelle() -> void:
     population.creer_clan_initial(temps.jour_total)
     construction.etat_initial()
     conseil.etat_initial(population, temps.jour_total)
+    economie.commencer(ressources)
 
 func _brancher() -> void:
     temps.nouveau_jour.connect(_jour_passe)
@@ -107,6 +111,7 @@ func _mois_passe() -> void:
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
     migration.mois_passe(population, ressources, construction, temps.jour_total)
     decouvertes.mois_passe(population, ressources, recettes, temps.jour_total)
+    economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -131,6 +136,7 @@ func sauvegarder() -> void:
         "recettes": recettes.vers_dict(),
         "equipement": equipement.vers_dict(),
         "decouvertes": decouvertes.vers_dict(),
+        "economie": economie.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -162,5 +168,6 @@ func _charger(nom: String) -> bool:
     recettes.depuis_dict(donnees.get("recettes", {}))
     equipement.depuis_dict(donnees.get("equipement", {}))
     decouvertes.depuis_dict(donnees.get("decouvertes", {}))
+    economie.depuis_dict(donnees.get("economie", {}), ressources)
     temps.vitesse = 1
     return true

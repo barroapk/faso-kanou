@@ -135,7 +135,7 @@ func commander(id: String, pop, res, cons, jour: int, nombre := 1) -> String:
     var r: Dictionary = definitions[id]
     for groupe in ["entrees", "combustible"]:
         for m in r[groupe]:
-            res.retirer(m, float(r[groupe][m]) * nombre)
+            res.retirer(m, float(r[groupe][m]) * nombre, "fabrication")
     commandes.append({"recette": id, "nombre": nombre, "reste": float(r["jours_travail"]) * nombre})
     return ""
 
@@ -175,9 +175,12 @@ func _livrer(c: Dictionary, res) -> void:
     var r: Dictionary = definitions[c["recette"]]
     var n := int(c["nombre"])
     for m in r["sorties"]:
-        res.ajouter(m, float(r["sorties"][m]) * n)
+        if r.get("terrain", {}).has(m):
+            res.ajouter(m, float(r["sorties"][m]) * n, "extraction")
+        else:
+            res.ajouter(m, float(r["sorties"][m]) * n, "fabrication")
     for m in r["sous_produits"]:
-        res.ajouter(m, float(r["sous_produits"][m]) * n)
+        res.ajouter(m, float(r["sous_produits"][m]) * n, "fabrication")
     faites[c["recette"]] = int(faites.get(c["recette"], 0)) + n
     if r.get("repare", "") != "" and res.equipement != null:
         for i in n:
