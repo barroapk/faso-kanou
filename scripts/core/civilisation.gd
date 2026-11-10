@@ -31,6 +31,7 @@ const FLOTTE = preload("res://scripts/core/flotte.gd")
 const DEFIS = preload("res://scripts/core/defis.gd")
 const RIVAL = preload("res://scripts/core/rival.gd")
 const HEROS = preload("res://scripts/core/heros.gd")
+const HISTOIRE = preload("res://scripts/core/histoire.gd")
 
 var temps
 var population
@@ -59,6 +60,7 @@ var flotte
 var defis
 var rival
 var heros
+var histoire
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -106,6 +108,8 @@ func _creer_modules() -> void:
     heros = HEROS.new()
     population.deces.connect(heros.sur_depart.bind(true))
     population.sortie.connect(heros.sur_depart.bind(false))
+    histoire = HISTOIRE.new()
+    histoire.observer(self)
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -401,6 +405,7 @@ func _mois_passe() -> void:
     _epoques_ordinateur()
     rival.mois_passe(self)
     heros.mois_passe(self)
+    histoire.mois_passe(self)
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()
@@ -442,6 +447,7 @@ func sauvegarder() -> void:
         "defis": defis.vers_dict(),
         "rival": rival.vers_dict(),
         "heros": heros.vers_dict(),
+        "histoire": histoire.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -491,6 +497,7 @@ func _charger(nom: String) -> bool:
     rival.depuis_dict(donnees.get("rival", {}))
     heros.depuis_dict(donnees.get("heros", {}))
     heros.appliquer(self)
+    histoire.depuis_dict(donnees.get("histoire", {}))
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
