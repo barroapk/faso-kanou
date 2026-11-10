@@ -97,6 +97,12 @@ func _section_ascension(C) -> void:
         boite.add_child(_label("Pour atteindre « %s » :\n%s" % [df.EPOQUES[df.epoque + 1], "\n".join(l)], 22))
     for d in df.defis:
         boite.add_child(_label("Défi (%s terme) : %s — encore %d jours" % [d["horizon"], d["texte"], int(d["fin"]) - C.temps.jour_total], 22))
+    var rangs: PackedStringArray = []
+    var i := 1
+    for r in C.classement():
+        rangs.append("%d. %s — %s, %d habitants" % [i, r["nom"], df.EPOQUES[int(r["epoque"])], int(r["habitants"])])
+        i += 1
+    boite.add_child(_label("Clans connus de l'archipel (visitez-les pour les connaître) :\n%s" % "\n".join(rangs), 21))
 
 # ---------- 1. Chef et conseil ----------
 

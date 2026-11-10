@@ -170,8 +170,8 @@ func mois_passe(res, mois: int) -> void:
 func gerer_auto(res, territoire, agriculture) -> void:
     if en_travaux():
         return
-    for dest in ["eau", "foret"]:
-        if not troncons.has(dest):
+    for dest in ["eau", "foret", "carriere"]:
+        if not troncons.has(dest) and destinations().has(dest):
             construire(dest, "sentier", res, territoire)
             return
     for c in agriculture.champs:

@@ -30,6 +30,8 @@ var nom := ""
 var origine := ""
 var chef_fixe := {}
 var regne := 0
+var epoque := 0                  # même échelle que le joueur (defis.gd)
+var iles_connues := {}           # îles visitées par ses délégations
 var outils_voulus := {}
 
 var population
@@ -250,7 +252,33 @@ func _appliquer_chef_fixe(annoncer: bool) -> void:
         evenement.emit("%s devient chef de %s sous le nom de %s %s." % [h["nom_naissance"], nom, chef_fixe["nom"], chef_fixe["prenom"]])
 
 # Logement, outils, sel : comme un joueur prudent, avec les mêmes règles.
+# L'ordinateur poursuit les mêmes buts que le joueur, selon ses moyens :
+# port, bateaux, carrière et mine, prospection.
+func _developper(jour: int) -> void:
+    if epoque >= 1 and flotte.niveau_port(construction, routes) == 0 and construction.chantiers.is_empty():
+        if not routes.troncons.has("port"):
+            routes.construire("port", "sentier", ressources, territoire)
+        elif routes.relie("port") and construction.nombre("port") == 0 and ressources.quantite("bois") >= 260.0 and ressources.quantite("pierre") >= 60.0:
+            construction.lancer("port", -1, ressources)
+    if flotte.niveau_port(construction, routes) >= 1 and flotte.bateaux.size() < 2 and ressources.quantite("bois") >= 120.0:
+        flotte.commander("pirogue", ressources, construction, routes)
+    for t in gisements.connus:
+        if bool(gisements.connus[t]["ouvert"]):
+            continue
+        var r: String = gisements.TYPES[t]["route"]
+        if not routes.troncons.has(r):
+            routes.construire(r, "sentier", ressources, territoire)
+        elif routes.relie(r) and ressources.quantite("bois") >= 80.0:
+            gisements.ouvrir(t, ressources, routes, population)
+    if gisements.ouverts().size() > 0 and int(population.postes.get("mineur", 0)) == 0:
+        population.postes["mineur"] = 1 if int(population.postes.get("cueilleur", 0)) > 1 else 0
+        if int(population.postes["mineur"]) == 1:
+            population.postes["cueilleur"] = int(population.postes["cueilleur"]) - 1
+    if gisements.a_decouvrir() > 0 and population.habitants.size() >= 12 and _rng_sol.randf() < 0.05:
+        gisements.prospecter(population, jour)
+
 func _gerer(jour: int) -> void:
+    _developper(jour)
     # Avant la récolte : un grenier si la récolte attendue ne tiendra pas.
     if construction.chantiers.is_empty() and agriculture.prochaine_recolte() > jour:
         var attendu := 0.0
@@ -284,7 +312,7 @@ func _gerer(jour: int) -> void:
 func vers_dict() -> Dictionary:
     return {
         "id": id, "nom": nom, "origine": origine,
-        "chef_fixe": chef_fixe, "regne": regne, "outils_voulus": outils_voulus,
+        "chef_fixe": chef_fixe, "regne": regne, "outils_voulus": outils_voulus, "epoque": epoque, "iles_connues": iles_connues,
         "population": population.vers_dict(),
         "ressources": ressources.vers_dict(),
         "construction": construction.vers_dict(),
@@ -310,6 +338,8 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     origine = str(d.get("origine", ""))
     chef_fixe = d.get("chef_fixe", {})
     regne = int(d.get("regne", 0))
+    epoque = int(d.get("epoque", 0))
+    iles_connues = d.get("iles_connues", {})
     outils_voulus = {}
     for o in d.get("outils_voulus", {}):
         outils_voulus[str(o)] = int(d["outils_voulus"][o])

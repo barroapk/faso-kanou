@@ -129,6 +129,9 @@ func _creer_voisins() -> void:
     # Toutes les autres îles sont déjà habitées (aucune île vide).
     if graine_monde == 0:
         graine_monde = randi_range(1, 999999)
+    # Les surprises (décisions, expéditions) dépendent de la partie, pas toujours les mêmes.
+    defis.rng.seed = graine_monde + 11
+    expeditions.rng.seed = graine_monde + 12
     var rng := RandomNumberGenerator.new()
     rng.seed = graine_monde
     var iles: Dictionary = AGRICULTURE.catalogue_iles()
@@ -233,6 +236,34 @@ func ouvrir_site(type: String) -> String:
 func lancer_expedition(type: String, cible := "") -> String:
     return expeditions.lancer(type, cible, ile_joueur, population, ressources, temps.jour_total)
 
+# Les clans de l'ordinateur avancent d'époque avec les MÊMES conditions que le
+# joueur. Toute l'île les voit progresser : c'est la rivalité de l'archipel.
+func _epoques_ordinateur() -> void:
+    var ids: Array = ["joueur"] + voisins.map(func(v): return v.id)
+    for c in voisins:
+        if not c.vivant() or c.epoque >= DEFIS.EPOQUES.size() - 2:
+            continue
+        var ok := true
+        for cond in DEFIS.conditions_clan(c.epoque, c, c.id, ids, diplomatie, 1 + c.iles_connues.size()):
+            if not cond[1]:
+                ok = false
+                break
+        if ok:
+            c.epoque += 1
+            var t := "Le %s entre dans l'époque : %s !" % [c.nom, DEFIS.EPOQUES[c.epoque]]
+            if c.epoque > defis.epoque:
+                t += " Il prend de l'avance sur nous."
+            defis.evenement.emit(t)
+
+# Classement de l'archipel (connu du joueur : son clan et les îles visitées).
+func classement() -> Array:
+    var l: Array = [{"nom": "Notre clan", "epoque": defis.epoque, "habitants": population.habitants.size()}]
+    for c in voisins:
+        if c.vivant() and int(expeditions.connues.get(c.agriculture.ile_id, 0)) >= 2:
+            l.append({"nom": c.nom, "epoque": c.epoque, "habitants": c.population.habitants.size()})
+    l.sort_custom(func(a, b): return a["epoque"] > b["epoque"] or (a["epoque"] == b["epoque"] and a["habitants"] > b["habitants"]))
+    return l
+
 # Les clans de l'ordinateur se rendent aussi visite (environ une fois tous les
 # 3 ans, quand ils ont des vivres) : même règle d'amitié et d'observation.
 func _visites_ordinateur() -> void:
@@ -247,6 +278,7 @@ func _visites_ordinateur() -> void:
         var autre = par_ile[cible][1]
         c.expeditions_vivres(60.0)
         diplomatie.noter(c.id, autre.id, "visite", 4.0, "visite d'une délégation", temps.jour_total)
+        c.iles_connues[cible] = true
         var niveau: float = expeditions.OBSERVATION.get(diplomatie.etat(c.id, autre.id), 1.0)
         for t in autre.decouvertes.connues:
             c.decouvertes.observer(t, niveau)
@@ -356,6 +388,7 @@ func _mois_passe() -> void:
     diplomatie.mois_passe()
     _visites_ordinateur()
     defis.mois_passe(self)
+    _epoques_ordinateur()
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()

@@ -30,8 +30,21 @@ func _init() -> void:
 # ---------- 1. Époques ----------
 
 # Conditions pour passer à l'époque suivante : [texte, accompli ?].
+# Les MÊMES pour tous les clans (joueur et ordinateur).
 func conditions(C) -> Array:
-    var amis := _amis(C)
+    return conditions_clan(epoque, C, "joueur", C.voisins.map(func(v): return v.id), C.diplomatie, C.expeditions.connues.size())
+
+static func conditions_clan(epoque: int, C, id: String, autres: Array, diplomatie, iles_connues: int) -> Array:
+    var amis := 0
+    var allies := 0
+    for a in autres:
+        if a == id:
+            continue
+        var e: String = diplomatie.etat(id, a)
+        if e in ["amitié", "alliance"]:
+            amis += 1
+        if e == "alliance":
+            allies += 1
     match epoque:
         0:
             return [["Connaître l'agriculture", C.decouvertes.connait("agriculture")],
@@ -41,17 +54,17 @@ func conditions(C) -> Array:
         1:
             return [["Un port relié par la route", C.flotte.niveau_port(C.construction, C.routes) >= 1],
                 ["Posséder 2 bateaux", C.flotte.bateaux.size() >= 2],
-                ["Découvrir une autre île", C.expeditions.connues.size() >= 2],
+                ["Découvrir une autre île", iles_connues >= 2],
                 ["Commercer par la mer", C.economie.transactions.size() > 0]]
         2:
-            return [["Connaître 4 îles", C.expeditions.connues.size() >= 5],
+            return [["Connaître 4 îles", iles_connues >= 5],
                 ["Être ami ou allié de 2 clans", amis >= 2],
                 ["Ouvrir une mine ou une carrière", C.gisements.ouverts().size() > 0],
                 ["Atteindre 40 habitants", C.population.habitants.size() >= 40]]
         3:
             return [["Maîtriser le fer", C.decouvertes.connait("metallurgie")],
                 ["Une route empierrée", C.routes.troncons.values().any(func(t): return t["niveau"] in ["route", "boulevard"] and float(t["travail_restant"]) <= 0.0)],
-                ["Une alliance", amis >= 1 and _allies(C) >= 1],
+                ["Une alliance", allies >= 1],
                 ["Atteindre 100 habitants", C.population.habitants.size() >= 100]]
     return [["L'ère moderne viendra plus tard", false]]
 
