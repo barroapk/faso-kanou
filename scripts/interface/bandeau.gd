@@ -104,6 +104,8 @@ func _ready() -> void:
     Civilisation.marche.evenement.connect(_afficher_message)
     Civilisation.caravanes.evenement.connect(_afficher_message)
     Civilisation.agriculture.evenement.connect(_afficher_message)
+    if not Civilisation.ile_confirmee:
+        add_child.call_deferred(preload("res://scripts/interface/choix_ile.gd").new())
     for c in Civilisation.voisins:
         c.evenement.connect(_afficher_message)
 

@@ -39,6 +39,7 @@ var marche
 var caravanes
 var agriculture
 var ile_joueur := ""
+var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -152,6 +153,7 @@ func _brancher() -> void:
 # Le joueur choisit son île parmi les îles libres (les rivaux ont déjà la leur).
 func nouvelle_partie(ile := "") -> void:
     ile_joueur = ile
+    ile_confirmee = ile != ""
     _nouvelle()
     _brancher()
     sauvegarder()
@@ -243,6 +245,7 @@ func sauvegarder() -> void:
         "caravanes": caravanes.vers_dict(),
         "agriculture": agriculture.vers_dict(),
         "ile_joueur": ile_joueur,
+        "ile_confirmee": ile_confirmee,
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -279,6 +282,7 @@ func _charger(nom: String) -> bool:
     caravanes.depuis_dict(donnees.get("caravanes", {}))
     agriculture.depuis_dict(donnees.get("agriculture", {}))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
+    ile_confirmee = bool(donnees.get("ile_confirmee", true))
     _installer_ile()
     if donnees.has("voisins"):
         voisins = []

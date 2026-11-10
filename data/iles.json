@@ -55,6 +55,42 @@
       "littoral": {"baies": 3, "port_naturel": false},
       "richesse": {"bois": 1.5, "chasse": 1.3, "cueillette": 1.2, "pierre": 0.7, "argile": 1.1, "fer": 0.5, "or": 0.3, "sel": 0.2, "poisson": 1.2},
       "clan": "konate"
+    },
+    "toma": {
+      "nom": "Île de Toma", "forme": "delta plat de bras d'eau et de mangroves", "relief": "plaine inondable",
+      "carte": {"x": 80.0, "z": 260.0},
+      "surface_ha": 500000, "cultivable_ha": 210000, "fertilite": 1.15, "pluie_mm": 1150, "ruissellement": 0.05,
+      "eau_douce": {"rivieres": 5, "sources": 1, "nappe": "affleurante"},
+      "littoral": {"baies": 4, "port_naturel": false},
+      "richesse": {"bois": 0.8, "chasse": 0.7, "cueillette": 1.0, "pierre": 0.2, "argile": 1.5, "fer": 0.2, "or": 0.1, "sel": 1.0, "poisson": 1.5},
+      "clan": ""
+    },
+    "yako": {
+      "nom": "Île de Yako", "forme": "grande savane herbeuse, quelques collines", "relief": "savane ondulée",
+      "carte": {"x": 600.0, "z": 330.0},
+      "surface_ha": 1100000, "cultivable_ha": 380000, "fertilite": 0.9, "pluie_mm": 700, "ruissellement": 0.12,
+      "eau_douce": {"rivieres": 1, "sources": 2, "nappe": "moyenne"},
+      "littoral": {"baies": 1, "port_naturel": false},
+      "richesse": {"bois": 0.7, "chasse": 1.5, "cueillette": 0.9, "pierre": 0.9, "argile": 1.0, "fer": 0.7, "or": 0.4, "sel": 0.5, "poisson": 0.6},
+      "clan": ""
+    },
+    "kassa": {
+      "nom": "Îles de Kassa", "forme": "chapelet de petites îles rocheuses reliées à marée basse", "relief": "rochers et criques",
+      "carte": {"x": 330.0, "z": 650.0},
+      "surface_ha": 160000, "cultivable_ha": 35000, "fertilite": 0.8, "pluie_mm": 800, "ruissellement": 0.15,
+      "eau_douce": {"rivieres": 0, "sources": 3, "nappe": "moyenne"},
+      "littoral": {"baies": 9, "port_naturel": true},
+      "richesse": {"bois": 0.4, "chasse": 0.4, "cueillette": 0.7, "pierre": 1.5, "argile": 0.4, "fer": 0.3, "or": 0.2, "sel": 1.4, "poisson": 1.9},
+      "clan": ""
+    },
+    "loumbi": {
+      "nom": "Île de Loumbi", "forme": "haute île de forêt dense, falaises au nord", "relief": "hauteurs boisées",
+      "carte": {"x": 860.0, "z": 230.0},
+      "surface_ha": 700000, "cultivable_ha": 200000, "fertilite": 1.2, "pluie_mm": 1250, "ruissellement": 0.14,
+      "eau_douce": {"rivieres": 3, "sources": 6, "nappe": "peu profonde"},
+      "littoral": {"baies": 1, "port_naturel": false},
+      "richesse": {"bois": 1.7, "chasse": 1.2, "cueillette": 1.5, "pierre": 1.0, "argile": 0.8, "fer": 0.8, "or": 0.5, "sel": 0.1, "poisson": 0.8},
+      "clan": ""
     }
   }
 }
