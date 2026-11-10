@@ -1,0 +1,168 @@
+{
+ "_notes": {
+  "conditions": "ce qu'il faut réunir pour pouvoir découvrir : savoirs (au moins un habitant à ce niveau), matières en stock, recettes déjà pratiquées (nombre de fois), population",
+  "chance_mois": "chance par mois de réussir l'expérimentation une fois les conditions réunies (le temps de chercher)",
+  "debloque": "recettes que le clan sait faire après la découverte",
+  "savoir_cle": "savoir qui fait vivre cette connaissance ; si plus personne ne le pratique (niveau 10) pendant 10 ans, elle se perd ; vide = ne se perd pas",
+  "savoir_initial": "savoir donné à celui qui découvre"
+ },
+ "decouvertes": {
+  "agriculture": {
+   "nom": "Agriculture",
+   "epoque": "pierre",
+   "prerequis": [],
+   "conditions": {
+    "savoirs": {
+     "cueillette": 60
+    },
+    "matieres": {
+     "fonio_sauvage": 100
+    },
+    "pratique": {},
+    "population_min": 15
+   },
+   "chance_mois": 0.01,
+   "debloque": [
+    "houe_bois",
+    "reparation_houe_bois",
+    "farine_mil"
+   ],
+   "savoir_cle": "",
+   "savoir_initial": {
+    "agriculture": 10
+   },
+   "origine": "observation des graines sauvages qui repoussent"
+  },
+  "elevage": {
+   "nom": "Élevage",
+   "epoque": "pierre",
+   "prerequis": [],
+   "conditions": {
+    "savoirs": {
+     "chasse": 60
+    },
+    "matieres": {},
+    "pratique": {},
+    "population_min": 20
+   },
+   "chance_mois": 0.008,
+   "debloque": [],
+   "savoir_cle": "",
+   "savoir_initial": {
+    "elevage": 10
+   },
+   "origine": "jeunes animaux capturés et gardés"
+  },
+  "charbonnage": {
+   "nom": "Charbon de bois",
+   "epoque": "pierre",
+   "prerequis": [],
+   "conditions": {
+    "savoirs": {
+     "artisanat": 30
+    },
+    "matieres": {
+     "bois": 200
+    },
+    "pratique": {
+     "canari": 10
+    },
+    "population_min": 0
+   },
+   "chance_mois": 0.02,
+   "debloque": [
+    "charbon_bois"
+   ],
+   "savoir_cle": "artisanat",
+   "savoir_initial": {},
+   "origine": "maîtrise du feu des potiers"
+  },
+  "metallurgie": {
+   "nom": "Métallurgie du fer",
+   "epoque": "fer",
+   "prerequis": [
+    "charbonnage"
+   ],
+   "conditions": {
+    "savoirs": {
+     "artisanat": 40
+    },
+    "matieres": {
+     "minerai_fer": 30,
+     "charbon_bois": 30
+    },
+    "pratique": {
+     "charbon_bois": 3
+    },
+    "population_min": 20
+   },
+   "chance_mois": 0.015,
+   "debloque": [
+    "fer_brut",
+    "hache_fer",
+    "houe_fer",
+    "pioche_fer",
+    "couteau_fer",
+    "reparation_hache_fer",
+    "reparation_houe_fer",
+    "reparation_pioche_fer",
+    "reparation_couteau_fer"
+   ],
+   "savoir_cle": "metallurgie",
+   "savoir_initial": {
+    "metallurgie": 15
+   },
+   "origine": "expérimentation : minerai chauffé au charbon de bois"
+  },
+  "tissage": {
+   "nom": "Filage et tissage du coton",
+   "epoque": "fer",
+   "prerequis": [],
+   "conditions": {
+    "savoirs": {
+     "artisanat": 30
+    },
+    "matieres": {
+     "coton": 10
+    },
+    "pratique": {},
+    "population_min": 0
+   },
+   "chance_mois": 0.02,
+   "debloque": [
+    "fil_coton",
+    "tissu_coton",
+    "metier_tisser",
+    "reparation_metier_tisser"
+   ],
+   "savoir_cle": "artisanat",
+   "savoir_initial": {},
+   "origine": "expérimentation sur la fibre de coton"
+  },
+  "acier": {
+   "nom": "Acier",
+   "epoque": "industriel",
+   "prerequis": [
+    "metallurgie"
+   ],
+   "conditions": {
+    "savoirs": {
+     "metallurgie": 80
+    },
+    "matieres": {
+     "fer_brut": 100,
+     "manganese": 20
+    },
+    "pratique": {
+     "fer_brut": 50
+    },
+    "population_min": 200
+   },
+   "chance_mois": 0.005,
+   "debloque": [],
+   "savoir_cle": "metallurgie",
+   "savoir_initial": {},
+   "origine": "haut-fourneau ; les recettes viendront avec l'époque industrielle"
+  }
+ }
+}

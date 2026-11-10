@@ -3,6 +3,7 @@ extends RefCounted
 signal evenement(texte)
 
 var definitions := {}
+var connaissances   # decouvertes.gd : certains bâtiments demandent une découverte
 var batiments: Array = []
 var chantiers: Array = []
 
@@ -39,9 +40,26 @@ func effet_total(cle: String) -> float:
         total += float(niv["effet"].get(cle, 0.0))
     return total
 
+# Bâtiment possible seulement si sa découverte est faite (fourneau, forge...).
+func disponible(type: String) -> bool:
+    var dec: String = definitions.get(type, {}).get("decouverte", "")
+    return dec == "" or (connaissances != null and connaissances.connait(dec))
+
+func _quantite(ressources, r: String) -> float:
+    if ressources.has_method("quantite"):
+        return ressources.quantite(r)
+    return float(ressources.stocks.get(r, 0.0))
+
+func _payer(ressources, cout: Dictionary) -> void:
+    for r in cout:
+        if ressources.has_method("retirer"):
+            ressources.retirer(r, float(cout[r]))
+        else:
+            ressources.stocks[r] -= float(cout[r])
+
 func peut_payer(cout: Dictionary, ressources) -> bool:
     for r in cout:
-        if ressources.stocks.get(r, 0.0) < float(cout[r]):
+        if _quantite(ressources, r) < float(cout[r]):
             return false
     return true
 
@@ -68,11 +86,12 @@ func lancer(type: String, index: int, ressources) -> bool:
     var niveau_cible := 1 if index < 0 else int(batiments[index]["niveau"]) + 1
     if niveau_cible > niveau_max(type):
         return false
+    if not disponible(type):
+        return false
     var niv := _niveau(type, niveau_cible)
     if not peut_payer(niv["cout"], ressources):
         return false
-    for r in niv["cout"]:
-        ressources.stocks[r] -= float(niv["cout"][r])
+    _payer(ressources, niv["cout"])
     chantiers.append({"type": type, "index": index, "niveau": niveau_cible, "reste": float(niv["travail"])})
     return true
 
@@ -98,8 +117,7 @@ func mois_passe(ressources) -> void:
     for b in batiments:
         var entretien: Dictionary = _niveau(b["type"], int(b["niveau"]))["entretien"]
         if peut_payer(entretien, ressources):
-            for r in entretien:
-                ressources.stocks[r] -= float(entretien[r])
+            _payer(ressources, entretien)
             b["etat"] = mini(100, int(b["etat"]) + 10)
         else:
             var avant := int(b["etat"])

@@ -37,6 +37,8 @@ func remplir() -> void:
     var res = Civilisation.ressources
     boite.add_child(_label("Construction", 36))
     for type in cons.definitions:
+        if not cons.disponible(type):
+            continue
         var def: Dictionary = cons.definitions[type]
         var ligne := HBoxContainer.new()
         var l := _label("%s : %d" % [def["nom"], cons.nombre(type)], 30)

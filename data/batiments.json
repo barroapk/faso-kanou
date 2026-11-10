@@ -2,29 +2,171 @@
   "hutte": {
     "nom": "Hutte",
     "niveaux": [
-      {"nom": "Hutte de paille", "cout": {"bois": 60}, "travail": 20, "entretien": {"bois": 2}, "effet": {"logement": 5, "stock_nourriture": 450, "stock_eau": 750, "stock_bois": 180}},
-      {"nom": "Hutte renforcée", "cout": {"bois": 120}, "travail": 35, "entretien": {"bois": 3}, "effet": {"logement": 7, "stock_nourriture": 630, "stock_eau": 1050, "stock_bois": 252}}
+      {
+        "nom": "Hutte de paille",
+        "cout": {
+          "bois": 60
+        },
+        "travail": 20,
+        "entretien": {
+          "bois": 2
+        },
+        "effet": {
+          "logement": 5,
+          "stock_nourriture": 450,
+          "stock_eau": 750,
+          "stock_bois": 180
+        }
+      },
+      {
+        "nom": "Hutte renforcée",
+        "cout": {
+          "bois": 120
+        },
+        "travail": 35,
+        "entretien": {
+          "bois": 3
+        },
+        "effet": {
+          "logement": 7,
+          "stock_nourriture": 630,
+          "stock_eau": 1050,
+          "stock_bois": 252
+        }
+      }
     ]
   },
   "grenier": {
     "nom": "Grenier",
     "niveaux": [
-      {"nom": "Grenier en paille", "cout": {"bois": 150}, "travail": 40, "entretien": {"bois": 3}, "effet": {"stock_nourriture": 1000, "conservation": 1}},
-      {"nom": "Grand grenier", "cout": {"bois": 300}, "travail": 70, "entretien": {"bois": 5}, "effet": {"stock_nourriture": 2500, "conservation": 1}}
+      {
+        "nom": "Grenier en paille",
+        "cout": {
+          "bois": 150
+        },
+        "travail": 40,
+        "entretien": {
+          "bois": 3
+        },
+        "effet": {
+          "stock_nourriture": 1000,
+          "conservation": 1
+        }
+      },
+      {
+        "nom": "Grand grenier",
+        "cout": {
+          "bois": 300
+        },
+        "travail": 70,
+        "entretien": {
+          "bois": 5
+        },
+        "effet": {
+          "stock_nourriture": 2500,
+          "conservation": 1
+        }
+      }
     ]
   },
   "jarres": {
     "nom": "Jarres",
     "niveaux": [
-      {"nom": "Jarres en terre", "cout": {"bois": 30}, "travail": 8, "entretien": {"bois": 0.5}, "effet": {"stock_eau": 200}},
-      {"nom": "Grandes jarres", "cout": {"bois": 60}, "travail": 15, "entretien": {"bois": 1}, "effet": {"stock_eau": 500}}
+      {
+        "nom": "Jarres en terre",
+        "cout": {
+          "bois": 30
+        },
+        "travail": 8,
+        "entretien": {
+          "bois": 0.5
+        },
+        "effet": {
+          "stock_eau": 200
+        }
+      },
+      {
+        "nom": "Grandes jarres",
+        "cout": {
+          "bois": 60
+        },
+        "travail": 15,
+        "entretien": {
+          "bois": 1
+        },
+        "effet": {
+          "stock_eau": 500
+        }
+      }
     ]
   },
   "abri_bois": {
     "nom": "Abri à bois",
     "niveaux": [
-      {"nom": "Abri à bois", "cout": {"bois": 80}, "travail": 15, "entretien": {"bois": 1}, "effet": {"stock_bois": 2000}},
-      {"nom": "Grand abri", "cout": {"bois": 160}, "travail": 30, "entretien": {"bois": 2}, "effet": {"stock_bois": 5000}}
+      {
+        "nom": "Abri à bois",
+        "cout": {
+          "bois": 80
+        },
+        "travail": 15,
+        "entretien": {
+          "bois": 1
+        },
+        "effet": {
+          "stock_bois": 2000
+        }
+      },
+      {
+        "nom": "Grand abri",
+        "cout": {
+          "bois": 160
+        },
+        "travail": 30,
+        "entretien": {
+          "bois": 2
+        },
+        "effet": {
+          "stock_bois": 5000
+        }
+      }
+    ]
+  },
+  "fourneau": {
+    "nom": "Fourneau",
+    "decouverte": "metallurgie",
+    "niveaux": [
+      {
+        "nom": "Bas fourneau en argile",
+        "cout": {
+          "argile": 200,
+          "pierre": 50,
+          "bois": 40
+        },
+        "travail": 30,
+        "entretien": {
+          "argile": 5
+        },
+        "effet": {}
+      }
+    ]
+  },
+  "forge": {
+    "nom": "Forge",
+    "decouverte": "metallurgie",
+    "niveaux": [
+      {
+        "nom": "Forge",
+        "cout": {
+          "pierre": 80,
+          "bois": 60,
+          "argile": 40
+        },
+        "travail": 25,
+        "entretien": {
+          "bois": 2
+        },
+        "effet": {}
+      }
     ]
   }
 }

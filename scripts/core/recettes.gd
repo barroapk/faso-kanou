@@ -20,6 +20,7 @@ var definitions := {}
 var masses := {}            # masse d'une unité, d'après le catalogue
 var connues: Array = []
 var commandes: Array = []   # {recette, reste} : reste = jours de travail restants
+var faites := {}            # recette -> nombre de fois faite (pratique du clan)
 
 func _init() -> void:
     var d = JSON.parse_string(FileAccess.get_file_as_string(FICHIER))
@@ -37,6 +38,10 @@ func etat_initial() -> void:
     for id in definitions:
         if bool(definitions[id].get("connue_au_depart", false)):
             connues.append(id)
+
+func oublier(id: String) -> void:
+    if connues.has(id):
+        connues.erase(id)
 
 func apprendre(id: String) -> void:
     if definitions.has(id) and not connues.has(id):
@@ -173,6 +178,7 @@ func _livrer(c: Dictionary, res) -> void:
         res.ajouter(m, float(r["sorties"][m]) * n)
     for m in r["sous_produits"]:
         res.ajouter(m, float(r["sous_produits"][m]) * n)
+    faites[c["recette"]] = int(faites.get(c["recette"], 0)) + n
     if r.get("repare", "") != "" and res.equipement != null:
         for i in n:
             res.equipement.reparer(r["repare"])
@@ -181,7 +187,7 @@ func _livrer(c: Dictionary, res) -> void:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"connues": connues, "commandes": commandes}
+    return {"connues": connues, "commandes": commandes, "faites": faites}
 
 func depuis_dict(d: Dictionary) -> void:
     if d.is_empty():
@@ -190,6 +196,9 @@ func depuis_dict(d: Dictionary) -> void:
     connues = []
     for id in d.get("connues", []):
         connues.append(str(id))
+    faites = {}
+    for k in d.get("faites", {}):
+        faites[str(k)] = int(d["faites"][k])
     commandes = []
     for c in d.get("commandes", []):
         commandes.append({"recette": str(c["recette"]), "nombre": int(c.get("nombre", 1)), "reste": float(c["reste"])})

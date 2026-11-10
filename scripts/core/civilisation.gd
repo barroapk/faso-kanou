@@ -13,6 +13,7 @@ const CHEF = preload("res://scripts/core/chef.gd")
 const MIGRATION = preload("res://scripts/core/migration.gd")
 const RECETTES = preload("res://scripts/core/recettes.gd")
 const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
+const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 
 var temps
 var population
@@ -24,6 +25,7 @@ var chef
 var migration
 var recettes
 var equipement
+var decouvertes
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -43,6 +45,8 @@ func _creer_modules() -> void:
     recettes = RECETTES.new()
     equipement = EQUIPEMENT.new()
     ressources.equipement = equipement
+    decouvertes = DECOUVERTES.new()
+    construction.connaissances = decouvertes
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -102,6 +106,7 @@ func _mois_passe() -> void:
     conseil.mois_passe(population, temps.jour_total)
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
     migration.mois_passe(population, ressources, construction, temps.jour_total)
+    decouvertes.mois_passe(population, ressources, recettes, temps.jour_total)
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -125,6 +130,7 @@ func sauvegarder() -> void:
         "migration": migration.vers_dict(),
         "recettes": recettes.vers_dict(),
         "equipement": equipement.vers_dict(),
+        "decouvertes": decouvertes.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -155,5 +161,6 @@ func _charger(nom: String) -> bool:
     migration.depuis_dict(donnees.get("migration", {}), 2026)
     recettes.depuis_dict(donnees.get("recettes", {}))
     equipement.depuis_dict(donnees.get("equipement", {}))
+    decouvertes.depuis_dict(donnees.get("decouvertes", {}))
     temps.vitesse = 1
     return true
