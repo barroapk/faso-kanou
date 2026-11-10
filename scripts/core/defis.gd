@@ -100,7 +100,7 @@ func _candidats(C) -> Array:
     var a: Dictionary = C.ressources.autonomie(C.population, C.temps.jour_total)
     # Premier défi garanti (v0.3.33b) : la réserve qui ouvre la première exploration.
     if not mer_ouverte:
-        l.append({"cle": "nourriture_60", "horizon": "court", "texte": "Constituer 60 jours de nourriture", "duree": 180})
+        l.append({"cle": "nourriture_65", "horizon": "court", "texte": "Constituer 65 jours de nourriture", "duree": 180})
     if float(a.get("eau", 99.0)) < 15.0:
         l.append({"cle": "eau_30", "horizon": "court", "texte": "Constituer 30 jours de réserve d'eau", "duree": 60})
     if mer_ouverte and float(a.get("nourriture", 99.0)) < 30.0:
@@ -131,6 +131,8 @@ func _reussi(C, cle: String) -> bool:
         return float(a.get("eau", 0.0)) >= 30.0
     if cle == "nourriture_60":
         return float(a.get("nourriture", 0.0)) >= 60.0
+    if cle == "nourriture_65":
+        return float(a.get("nourriture", 0.0)) >= 65.0
     if cle == "defricher":
         return not C.agriculture.champs.any(func(c): return not bool(c["defriche"]))
     if cle == "grenier":
@@ -152,7 +154,7 @@ func _reussi(C, cle: String) -> bool:
 var mer_ouverte := false         # message de la première exploration déjà donné (sauvegardé)
 func _maj_defis(C) -> void:
     var jour: int = C.temps.jour_total
-    if not mer_ouverte and _reussi(C, "nourriture_60"):
+    if not mer_ouverte and _reussi(C, "nourriture_65"):
         mer_ouverte = true
         evenement.emit("Le clan peut maintenant tenter sa première exploration en mer.")
     for d in defis.duplicate():
