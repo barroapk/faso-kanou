@@ -214,6 +214,7 @@ func _section_agriculture(C, jour: int) -> void:
                     func(): _faire(C.semer(id, culture), "Champ semé.")))
         var idc: int = int(c["id"])
         enfants.append(_bouton("Amender (cendres)", true, func(): _faire(C.amender_champ(idc), "Champ amendé : fertilité en hausse.")))
+        enfants.append(_bouton("Fumier (%d kg)" % int(ag.FUMIER_HA * float(c["ha"])), true, func(): _faire(C.amender_fumier(idc), "Fumier épandu : fertilité en hausse.")))
         boite.add_child(_ligne(enfants))
     var sem: PackedStringArray = []
     for s in ag.semences:

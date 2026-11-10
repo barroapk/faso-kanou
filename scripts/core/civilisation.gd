@@ -391,6 +391,23 @@ func construire_route(dest: String, niveau: String) -> String:
 func amender_champ(id_champ: int) -> String:
     return agriculture.amender(id_champ, ressources)
 
+# Épandre le fumier : du vrai fumier et du vrai travail (un adulte occupé).
+func amender_fumier(id_champ: int) -> String:
+    var c: Dictionary = agriculture.champ(id_champ)
+    if c.is_empty():
+        return "Champ inconnu."
+    var jours := maxi(1, int(ceil(float(c["ha"]) * agriculture.JOURS_FUMIER_HA)))
+    var qui = null
+    for h in population.habitants:
+        if population.age(h, temps.jour_total) >= 14 and not h["metier"] in ["chef", "ancien"] and not h.has("expedition") and not defis.occupes.has(int(h["id"])):
+            qui = h
+            break
+    if qui == null:
+        return "Aucun adulte disponible pour épandre le fumier."
+    var r: String = agriculture.amender_fumier(id_champ, ressources)
+    if r == "":
+        defis.occupes[int(qui["id"])] = temps.jour_total + jours
+    return r
 func semer(id_champ: int, culture: String) -> String:
     return agriculture.semer(id_champ, culture, ressources, temps.jour_total, decouvertes.connait)
 

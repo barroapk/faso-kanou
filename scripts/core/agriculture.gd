@@ -78,6 +78,11 @@ func terre_libre() -> float:
 const CENDRES_HA := 200.0          # kg de cendres par ha pour un amendement
 const GAIN_AMENDEMENT := 0.1       # +10 % de fertilité par amendement
 const AMENDEMENT_MAX := 1.3        # au plus 1,3 × la fertilité naturelle
+# Fumier (v0.3.37) : 3 tonnes par ha, +15 % de fertilité (même plafond 1,3).
+# Il faut l'épandre : 1 adulte pendant 2 jours par ha (au moins 1 jour).
+const FUMIER_HA := 3000.0
+const GAIN_FUMIER := 0.15
+const JOURS_FUMIER_HA := 2.0
 
 # Terre encore libre dans une parcelle acquise.
 func libre_parcelle(cle: String) -> float:
@@ -138,6 +143,20 @@ func amender(id: int, res) -> String:
         return "Il faut %d kg de cendres." % int(besoin)
     res.retirer("cendres", besoin, "amendement")
     c["fertilite"] = minf(base * AMENDEMENT_MAX, float(c["fertilite"]) + base * GAIN_AMENDEMENT)
+    return ""
+func amender_fumier(id: int, res) -> String:
+    var c := champ(id)
+    if c.is_empty():
+        return "Champ inconnu."
+    var base: float = float(c.get("fertilite_max", c["fertilite"]))
+    if float(c["fertilite"]) >= base * AMENDEMENT_MAX - 0.001:
+        return "Ce champ est déjà au mieux de sa fertilité."
+    var besoin: float = FUMIER_HA * float(c["ha"])
+    if float(res.objets.get("fumier", 0.0)) < besoin:
+        return "Il faut %d kg de fumier (nous en avons %d)." % [int(besoin), int(res.objets.get("fumier", 0.0))]
+    res.objets["fumier"] = float(res.objets["fumier"]) - besoin
+    res.noter("amendement", "fumier", -besoin)
+    c["fertilite"] = minf(base * AMENDEMENT_MAX, float(c["fertilite"]) + base * GAIN_FUMIER)
     return ""
 
 func _defricher(force: float) -> float:
