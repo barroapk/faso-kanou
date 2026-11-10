@@ -18,6 +18,7 @@ const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
 const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 const ECONOMIE = preload("res://scripts/core/economie.gd")
 const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
+const PRESSION = preload("res://scripts/core/pression.gd")
 
 var id := ""
 var nom := ""
@@ -37,6 +38,7 @@ var equipement
 var decouvertes
 var economie
 var agriculture
+var pression
 
 func _modules() -> void:
     population = POPULATION.new()
@@ -52,6 +54,7 @@ func _modules() -> void:
     construction.connaissances = decouvertes
     economie = ECONOMIE.new()
     agriculture = AGRICULTURE.new()
+    pression = PRESSION.new()
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -130,6 +133,7 @@ func jour_passe(jour: int, pluie: bool) -> void:
     construction.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, jour, pluie)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, jour)
+    pression.jour_passe(ressources)
 
 func mois_passe(jour: int, pluie: bool) -> void:
     if not vivant():
@@ -143,7 +147,8 @@ func mois_passe(jour: int, pluie: bool) -> void:
     agriculture.gerer_auto(population, ressources, jour, decouvertes.connait)
     if agriculture.prochaine_recolte() > jour:
         besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
-    decouvertes.mois_passe(population, ressources, recettes, jour)
+    pression.mois_passe(population, ressources, equipement, jour)
+    decouvertes.mois_passe(population, ressources, recettes, jour, pression)
     economie.mois_passe(population, ressources, construction, equipement, jour)
     population.repartir(jour)
     if not vivant():
@@ -240,6 +245,7 @@ func vers_dict() -> Dictionary:
         "decouvertes": decouvertes.vers_dict(),
         "economie": economie.vers_dict(),
         "agriculture": agriculture.vers_dict(),
+        "pression": pression.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -263,4 +269,5 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     decouvertes.depuis_dict(d.get("decouvertes", {}))
     economie.depuis_dict(d.get("economie", {}), ressources)
     agriculture.depuis_dict(d.get("agriculture", {}))
+    pression.depuis_dict(d.get("pression", {}))
     ressources.richesse = agriculture.ile.get("richesse", {})

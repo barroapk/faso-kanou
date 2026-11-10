@@ -93,6 +93,10 @@ func _arriver(c: Dictionary, trouver: Callable, jour: int) -> void:
     a.economie.transactions.append(t)
     b.economie.transactions.append(t.duplicate(true))
     if perte > 0.0:
+        # Une perte en mer pousse les deux clans à mieux naviguer.
+        for cl in [a, b]:
+            if cl.get("pression") != null:
+                cl.pression.noter("navigation", 100.0 * perte / q)
         evenement.emit("Bateau %s : tempête en mer, %.1f %s perdus. %s paie seulement ce qui est arrivé." % [c["id"], perte, c["produit"], c["acheteur"]])
     else:
         evenement.emit("Bateau %s arrivé : %.1f %s livrés à %s." % [c["id"], arrive, c["produit"], c["acheteur"]])

@@ -21,6 +21,7 @@ const MARCHE = preload("res://scripts/core/marche.gd")
 const CARAVANES = preload("res://scripts/core/caravanes.gd")
 const AGRICULTURE = preload("res://scripts/core/agriculture.gd")
 const MONDE = preload("res://scripts/core/monde.gd")
+const PRESSION = preload("res://scripts/core/pression.gd")
 
 var temps
 var population
@@ -39,6 +40,7 @@ var diplomatie
 var marche
 var caravanes
 var agriculture
+var pression
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -68,6 +70,7 @@ func _creer_modules() -> void:
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
     agriculture = AGRICULTURE.new()
+    pression = PRESSION.new()
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -207,6 +210,7 @@ func _jour_passe() -> void:
     construction.jour_passe(travail_batisseurs())
     agriculture.jour_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
+    pression.jour_passe(ressources)
     for c in voisins:
         c.jour_passe(temps.jour_total, temps.saison_des_pluies())
     caravanes.jour_passe(_clan, temps.jour_total)
@@ -226,7 +230,8 @@ func _mois_passe() -> void:
     if agriculture.prochaine_recolte() > temps.jour_total:
         besoins.verrou["cultivateur"] = agriculture.prochaine_recolte()
     migration.mois_passe(population, ressources, construction, temps.jour_total)
-    decouvertes.mois_passe(population, ressources, recettes, temps.jour_total)
+    pression.mois_passe(population, ressources, equipement, temps.jour_total)
+    decouvertes.mois_passe(population, ressources, recettes, temps.jour_total, pression)
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
@@ -262,6 +267,7 @@ func sauvegarder() -> void:
         "marche": marche.vers_dict(),
         "caravanes": caravanes.vers_dict(),
         "agriculture": agriculture.vers_dict(),
+        "pression": pression.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -300,6 +306,7 @@ func _charger(nom: String) -> bool:
     marche.depuis_dict(donnees.get("marche", {}))
     caravanes.depuis_dict(donnees.get("caravanes", {}))
     agriculture.depuis_dict(donnees.get("agriculture", {}))
+    pression.depuis_dict(donnees.get("pression", {}))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))
     ile_confirmee = bool(donnees.get("ile_confirmee", true))
     graine_monde = int(donnees.get("graine_monde", 0))

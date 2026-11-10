@@ -55,13 +55,17 @@ func manque(id: String, pop, res, recettes, jour: int) -> Array:
         m.append("il faut %d habitants" % int(c["population_min"]))
     return m
 
-func mois_passe(pop, res, recettes, jour: int) -> void:
+# pression (pression.gd) : la difficulté vécue rend la découverte plus probable.
+func mois_passe(pop, res, recettes, jour: int, pression = null) -> void:
     for id in definitions:
         if connait(id):
             continue
         if not manque(id, pop, res, recettes, jour).is_empty():
             continue
-        if rng.randf() < float(definitions[id]["chance_mois"]):
+        var chance := float(definitions[id]["chance_mois"])
+        if pression != null:
+            chance *= pression.facteur(id)
+        if rng.randf() < chance:
             _decouvrir(id, pop, recettes, jour, "expérimentation")
     _entretenir(pop, recettes)
 
