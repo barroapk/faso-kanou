@@ -92,6 +92,33 @@ func creer_clan_initial(jour: int, graine := 2026) -> void:
     c2["dernier_enfant"] = int(salif["naissance"])
     _nouveau_couple(boukary, fatimata, jour - 1 * JOURS_PAR_AN)
 
+# Clan créé à partir d'une fiche (data/clans.json) : mêmes règles que le clan du joueur.
+func creer_depuis_fiche(fiche: Dictionary, jour: int) -> void:
+    rng.seed = int(fiche.get("graine", 2026))
+    habitants = []
+    couples = []
+    _archives = {}
+    prochain_id = 1
+    prochain_couple = 1
+    var liste := []
+    for f in fiche["fondateurs"]:
+        var h := _ajouter(f["prenom"], f["nom"], f["sexe"], int(f["age"]), int(f["famille"]), f["metier"], jour, true, f.get("initie", ""))
+        liste.append(h)
+    for i in fiche["fondateurs"].size():
+        var f: Dictionary = fiche["fondateurs"][i]
+        if int(f.get("pere", -1)) >= 0:
+            liste[i]["pere"] = int(liste[int(f["pere"])]["id"])
+        if int(f.get("mere", -1)) >= 0:
+            liste[i]["mere"] = int(liste[int(f["mere"])]["id"])
+    for c in fiche.get("couples", []):
+        var k := _nouveau_couple(liste[int(c[0])], liste[int(c[1])], jour - int(c[2]) * JOURS_PAR_AN)
+        for h in liste:
+            if int(h["pere"]) == int(k["mari"]) and int(h["mere"]) == int(k["femme"]):
+                k["enfants"].append(int(h["id"]))
+                k["dernier_enfant"] = maxi(int(k["dernier_enfant"]), int(h["naissance"]))
+    for m in fiche.get("postes", {}):
+        postes[m] = int(fiche["postes"][m])
+
 func _ajouter(prenom: String, nom: String, sexe: String, age_ans: int, famille: int, metier: String, jour: int, decaler := true, initie := "") -> Dictionary:
     var ecart := rng.randi_range(0, JOURS_PAR_AN - 1) if decaler else 0
     var h := {

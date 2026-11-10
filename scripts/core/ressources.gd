@@ -18,7 +18,11 @@ const PRODUCTION := {
     "sans métier": {"nourriture": [0.8, 1.2]},
     "porteur d'eau": {"eau": [50.0, 70.0]},
     "bâtisseur": {"bois": [12.0, 10.0]},
+    # Enfants de 8 à 13 ans : ils aident (cueillette, corvée d'eau), comme
+    # dans les villages sahéliens. Environ un quart d'un adulte.
+    "aide": {"nourriture": [0.5, 0.8], "eau": [12.0, 16.0]},
 }
+const AGE_AIDE := 8
 const CONSO_ADULTE := {"nourriture": 0.8, "eau": 5.0, "bois": 1.2}
 const CONSO_ENFANT := {"nourriture": 0.5, "eau": 3.0, "bois": 0.6}
 const SEL_PAR_PERSONNE := 0.005         # kg par jour (5 g)
@@ -308,6 +312,8 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         if h.get("occupe", false):
             continue
         var p = PRODUCTION.get(h["metier"], {})
+        if h["metier"] == "enfant":
+            p = PRODUCTION["aide"] if population.age(h, jour) >= AGE_AIDE else {}
         var efficacite := (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0))
         for r in p:
             var q: float = p[r][s] * efficacite

@@ -100,6 +100,9 @@ func _ready() -> void:
     Civilisation.recettes.evenement.connect(_afficher_message)
     Civilisation.equipement.evenement.connect(_afficher_message)
     Civilisation.decouvertes.evenement.connect(_afficher_message)
+    Civilisation.diplomatie.evenement.connect(_afficher_message)
+    for c in Civilisation.voisins:
+        c.evenement.connect(_afficher_message)
 
 func _etiquette(parent: Control) -> Label:
     var l := Label.new()

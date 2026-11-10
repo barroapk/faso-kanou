@@ -42,6 +42,7 @@ func verrouiller(m: String, jour: int) -> void:
 func mois_passe(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
     _contexte(population, ressources, construction, jour, pluie, chantier_actif)
     if mode == "auto":
+        _ajuster_postes()
         for r in ORDRE:
             for i in 3:
                 var p := _diagnostic(r)
@@ -178,13 +179,13 @@ func _solutions_deficit(r: String, niveau: int) -> Array:
         return sols
     if _libres() > 0:
         sols.append({"action": "ouvrir", "ressource": r, "metier": m})
-    if niveau >= 2:
+    if niveau >= 1:
         for m2 in _pop.postes:
             if m2 == m or int(_pop.postes[m2]) <= 0:
                 continue
             if niveau < 3 and _verrouille(m2):
                 continue
-            if _peut_ceder(m2):
+            if _peut_ceder(m2, niveau if r == ORDRE[0] else 0):
                 sols.append({"action": "transferer", "ressource": r, "de": m2, "vers": m})
                 break
     return sols
@@ -216,7 +217,7 @@ func appliquer(sol: Dictionary) -> String:
                 return "Ce changement n'est plus nécessaire."
             if int(_pop.postes.get(sol["de"], 0)) <= 0:
                 return "Aucun %s à déplacer." % sol["de"]
-            if not _peut_ceder(sol["de"]):
+            if not _peut_ceder(sol["de"], int(p["niveau"]) if r == ORDRE[0] else 0):
                 return "Retirer un %s mettrait une autre ressource en danger." % sol["de"]
             _pop.postes[sol["de"]] = int(_pop.postes[sol["de"]]) - 1
             _pop.postes[sol["vers"]] = int(_pop.postes[sol["vers"]]) + 1
@@ -267,7 +268,7 @@ func estimer(sol: Dictionary) -> Dictionary:
             e["cout"] = "1 %s change de métier" % sol["de"]
             e["effet"] = "+%.0f %s %s par jour" % [gain, u, _de(r)]
             e["risque"] = "Par jour : %s. Compétence réduite de moitié dans son nouveau métier." % ", ".join(pertes)
-            if not _peut_ceder(sol["de"]):
+            if not _peut_ceder(sol["de"], int(_diagnostic(r).get("niveau", 0)) if r == ORDRE[0] else 0):
                 e["faisable"] = false
                 e["raison"] = "Retirer un %s mettrait une autre ressource en danger." % sol["de"]
         "fermer":
@@ -314,13 +315,49 @@ func _metier_en_trop(r: String, besoin: float) -> String:
             return m
     return ""
 
-func _peut_ceder(m2: String) -> bool:
+# Peut-on retirer un travailleur de m2 ? Oui si chaque ressource qu'il produit
+# garde sa marge de sécurité, ou garde au moins sa propre réserve visée
+# (90 jours de nourriture, 30 d'eau, 30 de bois) : on puise dans une réserve
+# qui suffit, on ne sacrifie aucune ressource.
+
+# En urgence d'eau (niveau 3), l'eau passe avant tout : on accepte de puiser
+# dans une autre réserve tant qu'elle garde au moins 15 jours.
+# Plus de postes que d'adultes (enfants morts, adultes devenus anciens) :
+# on ferme le poste dont la ressource a la plus grande réserve.
+func _ajuster_postes() -> void:
+    while _adultes() - _occupes() < 0:
+        var choix := ""
+        var max_jours := -1.0
+        for m in _pop.postes:
+            if int(_pop.postes[m]) <= 0:
+                continue
+            var jours := 99999.0
+            for r2 in ORDRE:
+                if _rendement(m, r2) > 0.0 and _conso(r2) > 0.0:
+                    jours = minf(jours, float(_res.stocks[r2]) / _conso(r2))
+            if jours > max_jours:
+                max_jours = jours
+                choix = m
+        if choix == "":
+            return
+        _pop.postes[choix] = int(_pop.postes[choix]) - 1
+
+func _occupes() -> int:
+    var n := 0
+    for m in _pop.postes:
+        n += int(_pop.postes[m])
+    return n
+
+func _peut_ceder(m2: String, urgence := 0) -> bool:
     for r2 in ORDRE:
         var rend := _rendement(m2, r2)
         if rend <= 0.0:
             continue
-        if _production(r2) - rend < _conso(r2) * (1.0 + MARGES[0]):
-            return false
+        var c := _conso(r2)
+        if _production(r2) - rend < c * (1.0 + MARGES[0]):
+            var visee := 15.0 if urgence >= 3 else float(AUTONOMIE_VISEE.get(r2, 30.0))
+            if c <= 0.0 or float(_res.stocks[r2]) / c < visee:
+                return false
     return true
 
 func _meilleur_metier(r: String, niveau: int) -> String:
@@ -354,7 +391,7 @@ func _batiment_pour(effet_cherche: String) -> String:
 func _metiers(r: String) -> Array:
     var liste := []
     for m in _res.PRODUCTION:
-        if _res.PRODUCTION[m].has(r) and m != "chef" and m != "sans métier":
+        if _res.PRODUCTION[m].has(r) and not m in ["chef", "sans métier", "aide"]:
             liste.append(m)
     return liste
 
@@ -385,6 +422,13 @@ func _adultes() -> int:
             n += 1
     return n
 
+func _aides() -> int:
+    var n := 0
+    for h in _pop.habitants:
+        if h["metier"] == "enfant" and _pop.age(h, _jour) >= _res.AGE_AIDE:
+            n += 1
+    return n
+
 func _libres() -> int:
     var occupes := 0
     for m in _pop.postes:
@@ -408,6 +452,7 @@ func _production(r: String) -> float:
         if h["metier"] == "chef":
             total += _rendement("chef", r)
     total += _libres() * _rendement("sans métier", r)
+    total += _aides() * float(_res.PRODUCTION["aide"].get(r, [0.0, 0.0])[_s]) * 0.7 * _res.outils
     if r == "eau" and _s == 1:
         total += 20.0
     return total

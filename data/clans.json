@@ -1,0 +1,59 @@
+{
+  "_notes": {"fondateurs": "prenom, nom, sexe (H/F), age, famille (numéro), metier, initie (métier appris enfant), pere et mere (position dans la liste, -1 = inconnu)", "couples": "paires [mari, femme] (positions dans la liste) et depuis combien d'années", "chef_fixe": "nom porté par chaque chef du clan (dynastie) ; vide = le chef garde son nom"},
+  "clans": {
+    "barro_faso": {
+      "nom": "BARRO FASO",
+      "chef_fixe": {"prenom": "Clavers", "nom": "BARRO"},
+      "origine": "clan ancien venu de l'ouest, le plus avancé de la région",
+      "territoire": {"zone": "Nord, au pied du massif", "x": 250.0, "z": -650.0},
+      "graine": 7001,
+      "fondateurs": [
+        {"prenom": "Clavers", "nom": "BARRO", "sexe": "H", "age": 40, "famille": 1, "metier": "chef"},
+        {"prenom": "Salimata", "nom": "BARRO", "sexe": "F", "age": 34, "famille": 1, "metier": "cueilleur"},
+        {"prenom": "Issouf", "nom": "BARRO", "sexe": "H", "age": 12, "famille": 1, "metier": "enfant", "initie": "chasseur", "pere": 0, "mere": 1},
+        {"prenom": "Mariam", "nom": "BARRO", "sexe": "F", "age": 9, "famille": 1, "metier": "enfant", "initie": "cueilleur", "pere": 0, "mere": 1},
+        {"prenom": "Abdoul", "nom": "BARRO", "sexe": "H", "age": 6, "famille": 1, "metier": "enfant", "initie": "chasseur", "pere": 0, "mere": 1},
+        {"prenom": "Lassina", "nom": "BARRO", "sexe": "H", "age": 22, "famille": 1, "metier": "chasseur"},
+        {"prenom": "Daouda", "nom": "SANOU", "sexe": "H", "age": 33, "famille": 2, "metier": "chasseur"},
+        {"prenom": "Kadiatou", "nom": "SANOU", "sexe": "F", "age": 28, "famille": 2, "metier": "cueilleur"},
+        {"prenom": "Ali", "nom": "SANOU", "sexe": "H", "age": 4, "famille": 2, "metier": "enfant", "initie": "chasseur", "pere": 6, "mere": 7},
+        {"prenom": "Rokia", "nom": "SANOU", "sexe": "F", "age": 19, "famille": 2, "metier": "cueilleur"},
+        {"prenom": "Bakary", "nom": "TRAORÉ", "sexe": "H", "age": 30, "famille": 3, "metier": "bâtisseur"},
+        {"prenom": "Assita", "nom": "TRAORÉ", "sexe": "F", "age": 26, "famille": 3, "metier": "porteur d'eau"},
+        {"prenom": "Fanta", "nom": "TRAORÉ", "sexe": "F", "age": 2, "famille": 3, "metier": "enfant", "initie": "porteur d'eau", "pere": 10, "mere": 11},
+        {"prenom": "Yacouba", "nom": "TRAORÉ", "sexe": "H", "age": 60, "famille": 3, "metier": "ancien"}
+      ],
+      "couples": [[0, 1, 14], [6, 7, 6], [10, 11, 4]],
+      "postes": {"chasseur": 2, "cueilleur": 2, "porteur d'eau": 2, "bâtisseur": 1},
+      "huttes": 5,
+      "stocks": {"nourriture": 600.0, "eau": 300.0, "bois": 300.0, "sel": 40.0},
+      "outils": {"hache_pierre": 2, "arc": 2, "lance": 2, "meule": 1},
+      "connaissances": ["charbonnage"]
+    },
+    "konate": {
+      "nom": "Clan KONATÉ",
+      "chef_fixe": {},
+      "origine": "clan venu de Dédougou, arrivé en même temps que le joueur",
+      "territoire": {"zone": "Sud, au bord de la rivière", "x": -420.0, "z": 520.0},
+      "graine": 7002,
+      "fondateurs": [
+        {"prenom": "Moussa", "nom": "KONATÉ", "sexe": "H", "age": 36, "famille": 1, "metier": "chef"},
+        {"prenom": "Awa", "nom": "KONATÉ", "sexe": "F", "age": 31, "famille": 1, "metier": "cueilleur"},
+        {"prenom": "Seydou", "nom": "KONATÉ", "sexe": "H", "age": 9, "famille": 1, "metier": "enfant", "initie": "chasseur", "pere": 0, "mere": 1},
+        {"prenom": "Karim", "nom": "COULIBALY", "sexe": "H", "age": 29, "famille": 2, "metier": "chasseur"},
+        {"prenom": "Bintou", "nom": "COULIBALY", "sexe": "F", "age": 25, "famille": 2, "metier": "cueilleur"},
+        {"prenom": "Zalissa", "nom": "COULIBALY", "sexe": "F", "age": 3, "famille": 2, "metier": "enfant", "initie": "cueilleur", "pere": 3, "mere": 4},
+        {"prenom": "Idrissa", "nom": "DIALLO", "sexe": "H", "age": 27, "famille": 3, "metier": "bâtisseur"},
+        {"prenom": "Kadiatou", "nom": "DIALLO", "sexe": "F", "age": 23, "famille": 3, "metier": "porteur d'eau"},
+        {"prenom": "Noaga", "nom": "DIALLO", "sexe": "H", "age": 57, "famille": 3, "metier": "ancien"},
+        {"prenom": "Rasmata", "nom": "KONATÉ", "sexe": "F", "age": 18, "famille": 1, "metier": "cueilleur"}
+      ],
+      "couples": [[0, 1, 11], [3, 4, 5], [6, 7, 2]],
+      "postes": {"chasseur": 1, "cueilleur": 2, "porteur d'eau": 1, "bâtisseur": 1},
+      "huttes": 4,
+      "stocks": {"nourriture": 300.0, "eau": 150.0, "bois": 100.0, "sel": 20.0},
+      "outils": {"hache_pierre": 1, "arc": 1, "lance": 1},
+      "connaissances": []
+    }
+  }
+}

@@ -22,8 +22,8 @@ var confiance := 70.0
 var interim := false
 var rng := RandomNumberGenerator.new()
 
-func etat_initial(pop, jour: int) -> void:
-    rng.seed = 5050
+func etat_initial(pop, jour: int, graine := 5050) -> void:
+    rng.seed = graine
     membres = []
     for h in pop.habitants:
         _profil(h, pop)

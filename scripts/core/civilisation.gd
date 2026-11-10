@@ -15,6 +15,8 @@ const RECETTES = preload("res://scripts/core/recettes.gd")
 const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
 const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 const ECONOMIE = preload("res://scripts/core/economie.gd")
+const CLAN = preload("res://scripts/core/clan.gd")
+const DIPLOMATIE = preload("res://scripts/core/diplomatie.gd")
 
 var temps
 var population
@@ -28,6 +30,8 @@ var recettes
 var equipement
 var decouvertes
 var economie
+var voisins: Array = []
+var diplomatie
 
 func _ready() -> void:
     if not _charger(FICHIER) and not _charger(FICHIER + ".bak"):
@@ -50,6 +54,8 @@ func _creer_modules() -> void:
     decouvertes = DECOUVERTES.new()
     construction.connaissances = decouvertes
     economie = ECONOMIE.new()
+    diplomatie = DIPLOMATIE.new()
+    voisins = []
     ressources.construction = construction
 
 func _nouvelle() -> void:
@@ -58,6 +64,27 @@ func _nouvelle() -> void:
     construction.etat_initial()
     conseil.etat_initial(population, temps.jour_total)
     economie.commencer(ressources)
+    _creer_voisins()
+
+# Clans voisins (data/clans.json) et relations de départ.
+func _creer_voisins() -> void:
+    voisins = []
+    var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/clans.json"))
+    if typeof(d) != TYPE_DICTIONARY:
+        return
+    var ids := ["joueur"]
+    for cle in d.get("clans", {}):
+        var c = CLAN.new()
+        c.creer(cle, d["clans"][cle], temps.jour_total)
+        voisins.append(c)
+        ids.append(cle)
+    diplomatie.etat_initial(ids)
+
+func voisin(cle: String):
+    for c in voisins:
+        if c.id == cle:
+            return c
+    return null
 
 func _brancher() -> void:
     temps.nouveau_jour.connect(_jour_passe)
@@ -98,6 +125,8 @@ func _jour_passe() -> void:
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
+    for c in voisins:
+        c.jour_passe(temps.jour_total, temps.saison_des_pluies())
     if temps.jour_total % chef.REVUE_JOURS == 0:
         besoins.actualiser(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
         chef.revue(conseil, population, besoins, temps.jour_total)
@@ -112,6 +141,9 @@ func _mois_passe() -> void:
     migration.mois_passe(population, ressources, construction, temps.jour_total)
     decouvertes.mois_passe(population, ressources, recettes, temps.jour_total)
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
+    for c in voisins:
+        c.mois_passe(temps.jour_total, temps.saison_des_pluies())
+    diplomatie.mois_passe()
     population.repartir(temps.jour_total)
     sauvegarder()
 
@@ -137,6 +169,8 @@ func sauvegarder() -> void:
         "equipement": equipement.vers_dict(),
         "decouvertes": decouvertes.vers_dict(),
         "economie": economie.vers_dict(),
+        "voisins": voisins.map(func(c): return c.vers_dict()),
+        "diplomatie": diplomatie.vers_dict(),
     }
     var f := FileAccess.open(DOSSIER + FICHIER + ".tmp", FileAccess.WRITE)
     if f == null:
@@ -169,5 +203,16 @@ func _charger(nom: String) -> bool:
     equipement.depuis_dict(donnees.get("equipement", {}))
     decouvertes.depuis_dict(donnees.get("decouvertes", {}))
     economie.depuis_dict(donnees.get("economie", {}), ressources)
+    if donnees.has("voisins"):
+        voisins = []
+        var ids := ["joueur"]
+        for v in donnees["voisins"]:
+            var c = CLAN.new()
+            c.depuis_dict(v, temps.jour_total)
+            voisins.append(c)
+            ids.append(c.id)
+        diplomatie.depuis_dict(donnees.get("diplomatie", {}), ids)
+    else:
+        _creer_voisins()
     temps.vitesse = 1
     return true
