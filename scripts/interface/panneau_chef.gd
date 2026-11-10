@@ -155,21 +155,28 @@ func _section_agriculture(C, jour: int) -> void:
         boite.add_child(_label("Le clan ne connaît pas encore l'agriculture.", 22))
         return
     boite.add_child(_label("Terre cultivée : %.1f ha — terre libre : %s ha — cultivateurs : %d" % [ag.surface_cultivee(), str(int(ag.terre_libre())), C.population.nombre("cultivateur")], 22))
-    boite.add_child(_ligne([_label("Nouveau champ", 22),
-        _bouton("+ 1 ha", ag.terre_libre() >= 1.0, func(): _faire(C.creer_champ(1.0), "Champ créé (1 ha).")),
-        _bouton("+ 5 ha", ag.terre_libre() >= 5.0, func(): _faire(C.creer_champ(5.0), "Champ créé (5 ha)."))]))
+    boite.add_child(_label("Où ouvrir un champ ? (meilleur sol d'abord)", 22))
+    for k in ag.parcelles_libres().slice(0, 4):
+        var p: Vector2i = C.territoire.pos(k)
+        var libre: float = ag.libre_parcelle(k)
+        var cle: String = k
+        boite.add_child(_ligne([_label("Parcelle (%d, %d) : sol %d %%, %d ha libres" % [p.x, p.y, int(C.territoire.qualite(p) * 100), int(libre)], 21),
+            _bouton("+ 1 ha", libre >= 1.0, func(): _faire(C.creer_champ(1.0, cle), "Champ créé : il faut maintenant le défricher.")),
+            _bouton("+ 5 ha", libre >= 5.0, func(): _faire(C.creer_champ(5.0, cle), "Champ créé : il faut maintenant le défricher."))]))
     for c in ag.champs:
-        var etat := "en friche"
-        if c["etat"] == "seme":
+        var etat := "récolté, prêt à semer" if c["etat"] == "recolte" else "défriché, prêt à semer"
+        if not bool(c["defriche"]):
+            etat = "défrichage %d %%" % int(100.0 * float(c.get("defrichage", 0.0)) / (20.0 * float(c["ha"])))
+        elif c["etat"] == "seme":
             etat = "%s semé, récolte dans %d jours" % [ag.cultures[c["culture"]]["nom"], int(ag.cultures[c["culture"]]["cycle"]) - int(c["jours"])]
-        elif c["etat"] == "recolte":
-            etat = "récolté, prêt à semer"
         var enfants: Array = [_label("Champ %d : %.1f ha, fertilité %d %%, %s" % [int(c["id"]), float(c["ha"]), int(float(c["fertilite"]) * 100), etat], 22)]
-        if c["etat"] != "seme":
+        if c["etat"] != "seme" and bool(c["defriche"]):
             for culture in ag.cultures:
                 var id: int = int(c["id"])
                 enfants.append(_bouton("Semer %s" % ag.cultures[culture]["nom"].to_lower(), true,
                     func(): _faire(C.semer(id, culture), "Champ semé.")))
+        var idc: int = int(c["id"])
+        enfants.append(_bouton("Amender (cendres)", true, func(): _faire(C.amender_champ(idc), "Champ amendé : fertilité en hausse.")))
         boite.add_child(_ligne(enfants))
     var sem: PackedStringArray = []
     for s in ag.semences:

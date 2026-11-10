@@ -102,7 +102,9 @@ func creer(cle: String, fiche: Dictionary, jour: int) -> void:
     territoire.installer(agriculture.ile_id, agriculture.ile, 1 + int(float(fiche.get("anciennete", 0)) / 10.0) + int(ceil(float(fiche.get("champs_ha", 0.0)) / 30.0)), jour)
     # Champs déjà défrichés d'un clan ancien qui cultive.
     if float(fiche.get("champs_ha", 0.0)) > 0.0:
-        agriculture.creer_champ(float(fiche["champs_ha"]))
+        while agriculture.surface_cultivee() < float(fiche["champs_ha"]) - 0.1:
+            if agriculture.creer_champ(float(fiche["champs_ha"]) - agriculture.surface_cultivee()) != "":
+                break
         for ch in agriculture.champs:
             ch["defriche"] = true
     conseil.etat_initial(population, jour, graine + 1)

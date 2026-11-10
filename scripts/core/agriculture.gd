@@ -56,17 +56,92 @@ func terre_libre() -> float:
         limite = minf(limite, territoire.cultivable_possede())
     return maxf(0.0, limite - surface_cultivee())
 
-# Un nouveau champ : il faudra le défricher (travail) avant la première récolte.
-func creer_champ(ha: float) -> String:
-    ha = minf(ha, terre_libre())
+# ---------- Aménagement (v0.3.19 T2) ----------
+# Le joueur choisit la parcelle où il ouvre un champ. Trois notions distinctes :
+#   terre cultivable (potentiel du sol, fixé par la parcelle),
+#   champ défriché (travail fait : 20 jours d'adulte par ha, en saison sèche),
+#   champ semé (cultivé et entretenu).
+# Le défrichement ne crée pas de terre : il rend utilisable le potentiel d'une
+# parcelle acquise. La fertilité dépend de l'île et de la qualité du sol choisi.
+# Amender un champ (cendres) augmente la fertilité, jusqu'à +30 % au plus.
+
+const CENDRES_HA := 200.0          # kg de cendres par ha pour un amendement
+const GAIN_AMENDEMENT := 0.1       # +10 % de fertilité par amendement
+const AMENDEMENT_MAX := 1.3        # au plus 1,3 × la fertilité naturelle
+
+# Terre encore libre dans une parcelle acquise.
+func libre_parcelle(cle: String) -> float:
+    if territoire == null or not territoire.possedees.has(cle):
+        return 0.0
+    var occupe := 0.0
+    for c in champs:
+        if str(c.get("parcelle", territoire.cle(territoire.centre))) == cle:
+            occupe += float(c["ha"])
+    return maxf(0.0, territoire.cultivable(territoire.pos(cle)) - occupe)
+
+# Parcelles acquises qui ont encore de la terre libre, meilleur sol d'abord.
+func parcelles_libres() -> Array:
+    var l: Array = []
+    if territoire == null:
+        return l
+    for k in territoire.possedees:
+        if libre_parcelle(k) >= 0.5:
+            l.append(k)
+    l.sort_custom(func(a, b): return territoire.qualite(territoire.pos(a)) > territoire.qualite(territoire.pos(b)))
+    return l
+
+# Un nouveau champ sur une parcelle choisie ("" = la meilleure terre libre).
+# Il faudra le défricher avant de le semer.
+func creer_champ(ha: float, parcelle := "") -> String:
+    if territoire != null:
+        if parcelle == "":
+            var l := parcelles_libres()
+            if l.is_empty():
+                return "Plus de terre cultivable libre sur notre territoire : acquérez une parcelle."
+            parcelle = l[0]
+        if not territoire.possedees.has(parcelle):
+            return "Cette parcelle n'est pas acquise."
+        ha = minf(ha, libre_parcelle(parcelle))
+    else:
+        ha = minf(ha, terre_libre())
     if ha < 0.1:
-        return "Plus de terre cultivable libre sur notre territoire : acquérez une parcelle."
-    champs.append({"id": prochain_id, "ha": ha, "culture": "", "etat": "friche",
-        "fertilite": float(ile.get("fertilite", 1.0)), "defriche": false,
+        return "Plus de terre cultivable libre ici : choisissez une autre parcelle ou acquérez-en une."
+    var sol: float = territoire.qualite(territoire.pos(parcelle)) if territoire != null else 1.0
+    var fert: float = float(ile.get("fertilite", 1.0)) * sol
+    champs.append({"id": prochain_id, "ha": ha, "culture": "", "etat": "friche", "parcelle": parcelle,
+        "fertilite": fert, "fertilite_max": fert, "defriche": false, "defrichage": 0.0,
         "semis": -1, "jours": 0, "eau": 0.0, "travail": 0.0, "irrigue": false})
     prochain_id += 1
-    evenement.emit("Nouveau champ de %.1f ha (%s)." % [ha, ile.get("nom", ile_id)])
+    evenement.emit("Nouveau champ de %.1f ha à défricher (sol %d %%)." % [ha, int(sol * 100)])
     return ""
+
+# Amender un champ avec des cendres (le feu de cuisine en produit chaque jour).
+func amender(id: int, res) -> String:
+    var c := champ(id)
+    if c.is_empty():
+        return "Champ inconnu."
+    var base: float = float(c.get("fertilite_max", c["fertilite"]))
+    if float(c["fertilite"]) >= base * AMENDEMENT_MAX - 0.001:
+        return "Ce champ est déjà au mieux de sa fertilité."
+    var besoin: float = CENDRES_HA * float(c["ha"])
+    if res.quantite("cendres") < besoin:
+        return "Il faut %d kg de cendres." % int(besoin)
+    res.retirer("cendres", besoin, "amendement")
+    c["fertilite"] = minf(base * AMENDEMENT_MAX, float(c["fertilite"]) + base * GAIN_AMENDEMENT)
+    return ""
+
+func _defricher(force: float) -> float:
+    var a_faire: Array = champs.filter(func(c): return not bool(c["defriche"]))
+    if a_faire.is_empty() or force <= 0.0:
+        return force
+    var c: Dictionary = a_faire[0]
+    var total: float = float(regle.get("defrichage", 20.0)) * float(c["ha"])
+    var fait: float = minf(force, total - float(c.get("defrichage", 0.0)))
+    c["defrichage"] = float(c.get("defrichage", 0.0)) + fait
+    if float(c["defrichage"]) >= total - 0.001:
+        c["defriche"] = true
+        evenement.emit("Champ %d défriché : prêt à semer." % int(c["id"]))
+    return force - fait
 
 func champ(id: int) -> Dictionary:
     for c in champs:
@@ -106,6 +181,8 @@ func semer(id: int, culture: String, res, jour: int, connait: Callable) -> Strin
         return "Culture inconnue."
     if c["etat"] == "seme":
         return "Le champ est déjà semé."
+    if not bool(c["defriche"]):
+        return "Il faut d'abord défricher ce champ (les cultivateurs le font quand ils ne sont pas aux semis)."
     var mois := (jour / 30) % 12
     var irrigue := not peut_semer_sans_irrigation(culture, mois)
     if irrigue and not connait.call("irrigation"):
@@ -129,10 +206,7 @@ func semer(id: int, culture: String, res, jour: int, connait: Callable) -> Strin
     return ""
 
 func travail_requis(c: Dictionary) -> float:
-    var t: float = float(cultures[c["culture"]]["travail"]) * float(c["ha"])
-    if not bool(c["defriche"]):
-        t += float(regle.get("defrichage", 20.0)) * float(c["ha"])
-    return t
+    return float(cultures[c["culture"]]["travail"]) * float(c["ha"])
 
 # ---------- Chaque jour ----------
 
@@ -147,6 +221,9 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     var reste_total := 0.0
     for c in semes:
         reste_total += maxf(0.0, travail_requis(c) - float(c["travail"]))
+    # Sans travaux aux champs semés, les cultivateurs défrichent.
+    if reste_total <= 0.0:
+        _defricher(force)
     var eau_puits: float = cons.effet_total("irrigation_m3_jour")
     for c in semes:
         var reste := maxf(0.0, travail_requis(c) - float(c["travail"]))
@@ -167,7 +244,7 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     var rec := float(regle.get("recuperation_jachere_an", 0.08)) / 360.0
     for c in champs:
         if c["etat"] != "seme":
-            c["fertilite"] = minf(float(ile.get("fertilite", 1.0)), float(c["fertilite"]) + rec)
+            c["fertilite"] = maxf(float(c["fertilite"]), minf(float(c.get("fertilite_max", ile.get("fertilite", 1.0))), float(c["fertilite"]) + rec))
 
 func _remplir_retenue(cons, pluie: bool, mois: int) -> void:
     var cap: float = cons.effet_total("retenue_m3")
@@ -186,7 +263,6 @@ func _recolter(c: Dictionary, res, pop, jour: int) -> void:
     res.ajouter(f["produit"], kg, "production")
     # Le paysan garde de quoi ressemer le même champ (+20 % de sécurité).
     garder_semences(f["produit"], float(f["semence_ha"]) * float(c["ha"]) * 1.2, res)
-    c["defriche"] = c["defriche"] or part_travail >= 0.999
     c["fertilite"] = float(c["fertilite"]) * (1.0 - float(f["epuisement"]))
     c["etat"] = "recolte"
     evenement.emit("Récolte : %.0f kg de %s sur %.1f ha (travail %d %%, eau %d %%)." % [kg, f["nom"], float(c["ha"]), int(part_travail * 100), int(part_eau * 100)])
@@ -268,6 +344,8 @@ func depuis_dict(d: Dictionary) -> void:
     champs = d.get("champs", [])
     for c in champs:
         c["id"] = int(c["id"])
+        if not c.has("defrichage"):   # ancienne sauvegarde : un champ déjà semé était défriché
+            c["defriche"] = bool(c.get("defriche", false)) or c["etat"] != "friche"
     prochain_id = int(d.get("prochain_id", 1))
     eau_retenue = float(d.get("eau_retenue", 0.0))
     semences = {}

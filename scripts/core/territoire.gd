@@ -58,6 +58,18 @@ func cultivable(p: Vector2i) -> float:
     var bruit := float(absi(h) % 1000) / 1000.0            # 0 à 1
     return HA_PARCELLE * clampf(moyenne * (0.4 + 1.2 * bruit), 0.0, 0.95)
 
+# Qualité du sol d'une parcelle (0,8 à 1,2) : bonne terre noire, sable, latérite.
+# Le joueur choisit où cultiver : une meilleure terre donne plus par hectare.
+func qualite(p: Vector2i) -> float:
+    var h: int = hash("sol:%s:%d:%d" % [ile_id, p.x, p.y])
+    return 0.8 + 0.4 * float(absi(h) % 1000) / 1000.0
+
+func pos(cle: String) -> Vector2i:
+    return _pos(cle)
+
+func cle(p: Vector2i) -> String:
+    return _cle(p)
+
 func surface_possedee() -> float:
     return possedees.size() * HA_PARCELLE
 

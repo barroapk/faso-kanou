@@ -171,8 +171,11 @@ func acquerir_parcelle(x: int, z: int) -> String:
     return territoire.acheter(Vector2i(x, z), ressources, temps.jour_total)
 
 # Agriculture du joueur : créer un champ (hectares) et le semer.
-func creer_champ(ha: float) -> String:
-    return agriculture.creer_champ(ha)
+func creer_champ(ha: float, parcelle := "") -> String:
+    return agriculture.creer_champ(ha, parcelle)
+
+func amender_champ(id_champ: int) -> String:
+    return agriculture.amender(id_champ, ressources)
 
 func semer(id_champ: int, culture: String) -> String:
     return agriculture.semer(id_champ, culture, ressources, temps.jour_total, decouvertes.connait)
