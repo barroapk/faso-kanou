@@ -29,6 +29,7 @@ const EXPEDITIONS = preload("res://scripts/core/expeditions.gd")
 const GISEMENTS = preload("res://scripts/core/gisements.gd")
 const FLOTTE = preload("res://scripts/core/flotte.gd")
 const DEFIS = preload("res://scripts/core/defis.gd")
+const RIVAL = preload("res://scripts/core/rival.gd")
 
 var temps
 var population
@@ -55,6 +56,7 @@ var expeditions
 var gisements
 var flotte
 var defis
+var rival
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -98,6 +100,7 @@ func _creer_modules() -> void:
     flotte.depart()
     expeditions.flotte = flotte
     defis = DEFIS.new()
+    rival = RIVAL.new()
     marche.caravanes = caravanes
     voisins = []
     ressources.construction = construction
@@ -132,6 +135,7 @@ func _creer_voisins() -> void:
     # Les surprises (décisions, expéditions) dépendent de la partie, pas toujours les mêmes.
     defis.rng.seed = graine_monde + 11
     expeditions.rng.seed = graine_monde + 12
+    rival.rng.seed = graine_monde + 13
     var rng := RandomNumberGenerator.new()
     rng.seed = graine_monde
     var iles: Dictionary = AGRICULTURE.catalogue_iles()
@@ -389,6 +393,7 @@ func _mois_passe() -> void:
     _visites_ordinateur()
     defis.mois_passe(self)
     _epoques_ordinateur()
+    rival.mois_passe(self)
     marche.mois_passe(_clans(), _ids_voisins(), temps.jour_total, diplomatie)
     population.repartir(temps.jour_total)
     sauvegarder()
@@ -428,6 +433,7 @@ func sauvegarder() -> void:
         "gisements": gisements.vers_dict(),
         "flotte": flotte.vers_dict(),
         "defis": defis.vers_dict(),
+        "rival": rival.vers_dict(),
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
         "graine_monde": graine_monde,
@@ -474,6 +480,7 @@ func _charger(nom: String) -> bool:
     gisements.depuis_dict(donnees.get("gisements", {}))
     flotte.depuis_dict(donnees.get("flotte", {}))
     defis.depuis_dict(donnees.get("defis", {}))
+    rival.depuis_dict(donnees.get("rival", {}))
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     ile_joueur = str(donnees.get("ile_joueur", agriculture.ile_id))

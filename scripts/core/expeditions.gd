@@ -99,7 +99,10 @@ func _payer_vivres(res, kgem: float) -> void:
         var part: float = float(res.aliments[a]) * res.facteur(a) / total
         res.retirer(a, kgem * part / res.facteur(a), "expedition")
 
+# La première île trouvée est toujours Wobé, celle du grand rival BARRO FASO.
 func _inconnue_proche(maison: String) -> String:
+    if maison != "wobe" and int(connues.get("wobe", 0)) < 1:
+        return "wobe"
     var meilleure := ""
     var dmin := INF
     for id in _iles():
@@ -138,7 +141,7 @@ func jour_passe(pop, jour: int, maison: String, clans: Dictionary, moi_id: Strin
     en_cours = {}
     if type == "exploration":
         var trouvee := _inconnue_proche(maison)
-        if trouvee == "" or rng.randf() > CHANCE_DECOUVERTE:
+        if trouvee == "" or (trouvee != "wobe" and rng.randf() > CHANCE_DECOUVERTE):
             evenement.emit("L'expédition revient sans avoir trouvé de nouvelle terre.")
             return
         connues[trouvee] = 1
