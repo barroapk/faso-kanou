@@ -22,6 +22,7 @@ const PRESSION = preload("res://scripts/core/pression.gd")
 const TERRITOIRE = preload("res://scripts/core/territoire.gd")
 const CLOTURES = preload("res://scripts/core/clotures.gd")
 const ROUTES = preload("res://scripts/core/routes.gd")
+const GISEMENTS = preload("res://scripts/core/gisements.gd")
 
 var id := ""
 var nom := ""
@@ -44,6 +45,8 @@ var pression
 var territoire
 var clotures
 var routes
+var gisements
+var _rng_sol := RandomNumberGenerator.new()
 
 func _modules() -> void:
     population = POPULATION.new()
@@ -67,6 +70,7 @@ func _modules() -> void:
     routes = ROUTES.new()
     agriculture.routes = routes
     ressources.routes = routes
+    gisements = GISEMENTS.new()
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
@@ -77,6 +81,7 @@ func _identite(cle: String, fiche: Dictionary) -> void:
     outils_voulus = fiche.get("outils", {})
     agriculture.choisir_ile(fiche.get("ile", "kossi"))
     routes.installer(agriculture.ile)
+    gisements.installer(agriculture.ile)
     ressources.richesse = agriculture.ile.get("richesse", {})
 
 func creer(cle: String, fiche: Dictionary, jour: int) -> void:
@@ -155,6 +160,7 @@ func jour_passe(jour: int, pluie: bool) -> void:
     var chantier: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, jour)
     decouvertes.jour_passe(population, recettes, jour, pression)
+    gisements.jour_passe(population, ressources, routes, jour, _rng_sol)
     equipement.jour_passe(population, chantier)
     ressources.jour_passe(population, jour, pluie, chantier)
     construction.jour_passe(travail_batisseurs())
@@ -286,6 +292,7 @@ func vers_dict() -> Dictionary:
         "territoire": territoire.vers_dict(),
         "clotures": clotures.vers_dict(),
         "routes": routes.vers_dict(),
+        "gisements": gisements.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -313,6 +320,8 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     clotures.depuis_dict(d.get("clotures", {}))
     routes.depuis_dict(d.get("routes", {}))
     routes.installer(agriculture.ile)
+    gisements.depuis_dict(d.get("gisements", {}))
+    gisements.installer(agriculture.ile)
     if not d.has("routes"):
         routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
     territoire.installer(agriculture.ile_id, agriculture.ile, 1 + int(ceil(agriculture.surface_cultivee() / 30.0)), jour)

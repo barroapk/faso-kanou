@@ -10,8 +10,9 @@ const JOURS_PAR_AN := 360
 const AGE_ADULTE := 14
 const PRENOMS_H := ["Ousmane", "Issa", "Adama", "Moussa", "Salif", "Karim", "Boukary", "Noaga", "Idrissa", "Seydou"]
 const PRENOMS_F := ["Aminata", "Fatimata", "Mariam", "Awa", "Salimata", "Rasmata", "Zalissa", "Assita", "Kadiatou", "Bintou"]
-const FEMININ := {"chasseur": "chasseuse", "cueilleur": "cueilleuse", "porteur d'eau": "porteuse d'eau", "bâtisseur": "bâtisseuse"}
-const METIERS_CHOISIS := ["chasseur", "cueilleur", "porteur d'eau", "bâtisseur", "sans métier"]
+const FEMININ := {"chasseur": "chasseuse", "cueilleur": "cueilleuse", "porteur d'eau": "porteuse d'eau", "bâtisseur": "bâtisseuse",
+    "pêcheur": "pêcheuse", "cultivateur": "cultivatrice", "mineur": "mineuse"}
+const METIERS_CHOISIS := ["chasseur", "cueilleur", "pêcheur", "cultivateur", "porteur d'eau", "bâtisseur", "mineur", "sans métier"]
 
 # ---------- Démographie (réglages) ----------
 const AGE_UNION_F := 16
@@ -446,7 +447,7 @@ func _meilleur_candidat(m: String, jour: int):
     return meilleur
 
 func changer_postes(m: String, delta: int, jour: int) -> void:
-    postes[m] = maxi(0, int(postes[m]) + delta)
+    postes[m] = maxi(0, int(postes.get(m, 0)) + delta)
     repartir(jour)
 
 # Plafond de santé quand le sel manque : rien pendant 30 jours, puis -1 point

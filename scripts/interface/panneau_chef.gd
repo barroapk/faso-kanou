@@ -69,6 +69,7 @@ func remplir() -> void:
     _section_agriculture(C, jour)
     _section_clotures(C)
     _section_routes(C)
+    _section_sous_sol(C)
     _section_archipel(C)
     _section_mode(C)
 
@@ -248,6 +249,27 @@ func _section_routes(C) -> void:
             var niv: String = ro.NIVEAUX[actuel + 1]
             var de: String = dest
             enfants.append(_bouton("%s (%s)" % [ro.DEF[niv]["nom"], ro.texte_cout(ro.cout(dest, niv))], true, func(): _faire(C.construire_route(de, niv), "Travaux commencés.")))
+        boite.add_child(_ligne(enfants))
+
+# ---------- Sous-sol : prospecter, ouvrir, extraire ----------
+
+func _section_sous_sol(C) -> void:
+    var g = C.gisements
+    boite.add_child(_label("Sous-sol de l'île", 30))
+    var t := "Gisements à découvrir : %s." % ("peut-être encore" if g.a_decouvrir() > 0 else "aucun")
+    if not g.prospection.is_empty():
+        t += " Prospection en cours (%d jours)." % (int(g.prospection["fin"]) - C.temps.jour_total)
+    boite.add_child(_ligne([_label(t, 21), _bouton("Prospecter (1 adulte, 15 jours)", g.prospection.is_empty() and g.a_decouvrir() > 0, func(): _faire(C.prospecter(), "Prospection lancée."))]))
+    for typ in g.connus:
+        var info: Dictionary = g.connus[typ]
+        var txt := "%s — teneur %d %%, déjà extrait : %d kg" % [g.TYPES[typ]["nom"], int(g.teneur(typ) * 100), int(float(info["extrait"]))]
+        var enfants: Array = [_label(txt, 21)]
+        if not bool(info["ouvert"]):
+            var ty: String = typ
+            enfants.append(_bouton("Ouvrir (50 bois, 20 pierres, route vers %s)" % C.routes.nom(g.TYPES[typ]["route"]), true, func(): _faire(C.ouvrir_site(ty), "Site ouvert.")))
+        else:
+            txt += " — ouvert, mineurs : %d" % C.population.nombre("mineur")
+            enfants[0].text = txt
         boite.add_child(_ligne(enfants))
 
 # ---------- Archipel : explorer, visiter, connaître les autres îles ----------
