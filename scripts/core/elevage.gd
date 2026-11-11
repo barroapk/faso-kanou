@@ -18,6 +18,14 @@ var animaux: Array = []          # {id, esp, sexe, ne, gest_fin, lact_fin, derni
 var prochain_id := 1
 var rng := RandomNumberGenerator.new()
 var elevage_connu := false
+# v0.3.77 (H2a) : régulation de la reproduction par le Premier ministre d'un clan de l'ordinateur.
+# quota_naissances : espèce -> nombre de nouvelles gestations permises ce mois-ci
+# (absente = aucune limite, comme avant). Le joueur n'est jamais limité.
+var quota_naissances := {}
+var prod_kgem_mois := 0.0     # lait et œufs produits ce mois-ci, en kg équivalent mil
+# Animaux affectés à un service (ex. transport : espèce -> nombre). Vide aujourd'hui :
+# aucune espèce ne porte de charge dans le jeu. Place réservée pour le transport futur.
+var service := {"transport": {}}
 
 func _init() -> void:
     rng.seed = 5151
@@ -40,7 +48,7 @@ func ajouter(esp: String, sexe: String, jour: int, age_j := -1) -> void:
     prochain_id += 1
 
 # Besoins prévus par jour (pour le planificateur du chef).
-func prevision(jour: int, pluie: bool, paturage_ha: float) -> Dictionary:
+func prevision(jour: int, pluie: bool, paturage_ha: float, ajouts := {}) -> Dictionary:
     var eau := 0.0
     var grain := 0.0
     var frais := 0.0
@@ -54,13 +62,36 @@ func prevision(jour: int, pluie: bool, paturage_ha: float) -> Dictionary:
             frais += float(e["oeufs_an"]) / 365.0 * 0.05 * 1430.0 / 3400.0
             if jour < int(a["lact_fin"]):
                 frais += float(e["lait_kg_jour"]) * 650.0 / 3400.0
+    # ajouts : bêtes à venir (espèce -> nombre), pour prévoir le coût des gestations en cours.
+    for esp in ajouts:
+        var ea: Dictionary = especes[esp]
+        var na: float = float(ajouts[esp])
+        eau += na * float(ea["eau_jour"])
+        grain += na * float(ea["grain_kgem_jour"])
+        dem += na * float(ea["paturage_ha"])
     var dispo := paturage_ha * (1.0 if pluie else 0.5)
     if dem > dispo:
         for a in animaux:
             var e: Dictionary = especes[a["esp"]]
             if float(e["paturage_ha"]) > 0.0:
                 grain += float(e["fourrage_kgem"]) * (1.0 - dispo / dem)
+        for esp in ajouts:
+            var eb: Dictionary = especes[esp]
+            if float(eb["paturage_ha"]) > 0.0:
+                grain += float(ajouts[esp]) * float(eb["fourrage_kgem"]) * (1.0 - dispo / dem)
     return {"eau": eau, "grain": grain, "frais": frais}
+
+# Petits attendus d'une gestation (portée moyenne x survie), pour les budgets.
+func petits_attendus(esp: String) -> float:
+    var e: Dictionary = especes[esp]
+    return (float(e["portee"][0]) + float(e["portee"][1])) / 2.0 * float(e["survie_petits"])
+
+func _quota_permet(esp: String) -> bool:
+    return not quota_naissances.has(esp) or int(quota_naissances[esp]) > 0
+
+func _quota_utiliser(esp: String) -> void:
+    if quota_naissances.has(esp):
+        quota_naissances[esp] = int(quota_naissances[esp]) - 1
 
 func _retirer_grain(res, kgem: float) -> float:
     var reste := kgem
@@ -139,8 +170,9 @@ func jour_passe(res, pop, jour: int, pluie: bool, paturage_ha: float) -> void:
                     naissances.append(a["esp"])
         # Nouvelle gestation : un mâle adulte de l'espèce, une seule à la fois.
         elif int(a["gest_fin"]) < 0 and jour - int(a["derniere"]) >= int(e["intervalle_j"]) and float(a["etat"]) > 0.6 and rng.randf() < 1.0 / 60.0:
-            if animaux.any(func(m): return m["esp"] == a["esp"] and m["sexe"] == "m" and adulte(m, jour)):
+            if animaux.any(func(m): return m["esp"] == a["esp"] and m["sexe"] == "m" and adulte(m, jour)) and _quota_permet(a["esp"]):
                 a["gest_fin"] = jour + int(e["gestation_j"])
+                _quota_utiliser(a["esp"])
         if jour < int(a["lact_fin"]):
             lait += float(e["lait_kg_jour"]) * float(a["etat"])
         if int(a["gest_fin"]) < 0 and float(e["oeufs_an"]) > 0.0:
@@ -149,6 +181,7 @@ func jour_passe(res, pop, jour: int, pluie: bool, paturage_ha: float) -> void:
         animaux.erase(a)
     for esp in naissances:
         ajouter(esp, "f" if rng.randf() < 0.5 else "m", jour, 0)
+    prod_kgem_mois += lait * 650.0 / 3400.0 + oeufs * 1430.0 / 3400.0
     if lait > 0.0:
         res.ajouter("lait", lait, "production")
     if oeufs > 0.0:

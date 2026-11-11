@@ -88,6 +88,7 @@ func _modules() -> void:
     gouvernement = GOUVERNEMENT.new()
     besoins.elevage = elevage
     besoins.agriculture = agriculture
+    besoins.regule_troupeau = true      # v0.3.77 : le PM d'un clan de l'ordinateur règle la reproduction
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:

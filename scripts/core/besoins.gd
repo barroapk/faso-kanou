@@ -46,6 +46,8 @@ func verrouiller(m: String, jour: int) -> void:
 
 func mois_passe(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
     _contexte(population, ressources, construction, jour, pluie, chantier_actif)
+    if regule_troupeau:
+        _regler_troupeau()
     if mode == "auto":
         _ajuster_postes()
         var calme := jour - dernier_changement < DELAI_CHANGEMENT and not _urgence_plan()
@@ -714,6 +716,12 @@ func _score(delta: Dictionary, strict := true) -> float:
         var besoin_el := 0.0
         for a in elevage.animaux:
             besoin_el += 1.0 / float(elevage.especes[a["esp"]]["eleveur_pour"])
+        if regule_troupeau:
+            # H2a : le soin ne dépasse pas le budget de main-d'œuvre, et sous tension
+            # alimentaire les éleveurs vont d'abord à la nourriture.
+            besoin_el = minf(besoin_el, PART_TRAVAIL_TROUPEAU * float(_adultes()))
+            if _tension_nourriture():
+                besoin_el = 0.0
         score += minf(float(postes.get("éleveur", 0)), ceilf(besoin_el)) * 150.0
     if _chantier and int(postes.get("bâtisseur", 0)) >= 1:
         score += 30.0
@@ -993,3 +1001,129 @@ func depuis_dict(d: Dictionary) -> void:
     verrou = {}
     for m in d.get("verrou", {}):
         verrou[m] = int(d["verrou"][m])
+
+# ---------- Régulation du troupeau (v0.3.77, H2a) ----------
+# Le troupeau reçoit un budget tiré des ressources réelles du clan. Ce budget ne
+# règle QUE la reproduction (des gestations permises chaque mois) : aucun abattage
+# ni aucune vente forcée ici (H2b). Valeurs provisoires, à calibrer.
+const SEUIL_REPRODUCTION := 0.8          # part du budget au-delà de laquelle on ne laisse plus naître
+const PART_TRAVAIL_TROUPEAU := 0.25      # part des adultes (éleveurs + porteurs des bêtes) au plus
+const EAU_EN_KG := 0.08                  # 1 L d'eau = 0,08 kg de nourriture (travail d'un porteur)
+const PART_EXCEDENT_RESERVE := 0.5       # part de l'excédent de réserve mobilisable
+const RESERVE_PROTEGEE_JOURS := 90.0
+const ETALEMENT_JOURS := 360.0
+const NOYAU_TETES := 4                   # 1 mâle + 3 femelles par espèce
+const TENSION_JOURS := 60.0
+const ROUGE_JOURS := 30.0
+
+var regule_troupeau := false             # vrai pour les clans de l'ordinateur seulement
+var _hist_prod_humaine: Array = []       # production mensuelle de nourriture, sans lait ni œufs (12 mois)
+var budget_troupeau := {}                # dernier calcul, pour le diagnostic
+
+func _conso_nourriture_humains() -> float:
+    var c := 0.0
+    for h in _pop.habitants:
+        var table: Dictionary = _res.CONSO_ENFANT if _pop.age(h, _jour) < _pop.AGE_ADULTE else _res.CONSO_ADULTE
+        c += float(table.get("nourriture", 0.0))
+    return c
+
+# La réserve de vivres tiendra-t-elle jusqu'à la récolte ? Sinon, moins de 60 jours
+# de nourriture au rythme actuel (bêtes comprises) = tension.
+func _tension_nourriture() -> bool:
+    if _cache.has("tension"):
+        return bool(_cache["tension"])
+    var net: float = _production("nourriture") - _conso("nourriture")
+    var t := false
+    if net < 0.0:
+        var tenue: float = _res.total_aliments() / -net
+        if tenue < TENSION_JOURS:
+            t = true
+            if agriculture != null:
+                var r: int = agriculture.prochaine_recolte()
+                if r > _jour and float(r - _jour) <= tenue:
+                    t = false
+    _cache["tension"] = t
+    return t
+
+func _zone_rouge() -> bool:
+    if reserve_vivres_jours() < ROUGE_JOURS or _famine_imminente():
+        return true
+    var ce: float = _conso("eau")
+    return ce > 0.0 and float(_res.stocks["eau"]) / ce < 10.0
+
+func _regler_troupeau() -> void:
+    if elevage == null:
+        return
+    # Production humaine du mois (sans lait ni œufs : ils ne comptent pas comme production nette).
+    var prod_bete: float = elevage.prod_kgem_mois
+    elevage.prod_kgem_mois = 0.0
+    var prod_mois: float = float(_res.flux.get("production", {}).get("nourriture", 0.0))
+    _hist_prod_humaine.append(maxf(0.0, prod_mois - prod_bete))
+    if _hist_prod_humaine.size() > 12:
+        _hist_prod_humaine.pop_front()
+    if elevage.animaux.is_empty() or _hist_prod_humaine.size() < 3:
+        elevage.quota_naissances = {}
+        return
+    # Production humaine par jour : fenêtre de 90 jours, plafonnée par la moyenne de l'année
+    # (une récolte tombe tous les 80 à 120 jours : sans ce plafond, elle gonflerait le budget).
+    var n3: int = 3
+    var s3 := 0.0
+    for i in n3:
+        s3 += float(_hist_prod_humaine[_hist_prod_humaine.size() - 1 - i])
+    var s12 := 0.0
+    for v in _hist_prod_humaine:
+        s12 += float(v)
+    var p_h: float = minf(s3 / (30.0 * n3), s12 / (30.0 * _hist_prod_humaine.size()))
+    var c_h: float = _conso_nourriture_humains()
+    # Bêtes : coût actuel + petits attendus des gestations en cours (saison sèche : le cas dur).
+    var attendus := {}
+    for a in elevage.animaux:
+        if int(a["gest_fin"]) >= 0:
+            attendus[a["esp"]] = float(attendus.get(a["esp"], 0.0)) + elevage.petits_attendus(a["esp"])
+    var p0: Dictionary = elevage.prevision(_jour, false, paturage_ha, attendus)
+    var rend_p: float = maxf(0.1, _rend(PORTEUR, "eau", 0))
+    var cout: float = float(p0["grain"]) + EAU_EN_KG * float(p0["eau"])
+    var besoin_el := 0.0
+    for a in elevage.animaux:
+        besoin_el += 1.0 / float(elevage.especes[a["esp"]]["eleveur_pour"])
+    for esp in attendus:
+        besoin_el += float(attendus[esp]) / float(elevage.especes[esp]["eleveur_pour"])
+    var travail: float = besoin_el + float(p0["eau"]) / rend_p
+    # Budget nourriture : le plus grand de deux financements, jamais leur somme
+    # (une récolte compte dans le flux ET dans la réserve).
+    var surplus: float = maxf(0.0, p_h - c_h)
+    var deficit_h: float = maxf(0.0, c_h - p_h)
+    var protege: float = RESERVE_PROTEGEE_JOURS * (c_h + float(p0["grain"]))
+    var excedent: float = maxf(0.0, _res.total_aliments() - protege - ETALEMENT_JOURS * deficit_h)
+    var budget: float = maxf(surplus, PART_EXCEDENT_RESERVE * excedent / ETALEMENT_JOURS)
+    var cap_travail: float = PART_TRAVAIL_TROUPEAU * float(_adultes())
+    var zone := "verte"
+    if _zone_rouge():
+        zone = "rouge"
+    elif _tension_nourriture():
+        zone = "orange"
+    var marge_n: float = SEUIL_REPRODUCTION * budget - cout
+    var marge_t: float = SEUIL_REPRODUCTION * cap_travail - travail
+    var especes_f: Array = []
+    for a in elevage.animaux:
+        if a["sexe"] == "f" and elevage.adulte(a, _jour) and not especes_f.has(a["esp"]):
+            especes_f.append(a["esp"])
+    var quotas := {}
+    for esp in especes_f:
+        var q := 0
+        if zone == "verte" and marge_n > 0.0 and marge_t > 0.0:
+            var plus: Dictionary = attendus.duplicate()
+            var litt: float = elevage.petits_attendus(esp)
+            plus[esp] = float(plus.get(esp, 0.0)) + litt
+            var p1: Dictionary = elevage.prevision(_jour, false, paturage_ha, plus)
+            var dc: float = (float(p1["grain"]) - float(p0["grain"])) + EAU_EN_KG * (float(p1["eau"]) - float(p0["eau"]))
+            var dt: float = litt / float(elevage.especes[esp]["eleveur_pour"]) + (float(p1["eau"]) - float(p0["eau"])) / rend_p
+            var qn: float = marge_n / float(especes_f.size()) / maxf(0.0001, dc)
+            var qt: float = marge_t / float(especes_f.size()) / maxf(0.0001, dt)
+            q = int(floor(minf(qn, qt)))
+        # Noyau de repeuplement : une petite espèce peut se reconstituer, sauf en zone rouge.
+        if zone != "rouge" and elevage.nombre(esp) < NOYAU_TETES:
+            q = maxi(q, 1)
+        quotas[esp] = maxi(0, q)
+    elevage.quota_naissances = quotas
+    budget_troupeau = {"zone": zone, "budget": budget, "cout": cout, "surplus": surplus, "excedent": excedent, "travail": travail, "cap_travail": cap_travail, "p_h": p_h, "c_h": c_h, "quotas": quotas}
