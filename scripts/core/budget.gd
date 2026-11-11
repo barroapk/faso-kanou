@@ -18,11 +18,12 @@ const TAUX_MAX := 0.30
 const SANS_MALUS := 0.10
 const INTOUCHABLES := ["nourriture", "eau", "plantes_medicinales"]
 const MOTIFS_PRODUCTION := ["production", "extraction"]
-const MOTIFS_DEPENSE := ["construction", "entretien"]
+const MOTIFS_DEPENSE := ["construction", "entretien", "salaires"]
 const RESERVE_BOIS_JOURS := 20.0
 const JOURNAL_MAX := 24
 
 var taux := 0.0
+var finances = null           # finances.gd : journal des recettes et dépenses (v0.3.59)
 var caisse := {}
 var journal: Array = []        # {jour, taux, base, du, recettes, depenses}
 var total_recettes := {}
@@ -115,6 +116,8 @@ func mois_passe(res, pop, jour: int, eco) -> void:
                 if res.retirer(id, q, "impot"):
                     caisse[id] = quantite(id) + q
                     _recettes[id] = float(_recettes.get(id, 0.0)) + q
+                    if finances != null:
+                        finances.noter("rec", "impot", id, q)
                     total_recettes[id] = float(total_recettes.get(id, 0.0)) + q
     journal.append({"jour": jour, "taux": taux, "base": base, "du": du, "recettes": _recettes.duplicate(), "depenses": _depenses.duplicate(true)})
     while journal.size() > JOURNAL_MAX:

@@ -74,6 +74,7 @@ func remplir() -> void:
     _section_flotte(C)
     _section_archipel(C)
     _section_budget(C)
+    boite.add_child(_label(C.finances.texte(C), 21))
     _section_force(C, jour)
     _section_raids(C)
     _section_sante(C, jour)

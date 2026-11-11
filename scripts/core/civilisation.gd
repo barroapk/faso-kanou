@@ -37,6 +37,7 @@ const ELEVAGE = preload("res://scripts/core/elevage.gd")
 const GUERRE = preload("res://scripts/core/guerre.gd")
 const RAID = preload("res://scripts/core/raid.gd")
 const GOUVERNEMENT = preload("res://scripts/core/gouvernement.gd")
+const FINANCES = preload("res://scripts/core/finances.gd")
 
 var temps
 var population
@@ -71,6 +72,7 @@ var elevage
 var guerre
 var raids
 var gouvernement
+var finances
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -98,6 +100,10 @@ func _creer_modules() -> void:
     economie = ECONOMIE.new()
     budget = BUDGET.new()
     ressources.budget = budget
+    finances = FINANCES.new()
+    finances.eco = economie
+    ressources.finances = finances
+    budget.finances = finances
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
@@ -560,6 +566,7 @@ func ignorer_alerte(cle: String) -> String:
     return chef.ignorer(cle, temps.jour_total)
 
 func _jour_passe() -> void:
+    finances.jour_passe(self, temps.jour_total)
     var chantier_actif: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, temps.jour_total)
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
@@ -682,6 +689,7 @@ func sauvegarder() -> void:
         "guerre": guerre.vers_dict(),
         "raids": raids.vers_dict(),
         "gouvernement": gouvernement.vers_dict(),
+        "finances": finances.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -738,6 +746,7 @@ func _charger(nom: String) -> bool:
     guerre.depuis_dict(donnees.get("guerre", {}))
     raids.depuis_dict(donnees.get("raids", {}))
     gouvernement.depuis_dict(donnees.get("gouvernement", {}))
+    finances.depuis_dict(donnees.get("finances", {}))
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

@@ -98,6 +98,7 @@ var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (a
 # Flux du mois, pour la comptabilité (economie.gd) : motif -> {ressource: quantité}
 # (+ entrée, - sortie). La nourriture est comptée en kgEM sous "nourriture".
 var flux := {}
+var finances = null              # finances.gd : journal comptable (v0.3.59)
 var budget = null                # budget.gd : caisse commune hors stocks (v0.3.40)
 var prod_metier := {}            # nourriture produite par métier depuis le dernier plan du chef (v0.3.34)
 
@@ -275,12 +276,15 @@ func quantite_commune(id: String) -> float:
 
 # Retire q si c'est possible ; sinon ne retire rien et renvoie false.
 func retirer(id: String, q: float, motif := "transfert") -> bool:
+    var q0 := q
     if budget != null and q > 0.0:
         q -= budget.depenser(id, q, motif)
         if q <= 0.000001:
+            _compter(id, q0, motif)
             return true
     if quantite(id) + 0.000001 < q:
         return false
+    _compter(id, q0, motif)
     if _lieu(id) != "outils":
         noter(motif, _cle_compte(id), -_q_compte(id, minf(q, quantite(id))))
     match _lieu(id):
@@ -299,6 +303,11 @@ func retirer(id: String, q: float, motif := "transfert") -> bool:
     return true
 
 # Vivres en kgEM : la « nourriture » n'est pas un produit, c'est la somme des aliments.
+# Dépense publique (chantiers, entretien) : écrite une seule fois au journal, quelle que soit la source des biens.
+func _compter(id: String, q: float, motif: String) -> void:
+    if finances != null and (motif == "construction" or motif == "entretien"):
+        finances.noter("dep", motif, id, q)
+
 func retirer_vivres(kgem: float, motif := "transfert") -> bool:
     if kgem <= 0.0 or total_aliments() + 0.000001 < kgem:
         return false

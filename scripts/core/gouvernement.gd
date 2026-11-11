@@ -179,6 +179,12 @@ func _finances(c) -> Dictionary:
         ["Production permise", "%d %% de la normale" % int(round(float(b.facteur_productivite()) * 100.0))],
         ["Réserve commune", b._liste(b.caisse)],
     ]
+    var fi = c.get("finances")
+    if fi != null:
+        var e: Dictionary = fi.etat(c)
+        ind.append(["Santé financière", "%s%s" % [{"stable": "stable", "alerte": "alerte", "critique": "critique", "incapacite": "incapable de payer", "sans": "pas encore de budget public"}.get(str(e["code"]), "?"), (" (%d jours de réserve)" % int(e["jours"])) if float(e["jours"]) >= 0.0 else ""]])
+        if float(fi.arrieres) > 0.0001:
+            ind.append(["Salaires impayés", "%d kg de mil équivalent" % int(round(float(fi.arrieres)))])
     var besoins: Array = []
     if float(b.taux) > float(b.SANS_MALUS) + 0.0001:
         besoins.append("Impôt au-dessus de 10 % : le travail rend moins.")
