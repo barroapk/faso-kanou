@@ -36,6 +36,7 @@ const HISTOIRE = preload("res://scripts/core/histoire.gd")
 const ELEVAGE = preload("res://scripts/core/elevage.gd")
 const GUERRE = preload("res://scripts/core/guerre.gd")
 const RAID = preload("res://scripts/core/raid.gd")
+const GOUVERNEMENT = preload("res://scripts/core/gouvernement.gd")
 
 var temps
 var population
@@ -69,6 +70,7 @@ var histoire
 var elevage
 var guerre
 var raids
+var gouvernement
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -121,6 +123,7 @@ func _creer_modules() -> void:
     elevage = ELEVAGE.new()
     guerre = GUERRE.new()
     raids = RAID.new()
+    gouvernement = GOUVERNEMENT.new()
     raids.sur_renommee = func(d): defis.renommee = maxi(0, int(defis.renommee) + int(d))
     besoins.elevage = elevage
     histoire = HISTOIRE.new()
@@ -677,6 +680,7 @@ func sauvegarder() -> void:
         "elevage": elevage.vers_dict(),
         "guerre": guerre.vers_dict(),
         "raids": raids.vers_dict(),
+        "gouvernement": gouvernement.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -732,6 +736,7 @@ func _charger(nom: String) -> bool:
     elevage.depuis_dict(donnees.get("elevage", {}))
     guerre.depuis_dict(donnees.get("guerre", {}))
     raids.depuis_dict(donnees.get("raids", {}))
+    gouvernement.depuis_dict(donnees.get("gouvernement", {}))
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

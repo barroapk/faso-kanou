@@ -77,6 +77,7 @@ func remplir() -> void:
     _section_force(C, jour)
     _section_raids(C)
     _section_sante(C, jour)
+    _section_gouvernement(C, jour)
     _section_mode(C)
 
 # ---------- Ascension : décisions, défis, époque ----------
@@ -307,6 +308,21 @@ func _section_raids(C) -> void:
         var txt := "%s : %s" % [v.nom, ("raid possible — %d guerriers, force %.1f contre %.1f estimée, %d jours, butin attendu %d kg pour %d kg de vivres" % [int(e["n"]), float(e["force"]), float(e["defense_estimee"]), int(e["jours"]), int(e["butin"]), int(e["vivres"])]) if bool(e["possible"]) else str(e["raison"])]
         var vid: String = v.id
         boite.add_child(_ligne([_label(txt, 21), _bouton("Raid", bool(e["possible"]), func(): _faire(C.lancer_raid(vid), "Le raid est parti."))]))
+
+func _section_gouvernement(C, jour: int) -> void:
+    var g = C.gouvernement
+    boite.add_child(_label("Gouvernement", 30))
+    boite.add_child(_label("Maturité : %s (%s). Aucun ministère constitué : ce tableau montre les systèmes qui existent déjà, sans bonus administratif." % [g.maturite()["nom"], g.maturite()["texte"]], 21))
+    for s in g.tableau(C, jour):
+        boite.add_child(_label(str(s["nom"]), 24))
+        var lignes: PackedStringArray = []
+        for i in s["indicateurs"]:
+            lignes.append("%s : %s" % [i[0], i[1]])
+        boite.add_child(_label("\n".join(lignes), 21))
+        if not s["besoins"].is_empty():
+            boite.add_child(_label("À surveiller : " + " ".join(s["besoins"]), 21))
+        boite.add_child(_label("Rattaché : " + ", ".join(s["rattaches"]), 21))
+    boite.add_child(_label("Secteurs prévus : " + ", ".join(g.prevus()), 21))
 
 func _section_budget(C) -> void:
     boite.add_child(_label("Budget du clan", 30))

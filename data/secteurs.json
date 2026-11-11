@@ -1,0 +1,24 @@
+{
+  "_notes": "Socle du gouvernement (v0.3.52). Un secteur n'est pas un ministère : il apparaît d'abord comme tableau de bord des systèmes existants. 'source' = adaptateur qui lit les données réelles. Ajouter un secteur plus tard = une ligne ici + un adaptateur, sans toucher au socle.",
+  "maturites": [
+    {"id": "coutumiere", "nom": "Coutumière", "texte": "Chef, conseil et responsabilités traditionnelles"},
+    {"id": "emergente", "nom": "Émergente", "texte": "Responsables confiés à certaines fonctions"},
+    {"id": "organisee", "nom": "Organisée", "texte": "Premiers ministères et institutions permanentes"},
+    {"id": "administrative", "nom": "Administrative", "texte": "Ministres, services, archives, lois écrites"},
+    {"id": "avancee", "nom": "Avancée", "texte": "Gouvernement spécialisé, administrations complexes"}
+  ],
+  "secteurs": {
+    "sante": {"nom": "Santé", "source": "sante", "mission": "Soigner les malades avec des guérisseurs, des plantes et une infirmerie."},
+    "defense": {"nom": "Défense", "source": "defense", "mission": "Protéger le clan et monter des raids avec des combattants et des armes."},
+    "finances": {"nom": "Finances", "source": "finances", "mission": "Prélever l'impôt en nature et financer chantiers et entretien."},
+    "justice": {"nom": "Justice", "source": "", "prevu": "étape justice"},
+    "education": {"nom": "Éducation et savoirs", "source": "", "prevu": "étape éducation"},
+    "securite": {"nom": "Sécurité intérieure", "source": "", "prevu": "plus tard"},
+    "construction": {"nom": "Construction et infrastructures", "source": "", "prevu": "plus tard"},
+    "agriculture": {"nom": "Agriculture, élevage et alimentation", "source": "", "prevu": "plus tard"},
+    "commerce": {"nom": "Commerce et économie", "source": "", "prevu": "plus tard"},
+    "etranger": {"nom": "Affaires étrangères", "source": "", "prevu": "plus tard"},
+    "mines": {"nom": "Mines et carrières", "source": "", "prevu": "plus tard"},
+    "travail": {"nom": "Travail et population", "source": "", "prevu": "plus tard"}
+  }
+}

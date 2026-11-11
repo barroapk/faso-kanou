@@ -26,6 +26,7 @@ const GISEMENTS = preload("res://scripts/core/gisements.gd")
 const FLOTTE = preload("res://scripts/core/flotte.gd")
 const ELEVAGE = preload("res://scripts/core/elevage.gd")
 const GUERRE = preload("res://scripts/core/guerre.gd")
+const GOUVERNEMENT = preload("res://scripts/core/gouvernement.gd")
 
 var id := ""
 var nom := ""
@@ -54,6 +55,7 @@ var gisements
 var flotte
 var elevage
 var guerre
+var gouvernement
 var _rng_sol := RandomNumberGenerator.new()
 
 func _modules() -> void:
@@ -83,6 +85,7 @@ func _modules() -> void:
     flotte.depart()
     elevage = ELEVAGE.new()
     guerre = GUERRE.new()
+    gouvernement = GOUVERNEMENT.new()
     besoins.elevage = elevage
     ressources.construction = construction
 
@@ -359,6 +362,7 @@ func vers_dict() -> Dictionary:
         "flotte": flotte.vers_dict(),
         "elevage": elevage.vers_dict(),
         "guerre": guerre.vers_dict(),
+        "gouvernement": gouvernement.vers_dict(),
     }
 
 func depuis_dict(d: Dictionary, jour: int) -> void:
@@ -392,6 +396,7 @@ func depuis_dict(d: Dictionary, jour: int) -> void:
     flotte.depuis_dict(d.get("flotte", {}))
     elevage.depuis_dict(d.get("elevage", {}))
     guerre.depuis_dict(d.get("guerre", {}))
+    gouvernement.depuis_dict(d.get("gouvernement", {}))
     gisements.installer(agriculture.ile)
     if not d.has("routes"):
         routes.sentiers_existants(["eau", "foret"] + agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
