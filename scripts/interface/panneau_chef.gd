@@ -337,6 +337,9 @@ func _section_gouvernement(C, jour: int) -> void:
         _postes_secteur(C, str(s["id"]), jour)
     boite.add_child(_label("Secteurs prévus : " + ", ".join(g.prevus()), 21))
 
+func _offrir(C, vid: String, kg: float) -> void:
+    _faire(C.offrir_vivres(vid, kg), "Cadeau envoyé : la relation s'améliore.")
+
 func _lancer_mission(C, did: String, jour: int, niveau := "normal") -> void:
     var r: String = C.missions.lancer(C, jour, niveau)
     if r == "":
@@ -376,6 +379,17 @@ func _section_rapport(C, jour: int) -> void:
         var tv: Dictionary = r.get("travail", {})
         if not tv.is_empty():
             boite.add_child(_label(C.travail.texte(tv), 21))
+        var vs: Array = r.get("voisins", [])
+        boite.add_child(_label(R.texte_voisins(vs), 21))
+        for x in vs:
+            var rf: float = float(x["ref"])
+            var plein: int = int(round(rf))
+            var demi: int = int(round(rf / 2.0))
+            var infos := "Cadeau de vivres à %s : %d kg = +%d, %d kg = +%d" % [x["nom"], plein, int(round(C.diplomatie.gain_cadeau(plein, rf))), demi, int(round(C.diplomatie.gain_cadeau(demi, rf)))]
+            if int(x["repos"]) > 0:
+                infos += " (disponible dans %d jours)" % int(x["repos"])
+            boite.add_child(_label(infos, 21))
+            boite.add_child(_ligne([_bouton("Offrir %d kg" % demi, int(x["repos"]) == 0, _offrir.bind(C, str(x["id"]), float(demi))), _bouton("Offrir %d kg" % plein, int(x["repos"]) == 0, _offrir.bind(C, str(x["id"]), float(plein)))]))
         var dm: Dictionary = r.get("demographie", {})
         if not dm.is_empty():
             boite.add_child(_label(R.texte_demographie(dm), 21))

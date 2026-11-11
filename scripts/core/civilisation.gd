@@ -578,6 +578,72 @@ func appliquer_proposition(cle: String, index: int) -> String:
 func commander_recette(id: String, nombre := 1) -> String:
     return recettes.commander(id, population, ressources, construction, temps.jour_total, nombre)
 
+# ---------- Relations : cadeaux et aide entre alliés (v0.3.69) ----------
+const RESERVE_CADEAU_JOURS := 30.0     # le joueur garde 30 jours de vivres après un cadeau
+const RESERVE_ALLIE_JOURS := 60.0      # un allié ne donne que ce qui dépasse 60 jours de ses vivres
+const AIDE_JOURS := 5.0                # une aide couvre 5 jours de besoin du bénéficiaire
+const AIDE_MIN_KG := 10.0
+
+func voisin_connu(v) -> bool:
+    return v.vivant() and int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 1
+
+# Quantité de référence d'un cadeau complet : 5 jours de vivres du clan qui reçoit (20 kg au moins).
+func reference_cadeau(vid: String) -> float:
+    var v = _clan(vid)
+    if v == null:
+        return 20.0
+    return maxf(20.0, AIDE_JOURS * float(v.ressources._conso_jour(v.population, temps.jour_total, "nourriture")))
+
+# Le joueur offre des vivres : retirés de son stock, ajoutés chez le voisin, relation améliorée
+# (+10 au plus, selon la quantité). La mémoire des événements n'est jamais effacée.
+func offrir_vivres(vid: String, kg: float) -> String:
+    var v = _clan(vid)
+    var j: int = temps.jour_total
+    if v == null or not voisin_connu(v):
+        return "Ce clan n'est pas connu."
+    var repos: int = diplomatie.repos_restant("cadeau", "joueur", vid, j, diplomatie.CADEAU_REPOS)
+    if repos > 0:
+        return "Un cadeau a déjà été fait à ce clan : encore %d jour(s) à attendre." % repos
+    var libre: float = float(v.ressources.capacite("nourriture")) - float(v.ressources.total_aliments())
+    kg = minf(kg, libre)
+    if kg < 1.0:
+        return "Leur grenier est plein : ils ne peuvent rien recevoir."
+    var reserve: float = RESERVE_CADEAU_JOURS * float(ressources._conso_jour(population, j, "nourriture"))
+    if ressources.total_aliments() - kg < reserve:
+        return "Il vous resterait moins de %d jours de vivres." % int(RESERVE_CADEAU_JOURS)
+    if not ressources.retirer_vivres(kg, "cadeau"):
+        return "Pas assez de vivres."
+    v.ressources.ajouter_vivres(kg, "cadeau")
+    var gain: float = diplomatie.gain_cadeau(kg, reference_cadeau(vid))
+    diplomatie.noter("joueur", vid, "cadeau", gain, "cadeau de %d kg de vivres" % int(round(kg)), j)
+    diplomatie.noter_repos("cadeau", "joueur", vid, j)
+    return ""
+
+# Chaque mois : un allié aide le joueur seulement si le joueur connaît une famine réelle, si l'allié
+# garde 60 jours de vivres pour lui, avec un plafond et un repos de 60 jours par clan. Transfert réel.
+# Un allié qui ne peut pas aider n'est pas un traître : rien ne se rompt.
+func _aides_allies() -> void:
+    if not ressources.faim:
+        return
+    var j: int = temps.jour_total
+    for v in voisins:
+        if not voisin_connu(v) or diplomatie.etat("joueur", v.id) != "alliance":
+            continue
+        if diplomatie.repos_restant("aide", "joueur", v.id, j, diplomatie.AIDE_REPOS) > 0:
+            continue
+        var surplus: float = float(v.ressources.total_aliments()) - RESERVE_ALLIE_JOURS * float(v.ressources._conso_jour(v.population, j, "nourriture"))
+        var besoin: float = AIDE_JOURS * float(ressources._conso_jour(population, j, "nourriture"))
+        var libre: float = float(ressources.capacite("nourriture")) - float(ressources.total_aliments())
+        var kg: float = minf(minf(besoin, surplus), libre)
+        if kg < AIDE_MIN_KG:
+            continue
+        if not v.ressources.retirer_vivres(kg, "aide"):
+            continue
+        ressources.ajouter_vivres(kg, "aide")
+        diplomatie.noter("joueur", v.id, "aide", 2.0, "aide alimentaire de %d kg en pleine famine" % int(round(kg)), j)
+        diplomatie.noter_repos("aide", "joueur", v.id, j)
+        diplomatie.evenement.emit("Aide alimentaire : %s vous envoie %d kg de vivres." % [v.nom, int(round(kg))])
+
 func ignorer_alerte(cle: String) -> String:
     return chef.ignorer(cle, temps.jour_total)
 
@@ -656,11 +722,12 @@ func _mois_passe() -> void:
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
     preload("res://scripts/core/echanges_animaux.gd").mois(voisins, temps.jour_total)
-    diplomatie.mois_passe()
+    diplomatie.mois_passe(temps.jour_total)
     raids.mois_passe()
     institutions.mois_passe(self, temps.jour_total)
     satisfaction.mois_passe(self, temps.jour_total)
     ressources.facteur_stabilite = satisfaction.facteur_productivite()
+    _aides_allies()
     rapports.mois_passe(self, temps.jour_total)
     travail.nouveau_mois()
     raids.decider(_clans(), temps.jour_total, caravanes, diplomatie, Callable(self, "_raid_connait"))

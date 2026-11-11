@@ -11,6 +11,12 @@ const MEMOIRE_MAX := 50
 const OUBLI_MOIS := 0.995
 const DEPART := {"barro_faso|joueur": -20.0, "joueur|konate": 10.0, "barro_faso|konate": 0.0}
 
+const SEUIL_OUBLI_RAPIDE := -50.0
+const JOURS_SANS_HOSTILE := 180
+const CADEAU_MAX := 10.0
+const CADEAU_REPOS := 30
+const AIDE_REPOS := 60
+var repos := {}       # "cadeau|a|b" ou "aide|a|b" -> jour de la dernière action
 var relations := {}   # "a|b" (ordre alphabétique) -> {score, alliance, memoire}
 
 func cle(a: String, b: String) -> String:
@@ -65,18 +71,60 @@ func rompre_alliance(a: String, b: String, jour: int) -> void:
         relation(a, b)["alliance"] = false
         noter(a, b, "trahison", -40.0, "alliance rompue", jour)
 
-func mois_passe() -> void:
+# Oubli mensuel. v0.3.69 : pour les relations du joueur seulement, un score très bas (sous -50)
+# s'efface deux fois plus vite (1 % au lieu de 0,5 %) après 6 mois sans aucun événement hostile.
+# Dès qu'un nouvel événement hostile est noté, l'accélération s'arrête d'elle-même. La mémoire
+# des événements n'est jamais effacée.
+func mois_passe(jour := -1) -> void:
     for k in relations:
-        relations[k]["score"] = float(relations[k]["score"]) * OUBLI_MOIS
+        var f := OUBLI_MOIS
+        if jour >= 0 and str(k).split("|").has("joueur") and float(relations[k]["score"]) < SEUIL_OUBLI_RAPIDE and _jours_sans_hostile(relations[k], jour) >= JOURS_SANS_HOSTILE:
+            f = 1.0 - 2.0 * (1.0 - OUBLI_MOIS)
+        relations[k]["score"] = float(relations[k]["score"]) * f
+
+func _jours_sans_hostile(r: Dictionary, jour: int) -> int:
+    var dernier_hostile := -1000000
+    for m in r["memoire"]:
+        if float(m["effet"]) < 0.0:
+            dernier_hostile = maxi(dernier_hostile, int(m["jour"]))
+    return jour - dernier_hostile
+
+# Somme des effets enregistrés sur les derniers jours (la tendance vient des événements, pas d'une impression).
+func tendance(a: String, b: String, jour: int, fenetre := 30) -> float:
+    var s := 0.0
+    for m in relation(a, b)["memoire"]:
+        if int(m["jour"]) > jour - fenetre:
+            s += float(m["effet"])
+    return s
+
+func dernier_evenement(a: String, b: String) -> Dictionary:
+    var mem: Array = relation(a, b)["memoire"]
+    return mem[mem.size() - 1] if not mem.is_empty() else {}
+
+# Cadeau de vivres : le gain dépend de la quantité réellement offerte, plafonné à +10.
+func gain_cadeau(kg: float, ref: float) -> float:
+    return CADEAU_MAX * clampf(kg / maxf(1.0, ref), 0.0, 1.0)
+
+func repos_restant(type: String, a: String, b: String, jour: int, duree: int) -> int:
+    var k := "%s|%s" % [type, cle(a, b)]
+    if not repos.has(k):
+        return 0
+    return maxi(0, int(repos[k]) + duree - jour)
+
+func noter_repos(type: String, a: String, b: String, jour: int) -> void:
+    repos["%s|%s" % [type, cle(a, b)]] = jour
 
 func vers_dict() -> Dictionary:
-    return {"relations": relations}
+    return {"relations": relations, "repos": repos}
 
 func depuis_dict(d: Dictionary, ids: Array) -> void:
     if d.is_empty():
         etat_initial(ids)
         return
     relations = {}
+    repos = {}
+    for k in d.get("repos", {}):
+        repos[str(k)] = int(d["repos"][k])
     for k in d.get("relations", {}):
         var r: Dictionary = d["relations"][k]
         relations[str(k)] = {"score": float(r.get("score", 0.0)), "alliance": bool(r.get("alliance", false)), "memoire": r.get("memoire", [])}

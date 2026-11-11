@@ -139,6 +139,47 @@ func _somme(m: Dictionary) -> int:
         n += int(m[k])
     return n
 
+# Relations avec les clans connus : état, tendance (somme des événements des 30 derniers jours),
+# dernier événement réel, conséquences concrètes lues dans les règles existantes du jeu.
+const CONSEQUENCES := {
+    "hostilité": "plus de marché avec lui ; vos délégations n'apprennent rien sur lui ; il peut vous attaquer.",
+    "rivalité": "frais de marché 10 % ; vos délégations apprennent moitié moins ; il peut vous attaquer.",
+    "neutralité": "frais de marché 5 % ; il ne vous attaque que s'il a faim.",
+    "amitié": "frais de marché 3 % ; vos délégations apprennent 50 % de plus ; il ne vous attaque pas.",
+    "alliance": "frais de marché 1 % ; vos délégations apprennent deux fois plus ; il ne vous attaque pas ; il peut vous aider en cas de famine réelle.",
+}
+
+func _voisins(c, jour: int) -> Array:
+    var l: Array = []
+    for v in c.voisins:
+        if not c.voisin_connu(v):
+            continue
+        var d = c.diplomatie
+        var e: String = d.etat("joueur", v.id)
+        var der: Dictionary = d.dernier_evenement("joueur", v.id)
+        var ami: bool = e == "alliance" or e == "amitié"
+        l.append({"id": v.id, "nom": v.nom, "etat": e, "score": float(d.relation("joueur", v.id)["score"]),
+            "tendance": d.tendance("joueur", v.id, jour, 30),
+            "dernier": str(der.get("texte", "")), "il_y_a": (jour - int(der["jour"])) if not der.is_empty() else -1,
+            "famine": ami and bool(v.ressources.faim),
+            "repos": d.repos_restant("cadeau", "joueur", v.id, jour, d.CADEAU_REPOS), "ref": c.reference_cadeau(v.id)})
+    return l
+
+static func texte_voisins(l: Array) -> String:
+    if l.is_empty():
+        return "Relations : aucun clan connu pour l'instant."
+    var s := "Relations avec les clans connus :"
+    for x in l:
+        var t: float = float(x["tendance"])
+        var tend := "stable" if absf(t) < 0.5 else ("%+d sur 30 jours" % int(round(t)))
+        s += "\n- %s : %s (score %d), %s." % [x["nom"], x["etat"], int(round(float(x["score"]))), tend]
+        if str(x["dernier"]) != "":
+            s += " Dernier événement : %s (il y a %d jours)." % [x["dernier"], int(x["il_y_a"])]
+        s += " Conséquences : %s" % CONSEQUENCES.get(x["etat"], "")
+        if bool(x["famine"]):
+            s += " Ce clan connaît la famine : un cadeau de vivres est possible."
+    return s
+
 func _blocages(c, jour: int) -> Array:
     var l: Array = []
     for s in c.gouvernement.tableau(c, jour):
@@ -198,7 +239,7 @@ func mois_passe(c, jour: int) -> void:
     if dernier_jour < 0:
         dernier_jour = jour - 30
     var pm: Dictionary = c.conseil.habitant(c.population, int(c.conseil.chef_id)) if int(c.conseil.chef_id) >= 0 else {}
-    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour), "travail": c.travail.etat(c.population, jour)}
+    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour), "travail": c.travail.etat(c.population, jour), "voisins": _voisins(c, jour)}
     dernier_jour = jour
     # Demandes : on retire celles qui n'ont plus d'objet, on ajoute les nouvelles besoins réels.
     var actives := {}
