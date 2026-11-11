@@ -18,6 +18,20 @@ const NOMS := {"sante": "Santé", "defense": "Défense", "finances": "Finances"}
 const DELAI_REPROPOSITION := 180
 const MAX_DEMANDES := 6
 const DECISIONS_GARDEES := 20
+const DELAI_REPORT := 30
+const MAX_URGENCE := 3
+const URGENCES := ["normale", "élevée", "haute", "critique"]
+# Indicateur de satisfaction qui mesure le problème derrière chaque demande (sinon : pas de mesure).
+const LIES := {"sante_guerisseur": "sante", "sante_plantes": "sante", "sante_soins": "sante", "finances_arrieres": "salaires"}
+const SI_RIEN := {
+    "sante_guerisseur": "les malades ne sont pas soignés : la satisfaction santé baisse, puis la stabilité du clan.",
+    "sante_plantes": "les soins manquent de plantes : les malades restent sans traitement.",
+    "sante_soins": "des malades restent sans soin : la satisfaction santé baisse.",
+    "defense_armes": "des combattants restent sans arme : le clan est plus faible face aux raids.",
+    "defense_effectif": "le clan ne peut pas mobiliser de groupe en cas de menace.",
+    "finances_budget": "chantiers et entretien continuent de se payer sur les stocks des habitants.",
+    "finances_reserve": "la réserve s'épuise : salaires et entretien risquent de ne plus être payés.",
+    "finances_arrieres": "les salaires impayés s'accumulent : la satisfaction salaires baisse."}
 
 var dernier := {}                 # dernier rapport mensuel
 var demandes: Array = []          # en attente : {id, secteur, texte, cout, jour}
@@ -124,6 +138,8 @@ func _alerte(c) -> String:
     var e: Dictionary = c.finances.etat(c)
     if str(e["code"]) == "critique" or str(e["code"]) == "incapacite":
         l.append("les finances sont critiques")
+    if str(c.satisfaction.statut) != "stable":
+        l.append("la stabilité du clan est %s (%d %%)" % [c.satisfaction.statut, int(round(c.satisfaction.stabilite))])
     return ", ".join(l)
 
 # ---------- Chaque mois (après les institutions) ----------
@@ -132,16 +148,20 @@ func mois_passe(c, jour: int) -> void:
     if dernier_jour < 0:
         dernier_jour = jour - 30
     var pm: Dictionary = c.conseil.habitant(c.population, int(c.conseil.chef_id)) if int(c.conseil.chef_id) >= 0 else {}
-    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c)}
+    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat()}
     dernier_jour = jour
     # Demandes : on retire celles qui n'ont plus d'objet, on ajoute les nouvelles besoins réels.
     var actives := {}
     for cand in _candidates(c, jour):
         actives[cand["id"]] = cand
     var gardees: Array = []
+    var revenues := 0
     for d in demandes:
         if actives.has(d["id"]):
             d["texte"] = actives[d["id"]]["texte"]
+            if str(d.get("etat", "attente")) == "reportee" and jour >= int(d.get("jusqu", 0)):
+                _reformuler(c, d, jour)
+                revenues += 1
             gardees.append(d)
         else:
             _noter_decision(d, "sans objet", jour)
@@ -157,14 +177,50 @@ func mois_passe(c, jour: int) -> void:
         if delais.has(id) and jour - int(delais[id]) < DELAI_REPROPOSITION:
             continue
         var a: Dictionary = actives[id]
-        demandes.append({"id": id, "secteur": a["secteur"], "texte": a["texte"], "cout": a["cout"], "jour": jour})
+        demandes.append({"id": id, "secteur": a["secteur"], "texte": a["texte"], "cout": a["cout"], "jour": jour, "etat": "attente", "urgence": 0, "jusqu": 0, "ref": -1.0, "reports": 0, "note": "", "si_rien": SI_RIEN.get(id, "")})
         nouvelles += 1
     if str(dernier["alerte"]) != derniere_alerte:
         derniere_alerte = str(dernier["alerte"])
         if derniere_alerte != "":
             evenement.emit("Rapport du Premier ministre : alerte, %s." % derniere_alerte)
-    if nouvelles > 0:
-        evenement.emit("Rapport du Premier ministre : %d demande(s) en attente de votre décision." % demandes.size())
+    if nouvelles > 0 or revenues > 0:
+        var attente := 0
+        for d in demandes:
+            if str(d.get("etat", "attente")) == "attente":
+                attente += 1
+        evenement.emit("Rapport du Premier ministre : %d demande(s) en attente de votre décision." % attente)
+
+# Une demande reportée revient devant le dirigeant : la MÊME demande, reformulée d'après les faits.
+# Son urgence ne monte que si l'indicateur lié montre que le problème persiste.
+func _reformuler(c, d: Dictionary, jour: int) -> void:
+    d["etat"] = "attente"
+    var lie: String = str(LIES.get(str(d["id"]), ""))
+    var avant: float = float(d.get("ref", -1.0))
+    var apres: float = c.satisfaction.valeur(lie) if lie != "" else -1.0
+    var depuis: int = jour - int(d.get("jusqu", jour)) + DELAI_REPORT
+    if lie != "" and avant >= 0.0 and apres >= 0.0:
+        var nom: String = c.satisfaction.NOMS[lie].to_lower()
+        if apres <= avant + 2.0:
+            d["urgence"] = mini(MAX_URGENCE, int(d.get("urgence", 0)) + 1)
+            d["note"] = "Reportée depuis %d jours : le problème persiste (satisfaction %s %d %% puis %d %%)." % [depuis, nom, int(round(avant)), int(round(apres))]
+        else:
+            d["note"] = "Reportée depuis %d jours : la situation s'améliore (satisfaction %s %d %% puis %d %%)." % [depuis, nom, int(round(avant)), int(round(apres))]
+    else:
+        d["note"] = "Reportée depuis %d jours : aucun indicateur ne permet de mesurer l'évolution, l'urgence reste inchangée." % depuis
+
+# Le dirigeant remet la décision à plus tard. La demande reste suivie, aucune décision n'est enregistrée comme refus.
+func reporter(id: String, jour: int, valeur_ref: float) -> String:
+    for d in demandes:
+        if d["id"] == id:
+            if str(d.get("etat", "attente")) == "reportee":
+                return "Cette demande est déjà reportée."
+            d["etat"] = "reportee"
+            d["jusqu"] = jour + DELAI_REPORT
+            d["ref"] = valeur_ref
+            d["reports"] = int(d.get("reports", 0)) + 1
+            _noter_decision(d, "reportee", jour)
+            return ""
+    return "Cette demande n'existe plus."
 
 func _noter_decision(d: Dictionary, choix: String, jour: int) -> void:
     decisions.append({"id": d["id"], "secteur": d["secteur"], "texte": d["texte"], "choix": choix, "jour": jour})

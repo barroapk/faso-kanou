@@ -44,6 +44,7 @@ const REGLES := [
     ["institutions", "Institutions : ", "Politique", false],
     ["rapports", "Rapport du Premier ministre : alerte", "Politique", false],
     ["missions", "Mission : ", "Politique", false],
+    ["satisfaction", "Stabilité : ", "Politique", false],
     ["gouvernement", " est relevé de ses fonctions", "Politique", false],
     ["routes", " terminé.", "Construction", true],
 ]

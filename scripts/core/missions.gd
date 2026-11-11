@@ -18,6 +18,8 @@ signal evenement(texte)
 const NOMS := {"armes": "Équiper les combattants"}
 const ARMES := ["lance", "arc"]
 const MAX_ARMES := 4
+const MAX_RENFORCE := 6
+const NIVEAUX := {"moitie": "Moitié", "normal": "Normal", "renforce": "Renforcé"}
 const MARGE_SOUS_ESTIMATION := 0.4
 const TOLERANCE_RETARD := 0.25
 const MAX_BLOQUE_MOYENS := 20
@@ -39,8 +41,8 @@ func note_impossible(id: String) -> String:
 
 # ---------- Devis ----------
 
-func devis(c, jour: int) -> Dictionary:
-    var d := {"possible": false, "raison": "", "type": "armes"}
+func devis(c, jour: int, niveau := "normal") -> Dictionary:
+    var d := {"possible": false, "raison": "", "type": "armes", "niveau": niveau}
     if not actuelle.is_empty():
         d["raison"] = "Une mission est déjà en cours."
         return d
@@ -58,6 +60,10 @@ func devis(c, jour: int) -> Dictionary:
         d["raison"] = "Les combattants sont déjà équipés (au moins une arme pour deux)."
         return d
     var cible: int = mini(manque, MAX_ARMES)
+    if niveau == "moitie":
+        cible = maxi(1, int(ceil(float(cible) / 2.0)))
+    elif niveau == "renforce":
+        cible = mini(MAX_RENFORCE, int(ceil(float(cible) * 1.5)))
     var choix := ""
     var n := 0
     for id in ARMES:
@@ -104,12 +110,12 @@ func _liste(m: Dictionary) -> String:
     return ", ".join(l)
 
 func texte_devis(d: Dictionary) -> String:
-    return "Devis : %d × %s. Matières retirées dès le lancement : %s. Responsable : %s (compétence %d). Durée annoncée : %d jour(s). Durée réellement estimée : %d jour(s). Plus la compétence du ministre est basse, plus l'annonce est optimiste." % [int(d["nombre"]), d["nom"], _liste(d["entrees"]), d["resp_nom"], int(d["comp"]), int(d["annoncee"]), int(d["reelle"])]
+    return "Devis %s : %d × %s. Matières retirées dès le lancement : %s. Responsable : %s (compétence %d). Durée annoncée : %d jour(s). Durée réellement estimée : %d jour(s). Plus la compétence du ministre est basse, plus l'annonce est optimiste." % [NIVEAUX[d["niveau"]].to_lower(), int(d["nombre"]), d["nom"], _liste(d["entrees"]), d["resp_nom"], int(d["comp"]), int(d["annoncee"]), int(d["reelle"])]
 
 # ---------- Lancement ----------
 
-func lancer(c, jour: int) -> String:
-    var d: Dictionary = devis(c, jour)
+func lancer(c, jour: int, niveau := "normal") -> String:
+    var d: Dictionary = devis(c, jour, niveau)
     if not d["possible"]:
         return str(d["raison"])
     var raison: String = c.recettes.commander(d["recette"], c.population, c.ressources, c.construction, jour, int(d["nombre"]))

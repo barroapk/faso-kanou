@@ -337,8 +337,8 @@ func _section_gouvernement(C, jour: int) -> void:
         _postes_secteur(C, str(s["id"]), jour)
     boite.add_child(_label("Secteurs prévus : " + ", ".join(g.prevus()), 21))
 
-func _lancer_mission(C, did: String, jour: int) -> void:
-    var r: String = C.missions.lancer(C, jour)
+func _lancer_mission(C, did: String, jour: int, niveau := "normal") -> void:
+    var r: String = C.missions.lancer(C, jour, niveau)
     if r == "":
         C.rapports.decider(did, "acceptee", jour)
     _faire(r, "Mission lancée.")
@@ -364,6 +364,13 @@ func _section_rapport(C, jour: int) -> void:
             else:
                 t += "\n   Taux d'exécution : indisponible (%s)" % str(s["raison"])
             boite.add_child(_label(t, 21))
+        var st: Dictionary = r.get("satisfaction", {})
+        if not st.is_empty():
+            var sl: PackedStringArray = []
+            for k in C.satisfaction.CLES:
+                sl.append(C.satisfaction.texte_valeur(k))
+            var faible: String = (" Point faible : " + C.satisfaction.NOMS[st["faible"]].to_lower() + ".") if str(st["faible"]) != "" else ""
+            boite.add_child(_label("Satisfaction (30 derniers jours) : " + ", ".join(sl) + ".\nStabilité du clan : %d %% (%s).%s Effet pratique : aucun pour l'instant, c'est un indicateur." % [int(round(float(st["stabilite"]))), st["statut"], faible], 21))
         if not r["blocages"].is_empty():
             boite.add_child(_label("Blocages : " + " ; ".join(PackedStringArray(r["blocages"])), 21))
     boite.add_child(_label("Demandes (accepter ou refuser enregistre seulement votre décision : rien n'est exécuté)", 24))
@@ -372,20 +379,41 @@ func _section_rapport(C, jour: int) -> void:
     var M = C.missions
     for d in R.demandes:
         var did: String = str(d["id"])
-        if did == "defense_armes":
-            var dv: Dictionary = M.devis(C, jour)
-            boite.add_child(_label("%s : %s" % [R.NOMS[d["secteur"]], d["texte"]], 21))
-            if dv["possible"]:
-                boite.add_child(_label(M.texte_devis(dv), 21))
-            else:
-                boite.add_child(_label("Mission impossible pour l'instant : " + str(dv["raison"]), 21))
-            boite.add_child(_ligne([_bouton("Lancer la mission", bool(dv["possible"]), func(): _lancer_mission(C, did, jour)),
-                _bouton("Refuser", true, func(): _faire(R.decider(did, "refusee", jour), "Décision enregistrée."))]))
-            continue
+        var reportee: bool = str(d.get("etat", "attente")) == "reportee"
+        var urg: int = int(d.get("urgence", 0))
+        var t: String = "%s : %s" % [R.NOMS[d["secteur"]], d["texte"]]
+        t += "\n   Urgence : %s." % R.URGENCES[urg]
+        if str(d.get("note", "")) != "":
+            t += " " + str(d["note"])
+        if str(d.get("si_rien", "")) != "":
+            t += "\n   Si rien n'est fait : " + str(d["si_rien"])
         var note: String = M.note_impossible(did)
-        boite.add_child(_ligne([_label("%s : %s (coût : %s)%s" % [R.NOMS[d["secteur"]], d["texte"], d["cout"], (" Note : " + note) if note != "" else ""], 21),
-            _bouton("Accepter", true, func(): _faire(R.decider(did, "acceptee", jour), "Décision enregistrée : aucune exécution à ce stade.")),
-            _bouton("Refuser", true, func(): _faire(R.decider(did, "refusee", jour), "Décision enregistrée."))]))
+        if did != "defense_armes":
+            t += "\n   Coût : %s.%s" % [d["cout"], (" Note : " + note) if note != "" else ""]
+        if reportee:
+            t += "\n   Reportée jusqu'au jour %d : le problème reste suivi." % int(d.get("jusqu", 0))
+        boite.add_child(_label(t, 21))
+        if did == "defense_armes":
+            var vus := {}
+            for niv in ["moitie", "normal", "renforce"]:
+                var dv: Dictionary = M.devis(C, jour, niv)
+                if not dv["possible"]:
+                    if niv == "normal":
+                        boite.add_child(_label("Mission impossible pour l'instant : " + str(dv["raison"]), 21))
+                    continue
+                if vus.has(int(dv["nombre"])):
+                    continue
+                vus[int(dv["nombre"])] = true
+                boite.add_child(_ligne([_label(M.texte_devis(dv), 21), _bouton("Lancer (%s)" % M.NIVEAUX[niv].to_lower(), true, func(): _lancer_mission(C, did, jour, niv))]))
+        var l: Array = []
+        l.append(_bouton("Accepter", true, func(): _faire(R.decider(did, "acceptee", jour), "Décision enregistrée : aucune exécution à ce stade.")))
+        if not reportee:
+            var ref: float = C.satisfaction.valeur(str(R.LIES.get(did, ""))) if R.LIES.has(did) else -1.0
+            l.append(_bouton("Reporter", true, func(): _faire(R.reporter(did, jour, ref), "Demande reportée : elle reste suivie.")))
+        l.append(_bouton("Refuser", true, func(): _faire(R.decider(did, "refusee", jour), "Décision enregistrée : le besoin reste, avec ses conséquences.")))
+        if did == "defense_armes":
+            l.remove_at(0)
+        boite.add_child(_ligne(l))
     var pr: String = M.texte_actuelle(jour)
     boite.add_child(_label("Projets : " + (pr if pr != "" else "aucune mission en cours."), 21))
     if not M.terminees.is_empty():
