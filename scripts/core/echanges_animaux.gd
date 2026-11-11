@@ -46,9 +46,9 @@ static func _vendre(v, voisins: Array, jour: int) -> void:
         if acheteurs.is_empty():
             continue
         var b = acheteurs[el.rng.randi() % acheteurs.size()]
-        if not b.ressources.retirer("nourriture", prix, "achat animal"):
+        if not b.ressources.retirer_vivres(prix, "achat animal"):
             continue
-        v.ressources.ajouter("nourriture", prix, "vente animal")
+        v.ressources.ajouter_vivres(prix, "vente animal")
         el.animaux.erase(a)
         b.elevage.ajouter(esp, a["sexe"], jour, jour - int(a["ne"]))
         return

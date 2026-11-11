@@ -35,6 +35,7 @@ const HEROS = preload("res://scripts/core/heros.gd")
 const HISTOIRE = preload("res://scripts/core/histoire.gd")
 const ELEVAGE = preload("res://scripts/core/elevage.gd")
 const GUERRE = preload("res://scripts/core/guerre.gd")
+const RAID = preload("res://scripts/core/raid.gd")
 
 var temps
 var population
@@ -67,6 +68,7 @@ var heros
 var histoire
 var elevage
 var guerre
+var raids
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -118,6 +120,7 @@ func _creer_modules() -> void:
     population.sortie.connect(heros.sur_depart.bind(false))
     elevage = ELEVAGE.new()
     guerre = GUERRE.new()
+    raids = RAID.new()
     besoins.elevage = elevage
     histoire = HISTOIRE.new()
     histoire.observer(self)
@@ -484,6 +487,19 @@ func amender_fumier(id_champ: int) -> String:
 func semer(id_champ: int, culture: String) -> String:
     return agriculture.semer(id_champ, culture, ressources, temps.jour_total, decouvertes.connait)
 
+# Raids du joueur (v0.3.48) : un clan visité, un petit groupe, un bateau, des vivres à prendre.
+func evaluer_raid(cible: String) -> Dictionary:
+    var v = voisin(cible)
+    if v == null:
+        return {"possible": false, "raison": "Clan inconnu."}
+    return raids.evaluer(self, "joueur", v, cible, temps.jour_total, caravanes, int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 2, diplomatie)
+
+func lancer_raid(cible: String) -> String:
+    var v = voisin(cible)
+    if v == null:
+        return "Clan inconnu."
+    return raids.lancer(self, "joueur", v, cible, temps.jour_total, caravanes, int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 2, diplomatie)
+
 func voisin(cle: String):
     for c in voisins:
         if c.id == cle:
@@ -537,6 +553,7 @@ func _jour_passe() -> void:
     defis.jour_passe(self)
     equipement.jour_passe(population, chantier_actif)
     guerre.jour_passe(population, temps.jour_total)
+    raids.jour_passe(Callable(self, "_clan"), temps.jour_total, diplomatie)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
     if construction.chantiers.is_empty():
@@ -643,6 +660,7 @@ func sauvegarder() -> void:
         "histoire": histoire.vers_dict(),
         "elevage": elevage.vers_dict(),
         "guerre": guerre.vers_dict(),
+        "raids": raids.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -697,6 +715,7 @@ func _charger(nom: String) -> bool:
     histoire.depuis_dict(donnees.get("histoire", {}))
     elevage.depuis_dict(donnees.get("elevage", {}))
     guerre.depuis_dict(donnees.get("guerre", {}))
+    raids.depuis_dict(donnees.get("raids", {}))
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

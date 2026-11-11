@@ -298,6 +298,23 @@ func retirer(id: String, q: float, motif := "transfert") -> bool:
                 objets.erase(id)
     return true
 
+# Vivres en kgEM : la « nourriture » n'est pas un produit, c'est la somme des aliments.
+func retirer_vivres(kgem: float, motif := "transfert") -> bool:
+    if kgem <= 0.0 or total_aliments() + 0.000001 < kgem:
+        return false
+    _retirer(kgem)
+    stocks["nourriture"] = total_aliments()
+    noter(motif, "nourriture", -kgem)
+    return true
+
+func ajouter_vivres(kgem: float, motif := "transfert", id := "mil") -> void:
+    if kgem <= 0.0:
+        return
+    var f: float = maxf(0.01, facteur(id))
+    aliments[id] = float(aliments.get(id, 0.0)) + kgem / f
+    stocks["nourriture"] = total_aliments()
+    noter(motif, "nourriture", kgem)
+
 # ---------- Comptabilité des mouvements ----------
 
 func noter(motif: String, r: String, q: float) -> void:

@@ -26,6 +26,11 @@ func mois_passe(C) -> void:
         return
     var jour: int = C.temps.jour_total
     var chef: String = b.nom_du_chef()
+    # Défi perdu : BARRO FASO a atteint l'époque visée avant nous.
+    if defi_lance >= 0 and b.epoque >= defi_lance and C.defis.epoque < defi_lance:
+        evenement.emit("%s a gagné son défi : il entre le premier dans l'époque %s." % [chef, C.defis.EPOQUES[defi_lance]])
+        defi_lance = -1
+    # La course aux époques.
     if C.defis.epoque > derniere_epoque_joueur:
         derniere_epoque_joueur = C.defis.epoque
         if b.epoque < C.defis.epoque:
@@ -33,10 +38,6 @@ func mois_passe(C) -> void:
             evenement.emit("Nous avons devancé BARRO FASO : %s le reconnaît à contrecœur (renommée +10) !" % chef)
             if defi_lance == C.defis.epoque:
                 C.defis.renommee += 10
-    # Défi perdu : BARRO FASO a atteint l'époque visée avant nous.
-    if defi_lance >= 0 and b.epoque >= defi_lance and C.defis.epoque < defi_lance:
-        evenement.emit("%s a gagné son défi : il entre le premier dans l'époque %s." % [chef, C.defis.EPOQUES[defi_lance]])
-        defi_lance = -1
                 C.diplomatie.noter("joueur", ID, "defi", 4.0, "défi relevé", jour)
                 evenement.emit("Défi gagné contre %s : il salue notre clan (renommée +10)." % chef)
             defi_lance = -1

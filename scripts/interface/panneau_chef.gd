@@ -75,6 +75,7 @@ func remplir() -> void:
     _section_archipel(C)
     _section_budget(C)
     _section_force(C, jour)
+    _section_raids(C)
     _section_sante(C, jour)
     _section_mode(C)
 
@@ -284,6 +285,20 @@ func _section_force(C, jour: int) -> void:
     var mp: int = C.guerre.max_protecteurs(C.population, jour)
     boite.add_child(_label("Protecteurs : %d (maximum %d). Un protecteur consacre 25 %% de son temps à garder le clan : sa production baisse, son combat progresse." % [np, mp], 21))
     boite.add_child(_ligne([_label("Nombre de protecteurs", 22), _bouton("−", np > 0, func(): _regler_protecteurs(C, jour, np - 1)), _bouton("+", np < mp, func(): _regler_protecteurs(C, jour, np + 1))]))
+
+func _section_raids(C) -> void:
+    boite.add_child(_label("Raids", 30))
+    boite.add_child(_label("Un raid envoie un petit groupe par bateau prendre des vivres à un clan visité. Il consomme des vivres, expose vos guerriers et détériore les relations. Pas de conquête.", 21))
+    var t: String = C.raids.texte("joueur")
+    if t != "":
+        boite.add_child(_label(t, 21))
+    for v in C.voisins:
+        if not v.vivant() or int(C.expeditions.connues.get(v.agriculture.ile_id, 0)) < 2:
+            continue
+        var e: Dictionary = C.evaluer_raid(v.id)
+        var txt := "%s : %s" % [v.nom, ("raid possible — %d guerriers, force %.1f contre %.1f estimée, %d jours, butin attendu %d kg pour %d kg de vivres" % [int(e["n"]), float(e["force"]), float(e["defense_estimee"]), int(e["jours"]), int(e["butin"]), int(e["vivres"])]) if bool(e["possible"]) else str(e["raison"])]
+        var vid: String = v.id
+        boite.add_child(_ligne([_label(txt, 21), _bouton("Raid", bool(e["possible"]), func(): _faire(C.lancer_raid(vid), "Le raid est parti."))]))
 
 func _section_budget(C) -> void:
     boite.add_child(_label("Budget du clan", 30))
