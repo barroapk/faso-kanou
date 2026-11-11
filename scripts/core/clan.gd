@@ -224,7 +224,7 @@ func mois_passe(jour: int, pluie: bool) -> void:
     besoins.mois_passe(population, ressources, construction, jour, pluie, not construction.chantiers.is_empty())
     _gerer(jour)
     elevage.mois_passe(ressources, population, jour)
-    agriculture.gerer_auto(population, ressources, jour, decouvertes.connait)
+    agriculture.gerer_auto(population, ressources, jour, decouvertes.connait, besoins.conversion_permise)
     if decouvertes.connait("agriculture"):
         territoire.gerer_auto(agriculture, ressources, jour, 4.0)
     routes.gerer_auto(ressources, territoire, agriculture)

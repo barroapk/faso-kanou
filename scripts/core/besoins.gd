@@ -764,7 +764,7 @@ func _planifier() -> void:
                 gain = v
                 meilleur = d
             for de in metiers:
-                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or _bloque(de, base) or _garde_porteur(de):
+                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or _bloque(de, base) or _garde_porteur(de) or (vers == "cultivateur" and _conversion_dangereuse(de)):
                     continue
                 d = {de: -1, vers: 1}
                 v = _score(d)
@@ -827,6 +827,48 @@ func _famine_imminente() -> bool:
     var avant_recolte: float = float(recolte - _jour)
     var net: float = _production("nourriture") - c
     return avant_recolte > 0.0 and net < 0.0 and stock / -net < avant_recolte
+
+# ---------- Calendrier de la récolte (v0.3.75) ----------
+# Un cultivateur ne rapporte qu'à la récolte, 80 à 120 jours après le semis ; un
+# pêcheur, un chasseur ou un cueilleur rapporte chaque jour. Convertir un
+# producteur quotidien en cultivateur n'est donc sûr que si les vivres couvrent
+# le manque jusqu'à la récolte.
+
+# Jours avant la prochaine récolte : la date réelle des champs semés ; sinon la
+# durée du cycle de la culture que le clan sèmerait (celle dont il a les semences).
+func _jours_avant_recolte() -> float:
+    if agriculture == null:
+        return 0.0
+    var r: int = agriculture.prochaine_recolte()
+    if r > _jour:
+        return float(r - _jour)
+    for cu in ["sorgho", "mil", "fonio"]:
+        if not agriculture.cultures.has(cu):
+            continue
+        var dispo := 0.0
+        for s in agriculture.cultures[cu]["semences"]:
+            dispo = maxf(dispo, float(agriculture.semences.get(s, 0.0)) + _res.quantite(s))
+        if dispo >= float(agriculture.cultures[cu]["semence_ha"]):
+            return float(agriculture.cultures[cu]["cycle"])
+    return 100.0
+
+# Convertir un « de » (producteur quotidien) en cultivateur est dangereux si les
+# vivres ne couvrent pas, jusqu'à la récolte, l'écart entre la consommation et ce
+# que produit le clan SANS les cultivateurs et SANS ce travailleur. Jamais
+# dangereux pour un métier qui ne produit pas de nourriture, ni quand les champs
+# déjà semés réclament des cultivateurs.
+func _conversion_dangereuse(de: String) -> bool:
+    if de == "cultivateur" or _rendement(de, "nourriture") <= 0.0:
+        return false
+    if int(_pop.postes.get("cultivateur", 0)) < _cultivateurs_requis():
+        return false
+    var sans: float = _production("nourriture") - float(_pop.postes.get("cultivateur", 0)) * _rendement("cultivateur", "nourriture") - _rendement(de, "nourriture")
+    var fuite: float = maxf(0.0, _conso("nourriture") - sans)
+    return _res.total_aliments() < _jours_avant_recolte() * fuite
+
+# Pour l'agriculture du clan de l'ordinateur : peut-on retirer un « de » de son poste pour en faire un cultivateur ?
+func conversion_permise(de: String) -> bool:
+    return not _conversion_dangereuse(de)
 
 # Jours de vivres en réserve (pour les décisions du clan de l'ordinateur).
 func reserve_vivres_jours() -> float:

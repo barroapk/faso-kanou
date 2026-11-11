@@ -359,13 +359,13 @@ func surface_travaillable(force_jour: float, culture: String) -> float:
 
 # Avant et pendant les semis : un champ à la taille des cultivateurs, semé avec
 # la meilleure culture dont on a les semences.
-func gerer_auto(pop, res, jour: int, connait: Callable) -> void:
+func gerer_auto(pop, res, jour: int, connait: Callable, peut_convertir := Callable()) -> void:
     if not connait.call("agriculture"):
         return
     var mois := (jour / 30) % 12
     if not mois in [4, 5, 6]:
         return
-    _postes_cultivateurs(pop, jour)
+    _postes_cultivateurs(pop, jour, peut_convertir)
     var n: int = int(pop.postes.get("cultivateur", 0))
     var force_jour: float = force_moyenne(pop, res) * float(n)
     var voulu := maxf(1.0, n * float(regle.get("ha_par_cultivateur", 2.0)))
@@ -396,7 +396,7 @@ func gerer_auto(pop, res, jour: int, connait: Callable) -> void:
 # environ 0,5 ha cultivé par habitant, comme au Sahel). Un adulte
 # libre d'abord ; sinon un cueilleur devient cultivateur (le champ remplace la
 # cueillette), jamais un porteur d'eau ni un chasseur.
-func _postes_cultivateurs(pop, jour: int) -> void:
+func _postes_cultivateurs(pop, jour: int, peut_convertir := Callable()) -> void:
     var voulu := int(ceil(pop.habitants.size() / float(regle.get("habitants_par_cultivateur", 4.0))))
     var adultes := 0
     for h in pop.habitants:
@@ -408,7 +408,7 @@ func _postes_cultivateurs(pop, jour: int) -> void:
     while int(pop.postes.get("cultivateur", 0)) < voulu:
         if occupes < adultes:
             occupes += 1
-        elif int(pop.postes.get("cueilleur", 0)) > 1:
+        elif int(pop.postes.get("cueilleur", 0)) > 1 and (peut_convertir.is_null() or bool(peut_convertir.call("cueilleur"))):
             pop.postes["cueilleur"] = int(pop.postes["cueilleur"]) - 1
         else:
             break

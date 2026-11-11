@@ -711,7 +711,7 @@ func _mois_passe() -> void:
     conseil.mois_passe(population, temps.jour_total)
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
     if besoins.mode == "auto":
-        agriculture.gerer_auto(population, ressources, temps.jour_total, decouvertes.connait)
+        agriculture.gerer_auto(population, ressources, temps.jour_total, decouvertes.connait, besoins.conversion_permise)
         if decouvertes.connait("agriculture"):
             territoire.gerer_auto(agriculture, ressources, temps.jour_total, 4.0)
         routes.gerer_auto(ressources, territoire, agriculture)
