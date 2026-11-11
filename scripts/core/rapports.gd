@@ -125,7 +125,7 @@ func _candidates(c, jour: int) -> Array:
     if str(e["code"]) == "alerte" or str(e["code"]) == "critique" or str(e["code"]) == "incapacite":
         l.append({"id": "finances_reserve", "secteur": "finances", "texte": "Redresser la réserve commune (%d jours de réserve)." % int(maxf(0.0, float(e["jours"]))), "cout": "relever l'impôt ou réduire les dépenses"})
     if float(f.arrieres) > 0.0001:
-        l.append({"id": "finances_arrieres", "secteur": "finances", "texte": "Payer les salaires impayés.", "cout": "%d kg de mil équivalent prélevés sur la réserve" % int(round(float(f.arrieres)))})
+        l.append({"id": "finances_arrieres", "secteur": "finances", "texte": "Salaires impayés (%d kg de mil équivalent) : ils sont payés automatiquement dès que la réserve le permet, il faut donc la remplir." % int(round(float(f.arrieres))), "cout": "relever l'impôt ou réduire les dépenses (décision du dirigeant)"})
     return l
 
 func _alerte(c) -> String:
@@ -174,6 +174,8 @@ func mois_passe(c, jour: int) -> void:
                 deja = true
         if deja or demandes.size() >= MAX_DEMANDES:
             continue
+        if id == "defense_armes" and not c.missions.actuelle.is_empty():
+            continue    # une mission d'armement est déjà en cours
         if delais.has(id) and jour - int(delais[id]) < DELAI_REPROPOSITION:
             continue
         var a: Dictionary = actives[id]
@@ -200,11 +202,17 @@ func _reformuler(c, d: Dictionary, jour: int) -> void:
     var depuis: int = jour - int(d.get("jusqu", jour)) + DELAI_REPORT
     if lie != "" and avant >= 0.0 and apres >= 0.0:
         var nom: String = c.satisfaction.NOMS[lie].to_lower()
-        if apres <= avant + 2.0:
+        var mesure := "satisfaction %s %d %% puis %d %%" % [nom, int(round(avant)), int(round(apres))]
+        if apres >= 90.0:
+            d["note"] = "Reportée depuis %d jours : la situation est rétablie (%s)." % [depuis, mesure]
+        elif apres > avant + 0.5:
+            d["note"] = "Reportée depuis %d jours : la situation s'améliore (%s)." % [depuis, mesure]
+        elif apres < avant - 0.5:
             d["urgence"] = mini(MAX_URGENCE, int(d.get("urgence", 0)) + 1)
-            d["note"] = "Reportée depuis %d jours : le problème persiste (satisfaction %s %d %% puis %d %%)." % [depuis, nom, int(round(avant)), int(round(apres))]
+            d["note"] = "Reportée depuis %d jours : la situation se dégrade (%s)." % [depuis, mesure]
         else:
-            d["note"] = "Reportée depuis %d jours : la situation s'améliore (satisfaction %s %d %% puis %d %%)." % [depuis, nom, int(round(avant)), int(round(apres))]
+            d["urgence"] = mini(MAX_URGENCE, int(d.get("urgence", 0)) + 1)
+            d["note"] = "Reportée depuis %d jours : la situation stagne, le problème persiste (%s)." % [depuis, mesure]
     else:
         d["note"] = "Reportée depuis %d jours : aucun indicateur ne permet de mesurer l'évolution, l'urgence reste inchangée." % depuis
 
@@ -228,14 +236,15 @@ func _noter_decision(d: Dictionary, choix: String, jour: int) -> void:
         decisions.pop_front()
 
 # Enregistre la décision du dirigeant. Aucune exécution, aucune ressource touchée.
-func decider(id: String, choix: String, jour: int) -> String:
+func decider(id: String, choix: String, jour: int, delai := true) -> String:
     if choix != "acceptee" and choix != "refusee":
         return "Choix inconnu."
     for i in demandes.size():
         if demandes[i]["id"] == id:
             var d: Dictionary = demandes[i]
             demandes.remove_at(i)
-            delais[id] = jour
+            if delai:
+                delais[id] = jour
             _noter_decision(d, choix, jour)
             return ""
     return "Cette demande n'existe plus."

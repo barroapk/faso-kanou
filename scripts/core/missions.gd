@@ -29,7 +29,7 @@ const HISTORIQUE := 10
 const ISSUES := {"reussie": "réussie", "echec_moyens": "échec : faute de moyens", "echec_execution": "échec : mauvaise exécution", "echec_imprevu": "échec : imprévisible"}
 const IMPOSSIBLES := {
     "sante_plantes": "mission pas encore possible : on ne peut pas affecter des habitants à la cueillette de plantes.",
-    "finances_arrieres": "mission inutile : les salaires impayés sont déjà payés automatiquement dès que la réserve le permet."}
+    "finances_arrieres": "aucune mission possible : le paiement est automatique, seul un impôt plus élevé ou des dépenses réduites remplit la réserve."}
 
 var actuelle := {}
 var terminees: Array = []

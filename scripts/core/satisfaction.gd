@@ -2,7 +2,7 @@ extends RefCounted
 
 # Satisfaction et stabilité (v0.3.63) : MESURE SEULEMENT.
 #  - Trois indicateurs calculés sur les faits des 30 derniers jours (fenêtre glissante) :
-#      nourriture : part des jours sans faim ;
+#      nourriture : part du besoin alimentaire réellement couverte chaque jour (personnes-jours nourries) ;
 #      santé      : soins donnés / malades à soigner, les jours où il y avait des malades ;
 #      salaires   : jours sans arriérés, un arriéré pesant d'autant plus qu'il représente de jours de salaires.
 #    Un indicateur sans objet (aucun malade, aucun salaire public) est « indisponible », jamais pénalisé.
@@ -35,7 +35,7 @@ func _pousser(cle: String, v: float) -> void:
 
 # Chaque jour, après les soins. valeur = -1 : indicateur sans objet ce jour-là.
 func jour(c, besoin_soins: float, soins: float) -> void:
-    _pousser("nourriture", 0.0 if c.ressources.faim else 1.0)
+    _pousser("nourriture", clampf(float(c.ressources.couverture_nourriture), 0.0, 1.0))
     _pousser("sante", clampf(soins / besoin_soins, 0.0, 1.0) if besoin_soins > 0.0 else -1.0)
     var f = c.finances
     var sj: float = f.salaires_jour(c)
@@ -75,7 +75,7 @@ func cible() -> float:
             n += 1
             pire = minf(pire, v)
     if n == 0:
-        return 100.0
+        return -1.0    # aucune donnée : la stabilité ne bouge pas
     return 0.5 * tot / float(n) + 0.5 * pire
 
 func plus_faible() -> String:
@@ -89,7 +89,9 @@ func plus_faible() -> String:
     return cle
 
 func mois_passe(_c, _jour: int) -> void:
-    stabilite += clampf(cible() - stabilite, -BAISSE_MAX, HAUSSE_MAX)
+    var cb := cible()
+    if cb >= 0.0:
+        stabilite += clampf(cb - stabilite, -BAISSE_MAX, HAUSSE_MAX)
     stabilite = clampf(stabilite, 0.0, 100.0)
     var nouveau := _statut_de(stabilite)
     if nouveau != statut:

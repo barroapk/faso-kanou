@@ -340,7 +340,7 @@ func _section_gouvernement(C, jour: int) -> void:
 func _lancer_mission(C, did: String, jour: int, niveau := "normal") -> void:
     var r: String = C.missions.lancer(C, jour, niveau)
     if r == "":
-        C.rapports.decider(did, "acceptee", jour)
+        C.rapports.decider(did, "acceptee", jour, false)
     _faire(r, "Mission lancée.")
 
 # ---------- Rapport du Premier ministre : information et décisions, sans exécution ----------
