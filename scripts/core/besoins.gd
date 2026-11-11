@@ -509,7 +509,15 @@ func _libres() -> int:
         occupes += int(_pop.postes[m])
     return maxi(0, _adultes() - occupes)
 
+# Consommation prévue par jour, bêtes comprises (v0.3.76) : ce que les humains ET
+# les animaux prélèvent dans les réserves. C'est elle qui juge les réserves, la
+# famine imminente et les conversions de métier.
 func _conso(r: String) -> float:
+    return _conso_humaine(r) + _conso_animaux(r)
+
+# Les humains seulement. La simulation de 60 jours (_score) retire déjà les bêtes de
+# son côté : elle doit partir de cette valeur pour ne pas les compter deux fois.
+func _conso_humaine(r: String) -> float:
     var c := 0.0
     for h in _pop.habitants:
         var table: Dictionary = _res.CONSO_ENFANT if _pop.age(h, _jour) < _pop.AGE_ADULTE else _res.CONSO_ADULTE
@@ -517,6 +525,17 @@ func _conso(r: String) -> float:
     if r == "nourriture":
         c += float(_res.stocks[r]) * _res.taux_pertes()
     return c
+
+# Ce que les bêtes prélèvent réellement dans les réserves, par jour : l'eau des
+# jarres, et le grain ou le fourrage retirés du stock (pas la pâture mangée sur
+# les parcelles, qui ne touche aucune réserve).
+func _conso_animaux(r: String) -> float:
+    if elevage == null or elevage.animaux.is_empty() or not (r == "eau" or r == "nourriture"):
+        return 0.0
+    var ck := "elevc|%d" % _s
+    if not _cache.has(ck):
+        _cache[ck] = elevage.prevision(_jour, _s == 1, paturage_ha)
+    return float(_cache[ck]["eau" if r == "eau" else "grain"])
 
 func _production(r: String) -> float:
     var total := 0.0
@@ -583,7 +602,7 @@ func _score(delta: Dictionary, strict := true) -> float:
             postes[m] = int(delta[m])
             total += int(delta[m])
     if not _cache.has("conso"):
-        var cs := {"eau": _conso("eau"), "bois": _conso("bois"), "nourriture": 0.0, "adultes": _adultes(), "aides": _aides()}
+        var cs := {"eau": _conso_humaine("eau"), "bois": _conso("bois"), "nourriture": 0.0, "adultes": _adultes(), "aides": _aides()}
         for h in _pop.habitants:
             var t: Dictionary = _res.CONSO_ENFANT if _pop.age(h, _jour) < _pop.AGE_ADULTE else _res.CONSO_ADULTE
             cs["nourriture"] += float(t["nourriture"])
@@ -895,7 +914,7 @@ func _plancher_porteurs() -> int:
     if conso_eau > 0.0 and float(_res.stocks["eau"]) / conso_eau >= _seuil_jours(RESERVE_PLANCHER_JOURS):
         rend = 0.0
     if rend > 0.5:
-        var besoin: float = _conso("eau")
+        var besoin: float = _conso_humaine("eau")
         if elevage != null and not elevage.animaux.is_empty():
             besoin += float(elevage.prevision(_jour, false, paturage_ha)["eau"])
         besoin *= 1.0 + float(MARGES[0])
