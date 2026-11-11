@@ -86,18 +86,16 @@ func _lire(source: String, c, jour: int) -> Dictionary:
 
 func _sante(c, jour: int) -> Dictionary:
     var pop = c.population
-    var malades := 0
-    for h in pop.habitants:
-        if int(h["sante"]) < int(pop.SEUIL_SOINS):
-            malades += 1
+    # Mêmes fonctions que le vrai système de soins (population.soigner) : aucun chiffre inventé.
+    var malades: int = pop.a_soigner().size()
     var g: int = pop.nb_guerisseurs()
-    var base: int = g * int(pop.SOINS_PAR_GUERISSEUR)
+    var libres: int = pop.guerisseurs_dispos().size()
     var places: int = int(c.construction.effet_total("soin_places"))
-    var capacite: int = base + mini(places, base)
+    var capacite: int = pop.capacite_soins(places)
     var plantes: float = float(c.ressources.quantite("plantes_medicinales"))
     var ind: Array = [
         ["Habitants à soigner", str(malades)],
-        ["Guérisseurs", "%d (maximum %d)" % [g, pop.max_guerisseurs(jour)]],
+        ["Guérisseurs", "%d désignés, %d libres (maximum %d)" % [g, libres, pop.max_guerisseurs(jour)]],
         ["Soins possibles par jour", str(capacite)],
         ["Plantes médicinales", "%d kg" % int(plantes)],
     ]
