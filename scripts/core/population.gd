@@ -580,7 +580,7 @@ func capacite_soins(places := 0) -> int:
     var base: int = guerisseurs_dispos().size() * SOINS_PAR_GUERISSEUR
     return base + mini(places, base)
 
-func soigner(res, jour: int, places := 0, bonus := 0.0) -> int:
+func soigner(res, jour: int, places := 0, bonus := 0.0, bonus_gouv := 0.0) -> int:
     var gs: Array = guerisseurs_dispos()
     if gs.is_empty():
         return 0
@@ -602,6 +602,12 @@ func soigner(res, jour: int, places := 0, bonus := 0.0) -> int:
             break
         var e: int = int(round(extra * (1.0 + bonus))) if n < places else extra
         var s: int = int(m["sante"])
+        if bonus_gouv > 0.0:
+            # Bonus du responsable de la santé : plus de santé rendue par soin, jamais plus de soins
+            # (capacité, plantes et places restent les limites). Le reste fractionnaire est gardé.
+            var ef: float = float(e) * (1.0 + bonus_gouv) + float(m.get("reste_soin", 0.0))
+            e = int(floor(ef))
+            m["reste_soin"] = ef - float(e)
         m["sante"] = maxi(s, mini(plafond, s + e))   # un soin ne fait jamais baisser la santé
         n += 1
     return n

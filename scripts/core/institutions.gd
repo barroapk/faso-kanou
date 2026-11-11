@@ -12,7 +12,8 @@ extends RefCounted
 #  - COMPÉTENCE DU RESPONSABLE : lue sur le titulaire nommé (savoir du secteur, ou gestion).
 #    Sans titulaire : compétence de coutume.
 #  - MOYENS (0-100) : lus sur les systèmes existants (effectifs, plantes, armes, réserve), jamais recalculés ailleurs.
-# Rien de tout cela ne change la santé, la défense ou les finances : ce sont des indicateurs.
+# Effets réels (v0.3.68), seulement pour la santé et la défense, plafonnés à +10 % : voir bonus().
+# Les finances restent un indicateur jusqu'à la refonte fiscale.
 
 signal evenement(texte)
 
@@ -26,6 +27,8 @@ const BASE_PERF := 30.0               # une fonction sans capacité fonctionne q
 const COMPETENCE_COUTUME := 30.0
 const RATTRAPAGE := 0.25              # part de l'écart comblée chaque mois
 const HABITANTS_PAR_GUERISSEUR := 20
+const BONUS_MAX := 0.10               # effet maximal d'une performance de 100
+const SECTEURS_EFFET := ["sante", "defense"]
 const PART_COMBATTANTS := 0.2         # part des adultes visée comme combattants disponibles
 
 var etat := {}                        # secteur -> {capacite, performance, mois, inactifs}
@@ -107,6 +110,28 @@ func cible(sid: String, c, jour: int) -> float:
     var comp: float = float(competence(sid, c, jour)["valeur"])
     return (BASE_PERF + (100.0 - BASE_PERF) * cap / 100.0) * (0.5 + 0.5 * moy / 100.0) * (0.6 + 0.4 * clampf(comp, 0.0, 100.0) / 100.0)
 
+# Effet de la performance sur un mécanisme existant : 0 à la performance de coutume (30), +10 % à 100.
+# Jamais de pénalité sous 30. Sans responsable nommé, l'effet est nul même si une performance est
+# conservée. La compétence du responsable est déjà dans la performance : elle n'est pas réappliquée.
+func bonus(sid: String, c) -> float:
+    if not SECTEURS_EFFET.has(sid) or not etat.has(sid):
+        return 0.0
+    if c.gouvernement.titulaire_de(sid, "titulaire") < 0:
+        return 0.0
+    var p: float = float(etat[sid]["performance"])
+    return BONUS_MAX * maxf(0.0, p - BASE_PERF) / (100.0 - BASE_PERF)
+
+func texte_effet(sid: String, c) -> String:
+    if not SECTEURS_EFFET.has(sid):
+        return "aucun pour l'instant (indicateur)"
+    var cible_txt := "sur l'efficacité des soins" if sid == "sante" else "sur la force de défense"
+    if c.gouvernement.titulaire_de(sid, "titulaire") < 0:
+        return "aucun (pas de responsable)"
+    var b := bonus(sid, c)
+    if b <= 0.0:
+        return "aucun (performance au niveau de la coutume ou en dessous)"
+    return "+%.1f %% %s (plafond +%d %%)" % [b * 100.0, cible_txt, int(BONUS_MAX * 100.0)]
+
 # ---------- Évolution mensuelle ----------
 
 func mois_passe(c, jour: int) -> void:
@@ -166,6 +191,7 @@ func lignes(sid: String, c, jour: int) -> Array:
         ["Performance actuelle", "%d/100 (cible %d)" % [int(round(perf)), int(round(cible(sid, c, jour)))]],
         ["Compétence du responsable", ("%d/100" % int(round(float(comp["valeur"])))) if bool(comp["nomme"]) else "pas de responsable (coutume : %d)" % int(COMPETENCE_COUTUME)],
         ["Moyens disponibles", "%d/100" % int(round(moyens(sid, c, jour)))],
+        ["Effet sur le jeu", texte_effet(sid, c)],
     ]
 
 func negligence(sid: String) -> bool:

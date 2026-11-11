@@ -23,6 +23,7 @@ const RESTE_MIN := 2
 const PART_PROTECTEURS := 0.34
 
 var mobilises := {}      # id habitant -> jour de retour
+var bonus_gouv := 0.0    # bonus du responsable de la défense (institutions.gd), posé par la civilisation ; 0 chez les clans IA
 
 func _vigueur(h: Dictionary, res) -> float:
     var v: float = float(h["sante"]) / 100.0 * (0.85 + 0.3 * float(h.get("savoirs", {}).get("combat", 0.0)) / 100.0)
@@ -59,7 +60,7 @@ func force_groupe(groupe: Array, equip, res, deja := 0) -> float:
             arcs -= 1
             arme = float(ARMES["arc"])
         t += _vigueur(h, res) * arme
-    return t
+    return t * (1.0 + bonus_gouv)    # seule application du bonus : ni effectifs, ni armes, ni pertes
 
 func defense(pop, equip, clotures, res, jour: int) -> float:
     var presents: Array = combattants(pop, res, jour)
