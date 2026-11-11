@@ -97,6 +97,11 @@ func tableau(c, jour: int) -> Array:
         var def: Dictionary = _cat["secteurs"][id]
         var s: Dictionary = secteurs.get(id, _vide())
         var d: Dictionary = _lire(str(def["source"]), c, jour)
+        var inst = c.get("institutions")
+        if inst != null and inst.SECTEURS.has(id):
+            d["indicateurs"].append_array(inst.lignes(id, c, jour))
+            if inst.negligence(id):
+                d["besoins"].append("Secteur négligé : sa capacité baisse lentement.")
         l.append({"id": id, "nom": def["nom"], "mission": def.get("mission", ""), "ministere": s["ministere"], "responsables": s["responsables"], "budget_part": s["budget_part"], "indicateurs": d["indicateurs"], "besoins": d["besoins"], "rattaches": d["rattaches"]})
     return l
 

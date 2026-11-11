@@ -38,6 +38,7 @@ const GUERRE = preload("res://scripts/core/guerre.gd")
 const RAID = preload("res://scripts/core/raid.gd")
 const GOUVERNEMENT = preload("res://scripts/core/gouvernement.gd")
 const FINANCES = preload("res://scripts/core/finances.gd")
+const INSTITUTIONS = preload("res://scripts/core/institutions.gd")
 
 var temps
 var population
@@ -73,6 +74,7 @@ var guerre
 var raids
 var gouvernement
 var finances
+var institutions
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -104,6 +106,7 @@ func _creer_modules() -> void:
     finances.eco = economie
     ressources.finances = finances
     budget.finances = finances
+    institutions = INSTITUTIONS.new()
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
@@ -597,7 +600,7 @@ func _jour_passe() -> void:
     besoins.paturage_ha = paturage_ha()
     elevage.jour_passe(ressources, population, temps.jour_total, temps.saison_des_pluies(), besoins.paturage_ha)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
-    population.soigner(ressources, temps.jour_total, int(construction.effet_total("soin_places")), minf(1.0, construction.effet_total("soin_bonus")))
+    institutions.noter("sante", float(population.soigner(ressources, temps.jour_total, int(construction.effet_total("soin_places")), minf(1.0, construction.effet_total("soin_bonus")))))
     pression.jour_passe(ressources)
     for c in voisins:
         c.jour_passe(temps.jour_total, temps.saison_des_pluies())
@@ -633,6 +636,7 @@ func _mois_passe() -> void:
     preload("res://scripts/core/echanges_animaux.gd").mois(voisins, temps.jour_total)
     diplomatie.mois_passe()
     raids.mois_passe()
+    institutions.mois_passe(self, temps.jour_total)
     raids.decider(_clans(), temps.jour_total, caravanes, diplomatie, Callable(self, "_raid_connait"))
     _visites_ordinateur()
     defis.mois_passe(self)
@@ -690,6 +694,7 @@ func sauvegarder() -> void:
         "raids": raids.vers_dict(),
         "gouvernement": gouvernement.vers_dict(),
         "finances": finances.vers_dict(),
+        "institutions": institutions.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -747,6 +752,7 @@ func _charger(nom: String) -> bool:
     raids.depuis_dict(donnees.get("raids", {}))
     gouvernement.depuis_dict(donnees.get("gouvernement", {}))
     finances.depuis_dict(donnees.get("finances", {}))
+    institutions.depuis_dict(donnees.get("institutions", {}))
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

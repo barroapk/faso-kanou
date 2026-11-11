@@ -41,6 +41,7 @@ const REGLES := [
     ["gouvernement", "Le Premier ministre nomme ", "Politique", false],
     ["gouvernement", "Délégation ", "Politique", false],
     ["finances", "Finances : ", "Économie", false],
+    ["institutions", "Institutions : ", "Politique", false],
     ["gouvernement", " est relevé de ses fonctions", "Politique", false],
     ["routes", " terminé.", "Construction", true],
 ]
