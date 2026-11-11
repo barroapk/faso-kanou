@@ -300,7 +300,9 @@ func _developper(jour: int) -> void:
             routes.construire(r, "sentier", ressources, territoire)
         elif routes.relie(r) and ressources.quantite("bois") >= 80.0:
             gisements.ouvrir(t, ressources, routes, population)
-    if gisements.ouverts().size() > 0 and int(population.postes.get("mineur", 0)) == 0:
+    # Un mineur seulement si le clan a 30 jours de vivres, et pas juste après que le
+    # Premier ministre l'a retiré pour nourrir le clan (même délai que ses changements).
+    if gisements.ouverts().size() > 0 and int(population.postes.get("mineur", 0)) == 0 and besoins.reserve_vivres_jours() >= 30.0 and jour - besoins.dernier_changement >= besoins.DELAI_CHANGEMENT:
         population.postes["mineur"] = 1 if int(population.postes.get("cueilleur", 0)) > 1 else 0
         if int(population.postes["mineur"]) == 1:
             population.postes["cueilleur"] = int(population.postes["cueilleur"]) - 1

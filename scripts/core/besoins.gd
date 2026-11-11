@@ -763,7 +763,7 @@ func _planifier() -> void:
                 gain = v
                 meilleur = d
             for de in metiers:
-                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or (_verrouille(de) and base > 40000.0) or _garde_porteur(de):
+                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or _bloque(de, base) or _garde_porteur(de):
                     continue
                 d = {de: -1, vers: 1}
                 v = _score(d)
@@ -784,6 +784,30 @@ func _planifier() -> void:
             evenement.emit("Le Premier ministre ouvre un poste de %s." % vers2)
         else:
             evenement.emit("Le Premier ministre réorganise : un %s devient %s." % [de2, vers2])
+# ---------- Cultivateurs : protégés entre semis et récolte (v0.3.73) ----------
+# Un poste verrouillé ne cède personne, sauf urgence. Pour les cultivateurs,
+# l'urgence est une famine imminente : moins de 7 jours de vivres, ou une
+# rupture prévue avant la récolte. Les autres métiers gardent la règle d'avant.
+func _bloque(m: String, base: float) -> bool:
+    if not _verrouille(m):
+        return false
+    if m == "cultivateur":
+        return not _famine_imminente()
+    return base > 40000.0
+
+func _famine_imminente() -> bool:
+    var c: float = maxf(0.1, _conso("nourriture"))
+    var stock: float = _res.total_aliments()
+    if stock / c < 7.0:
+        return true
+    var avant_recolte: float = float(int(verrou.get("cultivateur", -1)) - _jour)
+    var net: float = _production("nourriture") - c
+    return avant_recolte > 0.0 and net < 0.0 and stock / -net < avant_recolte
+
+# Jours de vivres en réserve (pour les décisions du clan de l'ordinateur).
+func reserve_vivres_jours() -> float:
+    return _res.total_aliments() / maxf(0.1, _conso("nourriture"))
+
 # ---------- Eau : plancher vital et contrôle hebdomadaire (v0.3.72) ----------
 # Réserve d'eau (en jours) sous laquelle le contrôle hebdomadaire intervient.
 const RESERVE_EAU_JOURS := 30.0
