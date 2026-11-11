@@ -121,6 +121,7 @@ func _creer_modules() -> void:
     elevage = ELEVAGE.new()
     guerre = GUERRE.new()
     raids = RAID.new()
+    raids.sur_renommee = func(d): defis.renommee = maxi(0, int(defis.renommee) + int(d))
     besoins.elevage = elevage
     histoire = HISTOIRE.new()
     histoire.observer(self)
@@ -610,6 +611,7 @@ func _mois_passe() -> void:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
     preload("res://scripts/core/echanges_animaux.gd").mois(voisins, temps.jour_total)
     diplomatie.mois_passe()
+    raids.mois_passe()
     _visites_ordinateur()
     defis.mois_passe(self)
     _epoques_ordinateur()

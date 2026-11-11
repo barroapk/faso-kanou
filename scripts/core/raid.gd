@@ -28,6 +28,12 @@ const DELAI_POURPARLERS := 2   # jours pour répondre quand le joueur est concer
 const PART_RANCON := 0.5       # une rançon offerte vaut la moitié du butin attendu
 const ACCEPTE_MIN := 0.4       # l'attaquant accepte si l'offre vaut au moins 40 % du butin attendu
 
+const CRAINTE_GAIN := {"victoire": 6.0, "partiel": 4.0, "negocie": 3.0, "repousse": 0.0, "defaite": -4.0}
+const CRAINTE_OUBLI := 0.97     # la crainte s'estompe chaque mois
+const CRAINTE_MAX := 100.0
+
+var crainte := {}               # clan -> crainte qu'il inspire (0 à 100), gagnée par ses raids
+var sur_renommee: Callable      # (delta) -> change la renommée du joueur
 var en_cours: Array = []
 var historique: Array = []
 var rng := RandomNumberGenerator.new()
@@ -127,7 +133,7 @@ func lancer(att, att_id: String, dst, dst_id: String, jour: int, caravanes, conn
         att.ressources.ajouter_vivres(float(e["vivres"]), "raid")
         bateau["occupe_jusqu"] = jour - 1
         return "Aucun combattant disponible."
-    en_cours.append({"att": att_id, "dst": dst_id, "ids": ids, "depart": jour, "arrivee": jour + jours, "retour": jour + 2 * jours, "force": float(e["force"]) * float(ids.size()) / float(maxi(1, n)), "butin": 0.0, "etat": "en_route", "issue": "", "morts_att": 0, "morts_def": 0, "blesses_att": 0, "blesses_def": 0, "kg": float(e["kg"]), "offre": 0.0, "limite": 0, "alerte": false})
+    en_cours.append({"att": att_id, "dst": dst_id, "ids": ids, "depart": jour, "arrivee": jour + jours, "retour": jour + 2 * jours, "force": float(e["force"]) * float(ids.size()) / float(maxi(1, n)), "butin": 0.0, "etat": "en_route", "issue": "", "morts_att": 0, "morts_def": 0, "blesses_att": 0, "blesses_def": 0, "kg": float(e["kg"]), "offre": 0.0, "limite": 0, "alerte": false, "vivres": float(e["vivres"])})
     _dire(att_id, dst_id, "Raid : %d guerriers de %s partent vers %s (%d jours de mer)." % [ids.size(), _nom(att, att_id), _nom(dst, dst_id), jours])
     return ""
 
@@ -170,7 +176,8 @@ func _arrivee(x: Dictionary, att, dst, jour: int, diplo) -> void:
     var A: float = float(x["force"]) * float(groupe.size()) / float(maxi(1, x["ids"].size()))
     var D: float = maxf(0.1, float(dst.guerre.defense(dst.population, dst.equipement, dst.clotures, dst.ressources, jour)))
     var offre: float = 0.0
-    if A / D >= 1.5:
+    # Un clan redouté obtient une rançon plus facilement : seuil de 1,5 à 1,2 selon la crainte.
+    if A / D >= 1.5 - 0.3 * float(crainte.get(x["att"], 0.0)) / CRAINTE_MAX:
         offre = minf(_attendu(dst, groupe.size()) * PART_RANCON, float(dst.ressources.total_aliments()))
     if offre < 1.0:
         _resoudre(x, att, dst, jour, diplo)
@@ -201,8 +208,7 @@ func _traiter_offre(x: Dictionary, att, dst, jour: int, diplo, accepte: bool) ->
     x["etat"] = "retour"
     x["butin"] = offre
     x["issue"] = "negocie"
-    if diplo != null:
-        diplo.noter(x["att"], x["dst"], "raid", -10.0, "rançon payée à %s" % _nom(att, x["att"]), jour)
+    _consequences(x, att, "negocie", -10.0, jour, diplo)
     _dire(x["att"], x["dst"], "Raid : accord entre %s et %s, rançon de %d kg de vivres, sans combat." % [_nom(att, x["att"]), _nom(dst, x["dst"]), int(offre)])
 
 # Réponse du joueur au raid en attente. Défenseur : "resister" ou "offrir". Attaquant : "accepter" ou "attaquer".
@@ -299,11 +305,36 @@ func _resoudre(x: Dictionary, att, dst, jour: int, diplo) -> void:
             butin = voulu
     x["butin"] = butin
     x["issue"] = issue
-    if diplo != null:
-        var effet: float = -30.0 if part > 0.0 else -20.0
-        diplo.noter(x["att"], x["dst"], "raid", effet, "raid de %s" % _nom(att, x["att"]), jour)
+    # Relations : -30 si le raid a réussi, -20 sinon, et -3 par défenseur tué (jusqu'à -15 de plus).
+    var effet: float = (-30.0 if part > 0.0 else -20.0) - minf(15.0, 3.0 * float(pd[0]))
+    _consequences(x, att, issue, effet, jour, diplo)
     var txt: String = {"victoire": "victoire", "partiel": "succès partiel", "repousse": "attaque repoussée", "defaite": "défaite"}[issue]
     _dire(x["att"], x["dst"], "Raid de %s sur %s : %s (force %.1f contre défense %.1f). Butin %d kg, morts %d contre %d, blessés %d contre %d." % [_nom(att, x["att"]), _nom(dst, x["dst"]), txt, A, D, int(butin), x["morts_att"], x["morts_def"], x["blesses_att"], x["blesses_def"]])
+
+# Relations, crainte et renommée après un raid (une seule fois par raid).
+func _consequences(x: Dictionary, att, issue: String, effet: float, jour: int, diplo) -> void:
+    var gagne: bool = issue == "victoire" or issue == "partiel"
+    if diplo != null:
+        diplo.noter(x["att"], x["dst"], "raid", effet, "raid de %s (%s)" % [_nom(att, x["att"]), issue], jour)
+        # Les autres clans voient un agresseur : -2 de relation avec lui quand son raid réussit.
+        if gagne:
+            for k in diplo.relations.keys():
+                var p: PackedStringArray = str(k).split("|")
+                if p.size() == 2 and (p[0] == x["att"] or p[1] == x["att"]):
+                    var autre: String = p[1] if p[0] == x["att"] else p[0]
+                    if autre != x["dst"]:
+                        diplo.noter(x["att"], autre, "agression", -2.0, "raid sur %s" % x["dst"], jour)
+    crainte[x["att"]] = clampf(float(crainte.get(x["att"], 0.0)) + float(CRAINTE_GAIN.get(issue, 0.0)), 0.0, CRAINTE_MAX)
+    # Renommée du joueur : -3 s'il attaque avec succès, +5 s'il repousse un raid.
+    if sur_renommee.is_valid():
+        if x["att"] == "joueur" and gagne:
+            sur_renommee.call(-3)
+        elif x["dst"] == "joueur" and (issue == "repousse" or issue == "defaite"):
+            sur_renommee.call(5)
+
+func mois_passe() -> void:
+    for k in crainte.keys():
+        crainte[k] = float(crainte[k]) * CRAINTE_OUBLI
 
 func _rentrer(x: Dictionary, att, jour: int) -> void:
     x["etat"] = "fini"
@@ -331,18 +362,23 @@ func texte(cle: String) -> String:
         var x: Dictionary = historique[i]
         if x["att"] != cle and x["dst"] != cle:
             continue
-        l.append("Jour %d : %s -> %s, %s, butin %d kg, morts %d/%d." % [int(x["depart"]), x["att"], x["dst"], x["issue"], int(x["butin"]), int(x["morts_att"]), int(x["morts_def"])])
+        l.append("Jour %d : %s -> %s, %s, butin %d kg pour %d kg de vivres (bilan %+d kg), morts %d/%d." % [int(x["depart"]), x["att"], x["dst"], x["issue"], int(x["butin"]), int(x.get("vivres", 0.0)), int(float(x["butin"]) - float(x.get("vivres", 0.0))), int(x["morts_att"]), int(x["morts_def"])])
         n += 1
         if n >= 3:
             break
+    if float(crainte.get(cle, 0.0)) >= 1.0:
+        l.append("Crainte inspirée : %d/100." % int(float(crainte[cle])))
     return "\n".join(l)
 
 func vers_dict() -> Dictionary:
-    return {"en_cours": en_cours, "historique": historique}
+    return {"en_cours": en_cours, "historique": historique, "crainte": crainte}
 
 func depuis_dict(d: Dictionary) -> void:
     en_cours = []
     historique = []
+    crainte = {}
+    for k in d.get("crainte", {}):
+        crainte[str(k)] = float(d["crainte"][k])
     for src in [["en_cours", en_cours], ["historique", historique]]:
         for x in d.get(src[0], []):
             var y: Dictionary = x.duplicate()
@@ -350,6 +386,6 @@ func depuis_dict(d: Dictionary) -> void:
             for k in ["depart", "arrivee", "retour", "morts_att", "morts_def", "blesses_att", "blesses_def", "limite"]:
                 y[k] = int(x.get(k, 0))
             y["alerte"] = bool(x.get("alerte", false))
-            for k in ["force", "butin", "kg", "offre"]:
+            for k in ["force", "butin", "kg", "offre", "vivres"]:
                 y[k] = float(x.get(k, 0.0))
             src[1].append(y)
