@@ -21,6 +21,16 @@ const FACTEUR_MIN := 0.5
 const FACTEUR_MAX := 3.0
 const SEUIL_ACHAT := 30.0      # l'ordinateur achète sous 30 jours de réserve
 const MONNAIE := "or_alluvionnaire"
+# Époques (v0.3.40c) : 0 = troc seul ; 1 et 2 = troc d'abord, l'or seulement si rien d'autre
+# à offrir ; 3 et plus = l'or d'abord. Le troc reste toujours possible. L'or n'est jamais
+# créé : il vient de l'orpaillage, de la fonte ou du commerce.
+const EPOQUE_OR := 1
+const EPOQUE_OR_PRIORITAIRE := 3
+
+static func _epoque(c) -> int:
+    if "defis" in c:
+        return int(c.defis.epoque)
+    return int(c.epoque)
 
 var valeurs := {}              # prix de référence (kg de mil)
 var compteur := 0              # numéro des transactions
@@ -129,6 +139,9 @@ func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutr
     if paiement == "" or paiement == id:
         d["raison"] = "L'acheteur n'a rien à offrir en échange."
         return d
+    if paiement == MONNAIE and mini(_epoque(a), _epoque(b)) < EPOQUE_OR:
+        d["raison"] = "L'or n'est pas encore une monnaie pour ces clans : il faut troquer."
+        return d
     # Valeur du paiement : moyenne des deux estimations (comme pour le produit).
     var pp := (prix_local(a, paiement, jour) + prix_local(b, paiement, jour)) / 2.0
     if pp <= 0.0:
@@ -152,7 +165,9 @@ func devis(a, b, id: String, q: float, jour: int, paiement := "", etat := "neutr
 # Monnaie si possible, sinon le produit que l'acheteur a le plus en trop
 # (en valeur), qui ne soit pas vital pour lui.
 func _choisir_paiement(a, b, id: String, jour: int) -> String:
-    if disponible(a, MONNAIE, jour) > 0.0:
+    var ep := mini(_epoque(a), _epoque(b))
+    var or_ok := ep >= EPOQUE_OR and disponible(a, MONNAIE, jour) > 0.0
+    if or_ok and ep >= EPOQUE_OR_PRIORITAIRE:
         return MONNAIE
     var meilleur := ""
     var v_max := 0.0
@@ -163,6 +178,8 @@ func _choisir_paiement(a, b, id: String, jour: int) -> String:
         if v > v_max and place(b, p) > 0.0:
             v_max = v
             meilleur = p
+    if meilleur == "" and or_ok:
+        return MONNAIE
     return meilleur
 
 func _produits(c) -> Array:

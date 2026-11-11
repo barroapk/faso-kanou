@@ -2273,30 +2273,6 @@
    ],
    "obtention": "cadre en bois assemblé",
    "transforme_de": "bois"
-  },
-  "cauris": {
-   "nom": "Cauris",
-   "categorie": "naturelle",
-   "sous_categorie": "monnaie",
-   "alimentaire": false,
-   "kcal_kg": 0,
-   "unite": "piece",
-   "masse_unite_kg": 0.001,
-   "perte_jour": 0.0,
-   "sec": true,
-   "valeur": 0.02,
-   "epoque": "fer",
-   "disponibilite": "commerce",
-   "terrains": [
-    "ocean"
-   ],
-   "saisons": [],
-   "usages": [
-    "monnaie",
-    "parure"
-   ],
-   "obtention": "coquillages de l'océan Indien, arrivés par le commerce",
-   "note": "50 cauris = la valeur d'1 kg de mil"
   }
  },
  "version_catalogue": 2
