@@ -24,6 +24,9 @@ const VIVRES_JOUR := 1.0       # kg de nourriture par guerrier et par jour de vo
 const BUTIN_MIN_FOIS := 2.0    # le butin attendu doit valoir au moins 2 fois les vivres du voyage
 const RESERVE_JOURS := 30.0    # le clan garde 30 jours de vivres après le départ
 const HISTORIQUE_MAX := 30
+const DELAI_POURPARLERS := 2   # jours pour répondre quand le joueur est concerné
+const PART_RANCON := 0.5       # une rançon offerte vaut la moitié du butin attendu
+const ACCEPTE_MIN := 0.4       # l'attaquant accepte si l'offre vaut au moins 40 % du butin attendu
 
 var en_cours: Array = []
 var historique: Array = []
@@ -124,15 +127,20 @@ func lancer(att, att_id: String, dst, dst_id: String, jour: int, caravanes, conn
         att.ressources.ajouter_vivres(float(e["vivres"]), "raid")
         bateau["occupe_jusqu"] = jour - 1
         return "Aucun combattant disponible."
-    en_cours.append({"att": att_id, "dst": dst_id, "ids": ids, "depart": jour, "arrivee": jour + jours, "retour": jour + 2 * jours, "force": float(e["force"]) * float(ids.size()) / float(maxi(1, n)), "butin": 0.0, "etat": "en_route", "issue": "", "morts_att": 0, "morts_def": 0, "blesses_att": 0, "blesses_def": 0, "kg": float(e["kg"])})
+    en_cours.append({"att": att_id, "dst": dst_id, "ids": ids, "depart": jour, "arrivee": jour + jours, "retour": jour + 2 * jours, "force": float(e["force"]) * float(ids.size()) / float(maxi(1, n)), "butin": 0.0, "etat": "en_route", "issue": "", "morts_att": 0, "morts_def": 0, "blesses_att": 0, "blesses_def": 0, "kg": float(e["kg"]), "offre": 0.0, "limite": 0, "alerte": false})
     _dire(att_id, dst_id, "Raid : %d guerriers de %s partent vers %s (%d jours de mer)." % [ids.size(), _nom(att, att_id), _nom(dst, dst_id), jours])
     return ""
 
 # Chaque jour : arrivée (combat) puis retour. `clan_de` : Callable(cle) -> clan.
 func jour_passe(clan_de: Callable, jour: int, diplo = null) -> void:
     for x in en_cours.duplicate():
+        if x["etat"] == "en_route" and x["dst"] == "joueur" and not bool(x["alerte"]) and jour >= int(x["arrivee"]) - 1:
+            x["alerte"] = true
+            _dire(x["att"], x["dst"], "Raid : des pirogues de guerre de %s approchent de notre île, arrivée dans %d jour(s)." % [_nom(clan_de.call(x["att"]), x["att"]), maxi(0, int(x["arrivee"]) - jour)])
         if x["etat"] == "en_route" and jour >= int(x["arrivee"]):
-            _resoudre(x, clan_de.call(x["att"]), clan_de.call(x["dst"]), jour, diplo)
+            _arrivee(x, clan_de.call(x["att"]), clan_de.call(x["dst"]), jour, diplo)
+        if x["etat"] == "pourparlers" and jour >= int(x["limite"]):
+            _par_defaut(x, clan_de.call(x["att"]), clan_de.call(x["dst"]), jour, diplo)
         if x["etat"] == "retour" and jour >= int(x["retour"]):
             _rentrer(x, clan_de.call(x["att"]), jour)
         if x["etat"] == "fini":
@@ -140,6 +148,100 @@ func jour_passe(clan_de: Callable, jour: int, diplo = null) -> void:
             historique.append(x)
             while historique.size() > HISTORIQUE_MAX:
                 historique.pop_front()
+
+# Butin qu'un raid réussi prendrait aujourd'hui.
+func _attendu(dst, vivants: int) -> float:
+    return minf(float(dst.ressources.total_aliments()) * BUTIN_PART, float(vivants) * CHARGE_KG)
+
+# Arrivée : avant le combat, des pourparlers sont possibles.
+#  - cible = joueur : il choisit (résister ou offrir une rançon) ;
+#  - cible = clan de l'ordinateur : il offre une rançon s'il se sait plus faible (force >= 1,5 fois sa défense) ;
+#  - attaquant = joueur : il accepte l'offre ou attaque quand même.
+func _arrivee(x: Dictionary, att, dst, jour: int, diplo) -> void:
+    if att == null or dst == null or (att.has_method("vivant") and not att.vivant()) or (dst.has_method("vivant") and not dst.vivant()):
+        _resoudre(x, att, dst, jour, diplo)
+        return
+    var groupe: Array = _presents(att.population, x["ids"])
+    if x["dst"] == "joueur":
+        x["etat"] = "pourparlers"
+        x["limite"] = jour + DELAI_POURPARLERS
+        _dire(x["att"], x["dst"], "Raid : les guerriers de %s ont débarqué (%d). Résister ou offrir une rançon ? Réponse sous %d jours, sinon nous résistons." % [_nom(att, x["att"]), groupe.size(), DELAI_POURPARLERS])
+        return
+    var A: float = float(x["force"]) * float(groupe.size()) / float(maxi(1, x["ids"].size()))
+    var D: float = maxf(0.1, float(dst.guerre.defense(dst.population, dst.equipement, dst.clotures, dst.ressources, jour)))
+    var offre: float = 0.0
+    if A / D >= 1.5:
+        offre = minf(_attendu(dst, groupe.size()) * PART_RANCON, float(dst.ressources.total_aliments()))
+    if offre < 1.0:
+        _resoudre(x, att, dst, jour, diplo)
+        return
+    x["offre"] = offre
+    if x["att"] == "joueur":
+        x["etat"] = "pourparlers"
+        x["limite"] = jour + DELAI_POURPARLERS
+        _dire(x["att"], x["dst"], "Raid : %s nous offre %d kg de vivres pour éviter le combat. Accepter ou attaquer ? Réponse sous %d jours, sinon nous acceptons." % [_nom(dst, x["dst"]), int(offre), DELAI_POURPARLERS])
+        return
+    _traiter_offre(x, att, dst, jour, diplo, true)
+
+# Sans réponse du joueur : le défenseur résiste, l'attaquant accepte l'offre.
+func _par_defaut(x: Dictionary, att, dst, jour: int, diplo) -> void:
+    if x["dst"] == "joueur":
+        _resoudre(x, att, dst, jour, diplo)
+    else:
+        _traiter_offre(x, att, dst, jour, diplo, true)
+
+# L'attaquant accepte (ou refuse) l'offre. L'offre doit valoir assez par rapport au butin attendu.
+func _traiter_offre(x: Dictionary, att, dst, jour: int, diplo, accepte: bool) -> void:
+    var groupe: Array = _presents(att.population, x["ids"])
+    var offre: float = float(x["offre"])
+    if not accepte or groupe.is_empty() or offre < ACCEPTE_MIN * _attendu(dst, groupe.size()) or not dst.ressources.retirer_vivres(offre, "rançon"):
+        x["offre"] = 0.0
+        _resoudre(x, att, dst, jour, diplo)
+        return
+    x["etat"] = "retour"
+    x["butin"] = offre
+    x["issue"] = "negocie"
+    if diplo != null:
+        diplo.noter(x["att"], x["dst"], "raid", -10.0, "rançon payée à %s" % _nom(att, x["att"]), jour)
+    _dire(x["att"], x["dst"], "Raid : accord entre %s et %s, rançon de %d kg de vivres, sans combat." % [_nom(att, x["att"]), _nom(dst, x["dst"]), int(offre)])
+
+# Réponse du joueur au raid en attente. Défenseur : "resister" ou "offrir". Attaquant : "accepter" ou "attaquer".
+func repondre(clan_de: Callable, jour: int, diplo, choix: String) -> String:
+    for x in en_cours:
+        if x["etat"] != "pourparlers" or (x["att"] != "joueur" and x["dst"] != "joueur"):
+            continue
+        var att = clan_de.call(x["att"])
+        var dst = clan_de.call(x["dst"])
+        if x["dst"] == "joueur":
+            if choix == "resister":
+                _resoudre(x, att, dst, jour, diplo)
+                return ""
+            if choix == "offrir":
+                var n: int = _presents(att.population, x["ids"]).size()
+                var offre: float = minf(_attendu(dst, n) * PART_RANCON, float(dst.ressources.total_aliments()))
+                if offre < 1.0:
+                    return "Nous n'avons pas de vivres à offrir."
+                x["offre"] = offre
+                _traiter_offre(x, att, dst, jour, diplo, true)
+                if x["etat"] == "retour" and x["issue"] == "negocie":
+                    return ""
+                return "Ils ont refusé l'offre (%d kg) : le combat a lieu." % int(offre)
+        else:
+            if choix == "accepter":
+                _traiter_offre(x, att, dst, jour, diplo, true)
+                return ""
+            if choix == "attaquer":
+                _traiter_offre(x, att, dst, jour, diplo, false)
+                return ""
+        return "Choix inconnu."
+    return "Aucun raid n'attend de réponse."
+
+# Le raid qui attend la réponse du joueur ({} s'il n'y en a pas).
+func en_attente() -> Dictionary:
+    for x in en_cours:
+        if x["etat"] == "pourparlers" and (x["att"] == "joueur" or x["dst"] == "joueur"):
+            return x
+    return {}
 
 func _presents(pop, ids: Array) -> Array:
     return pop.habitants.filter(func(h): return ids.has(int(h["id"])))
@@ -220,7 +322,9 @@ func _dire(a: String, b: String, texte: String) -> void:
 func texte(cle: String) -> String:
     var l: PackedStringArray = []
     for x in en_cours:
-        if x["att"] == cle:
+        if x["etat"] == "pourparlers":
+            l.append("Pourparlers avec %s : réponse avant le jour %d." % [x["dst"] if x["att"] == cle else x["att"], int(x["limite"])])
+        elif x["att"] == cle:
             l.append("En route vers %s : arrivée au jour %d, retour au jour %d." % [x["dst"], int(x["arrivee"]), int(x["retour"])])
     var n := 0
     for i in range(historique.size() - 1, -1, -1):
@@ -243,8 +347,9 @@ func depuis_dict(d: Dictionary) -> void:
         for x in d.get(src[0], []):
             var y: Dictionary = x.duplicate()
             y["ids"] = x.get("ids", []).map(func(i): return int(i))
-            for k in ["depart", "arrivee", "retour", "morts_att", "morts_def", "blesses_att", "blesses_def"]:
+            for k in ["depart", "arrivee", "retour", "morts_att", "morts_def", "blesses_att", "blesses_def", "limite"]:
                 y[k] = int(x.get(k, 0))
-            for k in ["force", "butin", "kg"]:
+            y["alerte"] = bool(x.get("alerte", false))
+            for k in ["force", "butin", "kg", "offre"]:
                 y[k] = float(x.get(k, 0.0))
             src[1].append(y)

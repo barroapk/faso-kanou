@@ -494,6 +494,9 @@ func evaluer_raid(cible: String) -> Dictionary:
         return {"possible": false, "raison": "Clan inconnu."}
     return raids.evaluer(self, "joueur", v, cible, temps.jour_total, caravanes, int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 2, diplomatie)
 
+func repondre_raid(choix: String) -> String:
+    return raids.repondre(Callable(self, "_clan"), temps.jour_total, diplomatie, choix)
+
 func lancer_raid(cible: String) -> String:
     var v = voisin(cible)
     if v == null:

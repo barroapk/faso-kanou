@@ -292,6 +292,14 @@ func _section_raids(C) -> void:
     var t: String = C.raids.texte("joueur")
     if t != "":
         boite.add_child(_label(t, 21))
+    var att: Dictionary = C.raids.en_attente()
+    if not att.is_empty():
+        if att["dst"] == "joueur":
+            boite.add_child(_label("Des guerriers ont débarqué. Que faites-nous ?", 24))
+            boite.add_child(_ligne([_bouton("Résister", true, func(): _faire(C.repondre_raid("resister"), "Nous résistons.")), _bouton("Offrir une rançon", true, func(): _faire(C.repondre_raid("offrir"), "Rançon acceptée, ils repartent."))]))
+        else:
+            boite.add_child(_label("Le clan offre %d kg de vivres pour éviter le combat." % int(att["offre"]), 24))
+            boite.add_child(_ligne([_bouton("Accepter l'offre", true, func(): _faire(C.repondre_raid("accepter"), "Offre acceptée.")), _bouton("Attaquer", true, func(): _faire(C.repondre_raid("attaquer"), "Nous attaquons."))]))
     for v in C.voisins:
         if not v.vivant() or int(C.expeditions.connues.get(v.agriculture.ile_id, 0)) < 2:
             continue
