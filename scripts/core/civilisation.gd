@@ -578,6 +578,7 @@ func _mois_passe() -> void:
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
+    preload("res://scripts/core/echanges_animaux.gd").mois(voisins, temps.jour_total)
     diplomatie.mois_passe()
     _visites_ordinateur()
     defis.mois_passe(self)
