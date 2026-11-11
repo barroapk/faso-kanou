@@ -26,8 +26,9 @@ static func _surplus(el, esp: String, jour: int) -> Dictionary:
         else:
             femelles.append(a)
     # noyau reproducteur : 1 mâle + 2 femelles au minimum
-    if males.size() > 1:
-        return males[0]
+    if males.size() > 1 and femelles.size() >= 2:
+        males.sort_custom(func(x, y): return int(x["ne"]) < int(y["ne"]))
+        return males[0]   # le plus vieux part, les jeunes restent
     if males.size() >= 1 and femelles.size() > 3:
         for f in femelles:
             if int(f["gest_fin"]) < 0 and int(f["lact_fin"]) <= jour:
