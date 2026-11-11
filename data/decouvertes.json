@@ -209,6 +209,26 @@
     "agriculture": 55
    },
    "origine": "retenir l'eau de pluie derrière une digue de terre et de pierre"
+  },
+  "soins_organises": {
+   "nom": "Soins organisés",
+   "epoque": "pierre",
+   "prerequis": [],
+   "conditions": {
+    "savoirs": {
+     "medecine": 15
+    },
+    "matieres": {
+     "plantes_medicinales": 3
+    },
+    "pratique": {},
+    "population_min": 0
+   },
+   "chance_mois": 0.04,
+   "debloque": [],
+   "savoir_cle": "medecine",
+   "savoir_initial": {},
+   "origine": "les guérisseurs partagent leurs remèdes et soignent les malades au même endroit"
   }
  }
 }

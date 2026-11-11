@@ -514,11 +514,15 @@ func fixer_guerisseurs(jour: int, n: int) -> int:
     return n
 
 # Chaque jour : soigne les plus affaiblis, tant qu'il y a des plantes. Renvoie le nombre de malades soignés.
-func soigner(res, jour: int) -> int:
+# SOINS_PAR_GUERISSEUR est la capacité d'un guérisseur avec 25 % de son temps (le rôle).
+# Infirmerie (v0.3.46) : places et bonus viennent des bâtiments ; elle ne sert à rien sans guérisseur,
+# et ne fait jamais suivre plus de malades en plus que les guérisseurs n'en suivent déjà.
+# Les membres d'une expédition ne sont pas soignés.
+func soigner(res, jour: int, places := 0, bonus := 0.0) -> int:
     var gs: Array = habitants.filter(func(h): return h.get("role", "") == "guerisseur" and not h.get("occupe", false))
     if gs.is_empty():
         return 0
-    var malades: Array = habitants.filter(func(h): return int(h["sante"]) < SEUIL_SOINS)
+    var malades: Array = habitants.filter(func(h): return int(h["sante"]) < SEUIL_SOINS and not h.has("expedition"))
     if malades.is_empty():
         return 0
     malades.sort_custom(func(a, b): return int(a["sante"]) < int(b["sante"]))
@@ -527,13 +531,17 @@ func soigner(res, jour: int) -> int:
         meilleur = maxf(meilleur, savoir(g, "medecine"))
     var extra: int = 1 + int(round(2.0 * meilleur / 100.0))
     var plafond: int = plafond_sante(res.jours_sans_sel)
+    var base: int = gs.size() * SOINS_PAR_GUERISSEUR
+    var capacite: int = base + mini(places, base)
     var n := 0
     for m in malades:
-        if n >= gs.size() * SOINS_PAR_GUERISSEUR:
+        if n >= capacite:
             break
         if not res.retirer("plantes_medicinales", PLANTES_PAR_SOIN, "soin"):
             break
-        m["sante"] = mini(plafond, int(m["sante"]) + extra)
+        var e: int = int(round(extra * (1.0 + bonus))) if n < places else extra
+        var s: int = int(m["sante"])
+        m["sante"] = maxi(s, mini(plafond, s + e))   # un soin ne fait jamais baisser la santé
         n += 1
     return n
 

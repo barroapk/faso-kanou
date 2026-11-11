@@ -267,7 +267,7 @@ func _section_sante(C, jour: int) -> void:
     var mg: int = C.population.max_guerisseurs(jour)
     var plantes: float = C.ressources.quantite("plantes_medicinales")
     boite.add_child(_label("Santé", 30))
-    boite.add_child(_label("Guérisseurs : %d (maximum %d). Plantes médicinales en réserve : %.1f kg. Un guérisseur soigne jusqu'à %d malades par jour (%.2f kg de plantes chacun) et consacre 25 %% de son temps aux soins." % [ng, mg, plantes, C.population.SOINS_PAR_GUERISSEUR, C.population.PLANTES_PAR_SOIN], 21))
+    boite.add_child(_label("Guérisseurs : %d (maximum %d). Plantes médicinales en réserve : %.1f kg. Un guérisseur soigne jusqu'à %d malades par jour (%.2f kg de plantes chacun) et consacre 25 %% de son temps aux soins. Infirmerie : %d places, soins +%d %%." % [ng, mg, plantes, C.population.SOINS_PAR_GUERISSEUR, C.population.PLANTES_PAR_SOIN, int(C.construction.effet_total("soin_places")), int(minf(1.0, C.construction.effet_total("soin_bonus")) * 100.0)], 21))
     boite.add_child(_ligne([_label("Nombre de guérisseurs", 22), _bouton("−", ng > 0, func(): _regler_guerisseurs(C, jour, ng - 1)), _bouton("+", ng < mg, func(): _regler_guerisseurs(C, jour, ng + 1))]))
 
 func _regler_protecteurs(C, jour: int, n: int) -> void:

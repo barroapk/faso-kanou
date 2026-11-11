@@ -308,5 +308,42 @@
         }
       }
     ]
+  },
+  "infirmerie": {
+    "nom": "Infirmerie",
+    "decouverte": "soins_organises",
+    "niveaux": [
+      {
+        "nom": "Case de soins",
+        "cout": {
+          "bois": 60,
+          "argile": 30
+        },
+        "travail": 20,
+        "entretien": {
+          "bois": 1
+        },
+        "effet": {
+          "soin_places": 4,
+          "soin_bonus": 0.5
+        }
+      },
+      {
+        "nom": "Infirmerie",
+        "cout": {
+          "bois": 80,
+          "pierre": 60,
+          "argile": 40
+        },
+        "travail": 40,
+        "entretien": {
+          "bois": 2
+        },
+        "effet": {
+          "soin_places": 10,
+          "soin_bonus": 1.0
+        }
+      }
+    ]
   }
 }
