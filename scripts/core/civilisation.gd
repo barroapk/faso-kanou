@@ -39,6 +39,7 @@ const RAID = preload("res://scripts/core/raid.gd")
 const GOUVERNEMENT = preload("res://scripts/core/gouvernement.gd")
 const FINANCES = preload("res://scripts/core/finances.gd")
 const INSTITUTIONS = preload("res://scripts/core/institutions.gd")
+const RAPPORTS = preload("res://scripts/core/rapports.gd")
 
 var temps
 var population
@@ -75,6 +76,7 @@ var raids
 var gouvernement
 var finances
 var institutions
+var rapports
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -107,6 +109,7 @@ func _creer_modules() -> void:
     ressources.finances = finances
     budget.finances = finances
     institutions = INSTITUTIONS.new()
+    rapports = RAPPORTS.new()
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
@@ -600,6 +603,7 @@ func _jour_passe() -> void:
     besoins.paturage_ha = paturage_ha()
     elevage.jour_passe(ressources, population, temps.jour_total, temps.saison_des_pluies(), besoins.paturage_ha)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
+    institutions.noter_besoin("sante", float(population.a_soigner().size()))
     institutions.noter("sante", float(population.soigner(ressources, temps.jour_total, int(construction.effet_total("soin_places")), minf(1.0, construction.effet_total("soin_bonus")))))
     pression.jour_passe(ressources)
     for c in voisins:
@@ -637,6 +641,7 @@ func _mois_passe() -> void:
     diplomatie.mois_passe()
     raids.mois_passe()
     institutions.mois_passe(self, temps.jour_total)
+    rapports.mois_passe(self, temps.jour_total)
     raids.decider(_clans(), temps.jour_total, caravanes, diplomatie, Callable(self, "_raid_connait"))
     _visites_ordinateur()
     defis.mois_passe(self)
@@ -695,6 +700,7 @@ func sauvegarder() -> void:
         "gouvernement": gouvernement.vers_dict(),
         "finances": finances.vers_dict(),
         "institutions": institutions.vers_dict(),
+        "rapports": rapports.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -753,6 +759,7 @@ func _charger(nom: String) -> bool:
     gouvernement.depuis_dict(donnees.get("gouvernement", {}))
     finances.depuis_dict(donnees.get("finances", {}))
     institutions.depuis_dict(donnees.get("institutions", {}))
+    rapports.depuis_dict(donnees.get("rapports", {}))
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

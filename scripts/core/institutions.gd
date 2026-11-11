@@ -36,12 +36,17 @@ func _init() -> void:
         etat[s] = _vide()
 
 static func _vide() -> Dictionary:
-    return {"capacite": 0.0, "performance": -1.0, "mois": 0.0, "inactifs": 0}
+    return {"capacite": 0.0, "performance": -1.0, "mois": 0.0, "inactifs": 0, "besoin": 0.0, "dernier": 0.0, "besoin_dernier": 0.0}
 
 # Travail réellement fait (appelé par les systèmes existants).
 func noter(sid: String, n: float) -> void:
     if etat.has(sid) and n > 0.0:
         etat[sid]["mois"] = float(etat[sid]["mois"]) + n
+
+# Besoin réel du jour (par exemple les malades à soigner) : dénominateur des taux d'exécution.
+func noter_besoin(sid: String, n: float) -> void:
+    if etat.has(sid) and n > 0.0:
+        etat[sid]["besoin"] = float(etat[sid]["besoin"]) + n
 
 # ---------- Lecture des systèmes existants ----------
 
@@ -113,7 +118,10 @@ func mois_passe(c, jour: int) -> void:
     for sid in SECTEURS:
         var e: Dictionary = etat[sid]
         var norm := minf(1.0, float(e["mois"]) / float(REF_ACTIVITE[sid]))
+        e["dernier"] = float(e["mois"])
+        e["besoin_dernier"] = float(e["besoin"])
         e["mois"] = 0.0
+        e["besoin"] = 0.0
         if norm > 0.0:
             e["inactifs"] = 0
             e["capacite"] = minf(100.0, float(e["capacite"]) + GAIN_MENSUEL * norm * (1.0 - float(e["capacite"]) / 100.0))
@@ -170,4 +178,4 @@ func depuis_dict(d: Dictionary) -> void:
     dernier_mois = int(d.get("dernier_mois", -1))
     for s in SECTEURS:
         var x: Dictionary = d.get("etat", {}).get(s, {})
-        etat[s] = {"capacite": float(x.get("capacite", 0.0)), "performance": float(x.get("performance", -1.0)), "mois": float(x.get("mois", 0.0)), "inactifs": int(x.get("inactifs", 0))}
+        etat[s] = {"capacite": float(x.get("capacite", 0.0)), "performance": float(x.get("performance", -1.0)), "mois": float(x.get("mois", 0.0)), "inactifs": int(x.get("inactifs", 0)), "besoin": float(x.get("besoin", 0.0)), "dernier": float(x.get("dernier", 0.0)), "besoin_dernier": float(x.get("besoin_dernier", 0.0))}

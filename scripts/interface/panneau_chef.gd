@@ -79,6 +79,7 @@ func remplir() -> void:
     _section_raids(C)
     _section_sante(C, jour)
     _section_gouvernement(C, jour)
+    _section_rapport(C, jour)
     _section_mode(C)
 
 # ---------- Ascension : décisions, défis, époque ----------
@@ -335,6 +336,44 @@ func _section_gouvernement(C, jour: int) -> void:
         boite.add_child(_label("Rattaché : " + ", ".join(s["rattaches"]), 21))
         _postes_secteur(C, str(s["id"]), jour)
     boite.add_child(_label("Secteurs prévus : " + ", ".join(g.prevus()), 21))
+
+# ---------- Rapport du Premier ministre : information et décisions, sans exécution ----------
+
+func _section_rapport(C, jour: int) -> void:
+    var R = C.rapports
+    boite.add_child(_label("Rapport du Premier ministre", 30))
+    var r: Dictionary = R.dernier
+    if r.is_empty():
+        boite.add_child(_label("Pas encore de rapport : le premier arrive à la fin du mois.", 21))
+    else:
+        var par: String = ("établi par " + str(r["pm"])) if str(r["pm"]) != "" else "établi sans Premier ministre en fonction"
+        boite.add_child(_label("Rapport du jour %d (%s)." % [int(r["jour"]), par], 21))
+        if str(r["alerte"]) != "":
+            boite.add_child(_label("ALERTE : " + str(r["alerte"]) + ".", 24))
+        boite.add_child(_label("Résultats (réalisations mesurées)", 24))
+        for s in r["resultats"]:
+            var t: String = "%s\n   " % R.NOMS[s["secteur"]] + "\n   ".join(PackedStringArray(s["lignes"]))
+            if float(s["taux"]) >= 0.0:
+                t += "\n   Taux d'exécution : %d %%" % int(round(float(s["taux"]) * 100.0))
+            else:
+                t += "\n   Taux d'exécution : indisponible (%s)" % str(s["raison"])
+            boite.add_child(_label(t, 21))
+        if not r["blocages"].is_empty():
+            boite.add_child(_label("Blocages : " + " ; ".join(PackedStringArray(r["blocages"])), 21))
+    boite.add_child(_label("Demandes (accepter ou refuser enregistre seulement votre décision : rien n'est exécuté)", 24))
+    if R.demandes.is_empty():
+        boite.add_child(_label("Aucune demande en attente.", 21))
+    for d in R.demandes:
+        var did: String = str(d["id"])
+        boite.add_child(_ligne([_label("%s : %s (coût : %s)" % [R.NOMS[d["secteur"]], d["texte"], d["cout"]], 21),
+            _bouton("Accepter", true, func(): _faire(R.decider(did, "acceptee", jour), "Décision enregistrée : aucune exécution à ce stade.")),
+            _bouton("Refuser", true, func(): _faire(R.decider(did, "refusee", jour), "Décision enregistrée."))]))
+    boite.add_child(_label("Projets : aucun projet en cours (les missions viennent à une étape suivante).", 21))
+    var dl: PackedStringArray = []
+    for i in range(R.decisions.size() - 1, maxi(-1, R.decisions.size() - 6), -1):
+        var x: Dictionary = R.decisions[i]
+        dl.append("Jour %d, %s : %s (%s)" % [int(x["jour"]), x["choix"], x["texte"], R.NOMS[x["secteur"]]])
+    boite.add_child(_label("Décisions : " + ("\n".join(dl) if not dl.is_empty() else "aucune pour l'instant."), 21))
 
 # ---------- Nominations : le jeu propose, le joueur choisit ----------
 
