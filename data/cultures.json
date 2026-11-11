@@ -3,7 +3,8 @@
   "cultures": {
     "fonio": {"nom": "Fonio", "produit": "fonio", "semences": ["fonio", "fonio_sauvage"], "semence_ha": 25.0, "rendement": 450.0, "cycle": 80, "travail": 45.0, "mois_semis": [5, 6], "eau_m3_ha_jour": 30.0, "epuisement": 0.03},
     "mil": {"nom": "Mil", "produit": "mil", "semences": ["mil"], "semence_ha": 5.0, "rendement": 600.0, "cycle": 100, "travail": 60.0, "mois_semis": [5, 6], "eau_m3_ha_jour": 35.0, "epuisement": 0.04},
-    "sorgho": {"nom": "Sorgho", "produit": "sorgho", "semences": ["sorgho"], "semence_ha": 8.0, "rendement": 700.0, "cycle": 120, "travail": 65.0, "mois_semis": [5], "eau_m3_ha_jour": 40.0, "epuisement": 0.05}
+    "sorgho": {"nom": "Sorgho", "produit": "sorgho", "semences": ["sorgho"], "semence_ha": 8.0, "rendement": 700.0, "cycle": 120, "travail": 65.0, "mois_semis": [5], "eau_m3_ha_jour": 40.0, "epuisement": 0.05},
+    "plantes_medicinales": {"nom": "Plantes médicinales", "produit": "plantes_medicinales", "semences": ["plantes_medicinales"], "semence_ha": 2.0, "rendement": 60.0, "cycle": 90, "travail": 40.0, "mois_semis": [5, 6], "eau_m3_ha_jour": 20.0, "epuisement": 0.02, "decouverte": "soins_organises"}
   },
   "defrichage": 20.0,
   "ha_par_cultivateur": 2.0,

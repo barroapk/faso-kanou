@@ -212,6 +212,9 @@ func _section_agriculture(C, jour: int) -> void:
         var enfants: Array = [_label("Champ %d : %.1f ha, fertilité %d %%, %s" % [int(c["id"]), float(c["ha"]), int(float(c["fertilite"]) * 100), etat], 22)]
         if c["etat"] != "seme" and bool(c["defriche"]):
             for culture in ag.cultures:
+                var dec: String = str(ag.cultures[culture].get("decouverte", ""))
+                if dec != "" and not C.decouvertes.connait(dec):
+                    continue
                 var id: int = int(c["id"])
                 enfants.append(_bouton("Semer %s" % ag.cultures[culture]["nom"].to_lower(), true,
                     func(): _faire(C.semer(id, culture), "Champ semé.")))

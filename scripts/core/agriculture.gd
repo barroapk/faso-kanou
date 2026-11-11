@@ -208,6 +208,9 @@ func semer(id: int, culture: String, res, jour: int, connait: Callable) -> Strin
         return "Le clan ne connaît pas encore l'agriculture."
     if not cultures.has(culture):
         return "Culture inconnue."
+    var dec: String = str(cultures[culture].get("decouverte", ""))
+    if dec != "" and not connait.call(dec):
+        return "Cette culture demande d'abord la découverte « %s »." % dec
     if c["etat"] == "seme":
         return "Le champ est déjà semé."
     if not accessible(c):
