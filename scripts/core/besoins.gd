@@ -411,7 +411,7 @@ func _equilibrer() -> void:
                 de2 = m
             else:
                 vers2 = m
-        evenement.emit("Le conseiller réorganise : un %s devient %s." % [de2, vers2])
+        evenement.emit("Le Premier ministre réorganise : un %s devient %s." % [de2, vers2])
 
 func _occupes() -> int:
     var n := 0
@@ -778,9 +778,9 @@ func _planifier() -> void:
             else:
                 vers2 = m
         if de2 == "":
-            evenement.emit("Le conseiller ouvre un poste de %s." % vers2)
+            evenement.emit("Le Premier ministre ouvre un poste de %s." % vers2)
         else:
-            evenement.emit("Le conseiller réorganise : un %s devient %s." % [de2, vers2])
+            evenement.emit("Le Premier ministre réorganise : un %s devient %s." % [de2, vers2])
 func vers_dict() -> Dictionary:
     return {"mode": mode, "verrou": verrou, "dernier_changement": dernier_changement}
 

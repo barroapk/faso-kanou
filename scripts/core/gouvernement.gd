@@ -33,10 +33,10 @@ const POIDS_AUTO := {"competence": 0.4, "experience": 0.2, "loyaute": 0.2, "sant
 
 var ecartes := {}      # "secteur:poste" -> ids refusés par le joueur (non sauvegardé)
 
-# ---------- Délégations du conseiller (v0.3.57) ----------
-# Le conseiller conseille ; il n'agit seul que dans ce que le dirigeant lui délègue : peu de
+# ---------- Délégations du Premier ministre (v0.3.57) ----------
+# Le Premier ministre conseille ; il n'agit seul que dans ce que le dirigeant lui délègue : peu de
 # domaines, une durée, révocable à tout moment. Jamais de guerre, d'alliance, de loi ni d'impôt.
-# Pas de conseiller en vie => délégation suspendue (rien n'est dépensé ni appliqué).
+# Pas de Premier ministre en vie => délégation suspendue (rien n'est dépensé ni appliqué).
 const DELEGATIONS := {
     "travail": {"nom": "Gestion du travail", "limites": "réaffecte les travailleurs, ouvre des postes de métier courants et gère les cultures ; aucun budget, aucune guerre, loi ni impôt."},
     "remplacement": {"nom": "Remplacement des responsables", "limites": "remplace un responsable mort ou parti par le meilleur candidat admissible (compétence 10 au moins, jamais seul de son métier vital) ; ne crée aucun nouveau poste."},
@@ -256,7 +256,7 @@ func peut_occuper(h: Dictionary, sid: String, poste: String, c, jour: int) -> St
     if c.population.age(h, jour) < int(d.get("age_min", 18)):
         return "Trop jeune pour cette fonction."
     if h["metier"] == "chef":
-        return "Le conseiller ne cumule pas de fonction."
+        return "Le Premier ministre ne cumule pas de fonction."
     if not fonction_de(id).is_empty():
         return "Occupe déjà une fonction."
     if h.has("expedition"):
@@ -361,7 +361,7 @@ func nommer(sid: String, poste: String, id: int, c, jour: int, par_conseiller :=
     ecartes.erase(sid + ":" + poste)
     vacances.erase(sid + ":" + poste)
     if par_conseiller:
-        evenement.emit("Le conseiller nomme %s %s %s (%s), selon votre délégation." % [h["prenom"], h["nom"], d["nom"], _nom_secteur(sid)])
+        evenement.emit("Le Premier ministre nomme %s %s %s (%s), selon votre délégation." % [h["prenom"], h["nom"], d["nom"], _nom_secteur(sid)])
     else:
         evenement.emit("%s %s est nommé %s (%s)." % [h["prenom"], h["nom"], d["nom"], _nom_secteur(sid)])
     return ""
@@ -380,7 +380,7 @@ func revoquer(sid: String, poste: String, c) -> String:
         evenement.emit("%s %s est relevé de ses fonctions (%s)." % [h["prenom"], h["nom"], _nom_secteur(sid)])
     return ""
 
-# Chaque jour : mort ou départ => poste vacant ; devenu conseiller => fonction retirée ; temps toujours appliqué.
+# Chaque jour : mort ou départ => poste vacant ; devenu Premier ministre => fonction retirée ; temps toujours appliqué.
 func verifier(c) -> void:
     _verifier_postes(c)
     _verifier_delegations(c, int(c.temps.jour_total))
@@ -401,7 +401,7 @@ func _verifier_postes(c) -> void:
                 _sync(sid)
                 h.erase("fonction")
                 vacances[sid + ":" + poste] = {"echec": false}
-                evenement.emit("%s %s devient conseiller : le poste de %s (%s) est vacant." % [h["prenom"], h["nom"], d.get("nom", poste), _nom_secteur(sid)])
+                evenement.emit("%s %s devient Premier ministre : le poste de %s (%s) est vacant." % [h["prenom"], h["nom"], d.get("nom", poste), _nom_secteur(sid)])
             elif not h.has("fonction"):
                 h["fonction"] = {"secteur": sid, "poste": poste, "temps": float(d.get("temps", 0.0)), "depuis": 0}
 
@@ -418,11 +418,11 @@ func deleguer(id: String, duree_jours: int, c, jour: int) -> String:
     if not DELEGATIONS.has(id):
         return "Délégation inconnue."
     if not _conseiller_present(c):
-        return "Il faut d'abord un conseiller."
+        return "Il faut d'abord un Premier ministre."
     delegations[id] = {"jusqu": (jour + duree_jours) if duree_jours >= 0 else -1, "suspendue": false}
     if id == "travail":
         c.besoins.mode = "auto"
-    evenement.emit("Délégation accordée au conseiller : %s." % str(DELEGATIONS[id]["nom"]).to_lower())
+    evenement.emit("Délégation accordée au Premier ministre : %s." % str(DELEGATIONS[id]["nom"]).to_lower())
     return ""
 
 func retirer_delegation(id: String, c) -> String:
@@ -431,15 +431,15 @@ func retirer_delegation(id: String, c) -> String:
     delegations.erase(id)
     if id == "travail":
         c.besoins.mode = "conseil"
-    evenement.emit("Délégation retirée : %s. Le conseiller conseille de nouveau, vous décidez." % str(DELEGATIONS[id]["nom"]).to_lower())
+    evenement.emit("Délégation retirée : %s. Le Premier ministre conseille de nouveau, vous décidez." % str(DELEGATIONS[id]["nom"]).to_lower())
     return ""
 
 func texte_delegation(id: String, jour: int) -> String:
     if not delegations.has(id):
-        return "non déléguée (le conseiller propose seulement)"
+        return "non déléguée (le Premier ministre propose seulement)"
     var d: Dictionary = delegations[id]
     var fin := "sans limite de durée" if int(d["jusqu"]) < 0 else "encore %d jour(s)" % maxi(0, int(d["jusqu"]) - jour)
-    return ("suspendue (pas de conseiller), " if bool(d["suspendue"]) else "déléguée, ") + fin
+    return ("suspendue (pas de Premier ministre), " if bool(d["suspendue"]) else "déléguée, ") + fin
 
 func _verifier_delegations(c, jour: int) -> void:
     # Anciennes parties : le mode automatique existait déjà ; il devient une délégation sans limite.
@@ -452,12 +452,12 @@ func _verifier_delegations(c, jour: int) -> void:
             delegations.erase(id)
             if id == "travail":
                 c.besoins.mode = "conseil"
-            evenement.emit("Délégation terminée : %s. Le conseiller propose de nouveau seulement." % str(DELEGATIONS[id]["nom"]).to_lower())
+            evenement.emit("Délégation terminée : %s. Le Premier ministre propose de nouveau seulement." % str(DELEGATIONS[id]["nom"]).to_lower())
         elif not present and not bool(d["suspendue"]):
             d["suspendue"] = true
             if id == "travail":
                 c.besoins.mode = "conseil"
-            evenement.emit("Délégation suspendue : pas de conseiller (%s)." % str(DELEGATIONS[id]["nom"]).to_lower())
+            evenement.emit("Délégation suspendue : pas de Premier ministre (%s)." % str(DELEGATIONS[id]["nom"]).to_lower())
         elif present and bool(d["suspendue"]):
             d["suspendue"] = false
             if id == "travail":
@@ -481,6 +481,6 @@ func _remplacer(c, jour: int) -> void:
             if p.is_empty():
                 if not bool(vacances[cle]["echec"]):
                     vacances[cle]["echec"] = true
-                    evenement.emit("Le conseiller ne trouve personne de convenable pour le poste de %s (%s) : à vous de décider." % [postes_def()[poste]["nom"], _nom_secteur(sid)])
+                    evenement.emit("Le Premier ministre ne trouve personne de convenable pour le poste de %s (%s) : à vous de décider." % [postes_def()[poste]["nom"], _nom_secteur(sid)])
             else:
                 nommer(sid, poste, int(p["id"]), c, jour, true)

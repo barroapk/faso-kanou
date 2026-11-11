@@ -9,7 +9,7 @@
   "bâtisseur": {"savoir": "construction", "feminin": "bâtisseuse", "choisi": true},
   "mineur": {"savoir": "extraction", "feminin": "mineuse", "choisi": true},
   "sans métier": {"savoir": "cueillette", "choisi": true},
-  "chef": {"savoir": "cueillette", "nom": "conseiller", "feminin": "conseillère"}
+  "chef": {"savoir": "cueillette", "nom": "Premier ministre", "feminin": "Première ministre"}
  },
  "roles": {
   "protecteur": {"nom": "protecteur", "savoir": "combat", "temps": 0.25, "gain": 0.5},

@@ -38,7 +38,7 @@ const REGLES := [
     ["raids", "Raid : accord", "Conflits", false],
     ["gouvernement", " est nommé ", "Politique", false],
     ["gouvernement", " est vacant", "Politique", false],
-    ["gouvernement", "Le conseiller nomme ", "Politique", false],
+    ["gouvernement", "Le Premier ministre nomme ", "Politique", false],
     ["gouvernement", "Délégation ", "Politique", false],
     ["gouvernement", " est relevé de ses fonctions", "Politique", false],
     ["routes", " terminé.", "Construction", true],
@@ -96,7 +96,7 @@ func _naissance(h: Dictionary) -> void:
 
 func _deces(h: Dictionary) -> void:
     if h.get("metier", "") == "chef":
-        noter("Démographie", "Mort du conseiller %s %s." % [h.get("prenom", "?"), h.get("nom", "")])
+        noter("Démographie", "Mort du Premier ministre %s %s." % [h.get("prenom", "?"), h.get("nom", "")])
 
 func noter(cat: String, texte: String) -> void:
     if _C == null:

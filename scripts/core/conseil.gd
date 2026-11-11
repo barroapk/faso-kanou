@@ -140,9 +140,9 @@ func mois_passe(pop, jour: int) -> void:
     if chef_id >= 0 and jour >= mandat_fin and (jour - mandat_fin) % 360 == 0:
         var c := habitant(pop, chef_id)
         if interim:
-            evenement.emit("L'intérim de %s est terminé : choisissez un conseiller." % c["prenom"])
+            evenement.emit("L'intérim de %s est terminé : choisissez un Premier ministre." % c["prenom"])
         elif jour == mandat_fin:
-            evenement.emit("Le mandat de %s se termine : renouvelez-le ou choisissez un autre conseiller." % c["prenom"])
+            evenement.emit("Le mandat de %s se termine : renouvelez-le ou choisissez un autre Premier ministre." % c["prenom"])
         else:
             evenement.emit("Rappel : le mandat de %s est terminé depuis %d an(s)." % [c["prenom"], (jour - mandat_fin) / 360])
     if jour > mandat_fin:
@@ -166,19 +166,19 @@ func _interim(pop, jour: int) -> void:
     _installer(meilleur, pop)
     interim = true
     mandat_fin = jour + 360
-    evenement.emit("Le conseiller est mort. %s assure l'intérim : choisissez un nouveau conseiller." % meilleur["prenom"])
+    evenement.emit("Le Premier ministre est mort. %s assure l'intérim : choisissez un nouveau Premier ministre." % meilleur["prenom"])
 
 # ---------- Décisions du joueur ----------
 
 # Renvoie "" si c'est fait, sinon la raison du refus.
 func nommer(id: int, pop, jour: int) -> String:
     if not membres.has(id):
-        return "Seul un membre du conseil peut devenir conseiller."
+        return "Seul un membre du conseil peut devenir Premier ministre."
     var h := habitant(pop, id)
     if h.is_empty():
         return "Cette personne n'est plus en vie."
     if id == chef_id and not interim:
-        return "C'est déjà le conseiller. Utilisez Renouveler."
+        return "C'est déjà le Premier ministre. Utilisez Renouveler."
     if chef_id >= 0 and jour < mandat_fin and not interim:
         confiance = maxf(0.0, confiance - 10.0)
         var ancien := habitant(pop, chef_id)
@@ -188,14 +188,14 @@ func nommer(id: int, pop, jour: int) -> String:
         _installer(h, pop)
     interim = false
     mandat_fin = jour + MANDAT_JOURS
-    evenement.emit("%s %s est nommé conseiller pour 5 ans." % [h["prenom"], h["nom"]])
+    evenement.emit("%s %s est nommé Premier ministre pour 5 ans." % [h["prenom"], h["nom"]])
     return ""
 
 func renouveler(pop, jour: int) -> String:
     if chef_id < 0:
-        return "Il n'y a pas de conseiller à renouveler."
+        return "Il n'y a pas de Premier ministre à renouveler."
     if interim:
-        return "Un conseiller par intérim se nomme, il ne se renouvelle pas."
+        return "Un Premier ministre par intérim se nomme, il ne se renouvelle pas."
     if jour < mandat_fin - 360:
         return "On ne peut renouveler que pendant la dernière année du mandat."
     mandat_fin = maxi(jour, mandat_fin) + MANDAT_JOURS

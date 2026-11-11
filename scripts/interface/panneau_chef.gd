@@ -118,9 +118,9 @@ func _section_conseil(C, jour: int) -> void:
     boite.add_child(_label("Conseil des cinq", 30))
     var chef: Dictionary = cons.habitant(C.population, cons.chef_id)
     if chef.is_empty():
-        boite.add_child(_label("Pas de conseiller : nommez un membre du conseil."))
+        boite.add_child(_label("Pas de Premier ministre : nommez un membre du conseil."))
     else:
-        var t := "Conseiller : %s %s" % [chef["prenom"], chef["nom"]]
+        var t := "Premier ministre : %s %s" % [chef["prenom"], chef["nom"]]
         t += " (intérim)" if cons.interim else " — mandat : encore %.1f an(s)" % cons.annees_restantes(jour)
         t += " — confiance du clan : %d %%" % int(cons.confiance)
         boite.add_child(_ligne([_label(t), _bouton("Renouveler", not cons.interim and jour >= cons.mandat_fin - 360,
@@ -141,13 +141,13 @@ func _section_conseil(C, jour: int) -> void:
             st.append("%s %d" % [x[0], x[1]])
         if not st.is_empty():
             t += "\n   Savoirs : " + ", ".join(st)
-        boite.add_child(_ligne([_label(t, 22), _bouton("Nommer conseiller", mid != cons.chef_id or cons.interim,
-            func(): _faire(cons.nommer(mid, C.population, jour), "Nouveau conseiller nommé."))]))
+        boite.add_child(_ligne([_label(t, 22), _bouton("Nommer Premier ministre", mid != cons.chef_id or cons.interim,
+            func(): _faire(cons.nommer(mid, C.population, jour), "Nouveau Premier ministre nommé."))]))
 
 # ---------- 2. Alertes et propositions ----------
 
 func _section_alertes(C) -> void:
-    boite.add_child(_label("Alertes du conseiller", 30))
+    boite.add_child(_label("Alertes du Premier ministre", 30))
     var chef: Dictionary = C.conseil.habitant(C.population, C.conseil.chef_id)
     var prenom: String = chef.get("prenom", "Le conseil")
     if C.chef.alertes.is_empty():
@@ -562,8 +562,8 @@ func _section_archipel(C) -> void:
 func _section_mode(C) -> void:
     var g = C.gouvernement
     var jour: int = C.temps.jour_total
-    boite.add_child(_label("Délégations du conseiller", 30))
-    boite.add_child(_label("Le conseiller conseille, vous décidez. Il n'agit seul que dans ce que vous lui déléguez, pour la durée choisie, et vous pouvez retirer la délégation à tout moment. Jamais de guerre, d'alliance, de loi ni d'impôt.", 21))
+    boite.add_child(_label("Délégations du Premier ministre", 30))
+    boite.add_child(_label("Le Premier ministre conseille, vous décidez. Il n'agit seul que dans ce que vous lui déléguez, pour la durée choisie, et vous pouvez retirer la délégation à tout moment. Jamais de guerre, d'alliance, de loi ni d'impôt.", 21))
     for id in g.DELEGATIONS:
         var di: String = id
         var def: Dictionary = g.DELEGATIONS[id]
