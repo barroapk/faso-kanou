@@ -579,7 +579,7 @@ func _mois_passe() -> void:
     migration.mois_passe(population, ressources, construction, temps.jour_total)
     pression.mois_passe(population, ressources, equipement, temps.jour_total)
     decouvertes.mois_passe(population, ressources, recettes, temps.jour_total, pression, besoins.mode == "auto")
-    budget.mois_passe(ressources, population, temps.jour_total)
+    budget.mois_passe(ressources, population, temps.jour_total, economie)
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())

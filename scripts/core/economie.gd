@@ -2,7 +2,7 @@ extends RefCounted
 
 # Richesse collective et comptabilité (v0.3.13).
 # La richesse appartient au clan, jamais à une personne. Quatre notions :
-#   trésorerie  : la monnaie réellement détenue (cauris, or) ; vide au début ;
+#   trésorerie  : la monnaie réellement détenue (or) ; vide au début ;
 #   stocks      : la valeur des ressources et produits (nourriture, eau, bois...) ;
 #   patrimoine  : bâtiments et outils (valeur selon leur état) ;
 #   comptabilité: chaque mois, tous les mouvements par motif (production,
@@ -15,7 +15,7 @@ extends RefCounted
 
 signal evenement(texte)
 
-const MONNAIES := ["cauris", "or_alluvionnaire", "or_fondu"]
+const MONNAIES := ["or_alluvionnaire", "or_fondu"]
 const JOURNAL_MAX := 24
 const ECART_TOLERE := 0.01
 

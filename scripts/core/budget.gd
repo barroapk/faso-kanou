@@ -1,26 +1,30 @@
 extends RefCounted
 
-# Budget du clan (v0.3.40) : une caisse commune alimentée par un impôt réglable.
-# Règles :
-#  - l'impôt ne crée rien : il TRANSFÈRE une part de la production du mois
-#    (bois, pierre, argile) du stock vers la caisse ;
-#  - la caisse est HORS des stocks : un kilo n'est jamais compté deux fois ;
-#    elle ne sert ni à manger, ni à commercer, seulement aux travaux ;
-#  - le bois n'est jamais prélevé sous 20 jours de réserve ;
-#  - dépenses réelles : chantiers et entretien puisent d'abord dans la caisse.
+# Impôt et réserve commune (v0.3.40b).
+# Principes :
+#  - base imposable = valeur RÉELLE de la production enregistrée du mois (en kg de mil)
+#    moins la subsistance de toute la population (ce qu'elle a réellement consommé) ;
+#    enfants et inactifs ne produisent rien : ils ne rapportent rien ;
+#  - impôt = taux x base, prélevé EN NATURE sur les biens produits (jamais la
+#    nourriture ni l'eau, jamais le bois sous 20 jours de réserve) ;
+#  - aucune monnaie n'est créée : l'or et le troc viennent du commerce seulement ;
+#  - la réserve commune est HORS des stocks (jamais comptée deux fois) ; sa valeur
+#    entre dans la richesse ; chantiers et entretien y puisent d'abord ;
+#  - taux de 0 à 30 % ; au-dessus de 10 %, le travail rend moins.
 
 signal evenement(texte)
 
-const TAXABLES := ["bois", "pierre", "argile"]
+const TAUX_MAX := 0.30
+const SANS_MALUS := 0.10
+const INTOUCHABLES := ["nourriture", "eau"]
 const MOTIFS_PRODUCTION := ["production", "extraction"]
 const MOTIFS_DEPENSE := ["construction", "entretien"]
-const TAUX_MAX := 0.30
 const RESERVE_BOIS_JOURS := 20.0
 const JOURNAL_MAX := 24
 
 var taux := 0.0
 var caisse := {}
-var journal: Array = []        # un résumé par mois : {jour, taux, recettes, depenses, caisse}
+var journal: Array = []        # {jour, taux, base, du, recettes, depenses}
 var total_recettes := {}
 var total_depenses := {}
 var _recettes := {}
@@ -32,6 +36,14 @@ func regler(t: float) -> String:
     taux = t
     return ""
 
+# 1 jusqu'à 10 % ; 0,95 à 20 % ; 0,85 à 30 %.
+func facteur_productivite() -> float:
+    if taux <= SANS_MALUS:
+        return 1.0
+    if taux <= 0.20:
+        return 1.0 - 0.5 * (taux - SANS_MALUS)
+    return 0.95 - 1.0 * (taux - 0.20)
+
 func quantite(id: String) -> float:
     return float(caisse.get(id, 0.0))
 
@@ -41,7 +53,7 @@ func valeur(eco) -> float:
         t += eco.valeur(id, float(caisse[id]))
     return t
 
-# Chantiers et entretien : prend dans la caisse jusqu'à q, renvoie ce qui a été pris.
+# Chantiers et entretien : prend dans la réserve jusqu'à q, renvoie ce qui a été pris.
 func depenser(id: String, q: float, motif: String) -> float:
     if not MOTIFS_DEPENSE.has(motif):
         return 0.0
@@ -56,27 +68,55 @@ func depenser(id: String, q: float, motif: String) -> float:
     total_depenses[id] = float(total_depenses.get(id, 0.0)) + pris
     return pris
 
+func _val(eco, id: String, q: float) -> float:
+    return q * (1.0 if id == "nourriture" else float(eco.valeurs.get(id, 0.0)))
+
+func _prelevable(res, id: String) -> bool:
+    if INTOUCHABLES.has(id) or bool(res.produits.get(id, {}).get("alimentaire", false)):
+        return false
+    return true
+
 # À appeler AVANT economie.mois_passe (qui remet le flux du mois à zéro).
-func mois_passe(res, pop, jour: int) -> void:
-    if taux > 0.0:
+func mois_passe(res, pop, jour: int, eco) -> void:
+    var prod := {}
+    for m in MOTIFS_PRODUCTION:
+        for id in res.flux.get(m, {}):
+            var q := float(res.flux[m][id])
+            if q > 0.0:
+                prod[id] = float(prod.get(id, 0.0)) + q
+    var v_prod := 0.0
+    for id in prod:
+        v_prod += _val(eco, id, float(prod[id]))
+    var v_sub := 0.0
+    for id in res.flux.get("consommation", {}):
+        v_sub += _val(eco, id, maxf(0.0, -float(res.flux["consommation"][id])))
+    var base := maxf(0.0, v_prod - v_sub)
+    var du := taux * base
+    if du > 0.0:
+        var v_col := 0.0
+        for id in prod:
+            if _prelevable(res, id):
+                v_col += _val(eco, id, float(prod[id]))
         var auto: Dictionary = res.autonomie(pop, jour)
-        for id in TAXABLES:
-            var prod := 0.0
-            for m in MOTIFS_PRODUCTION:
-                prod += float(res.flux.get(m, {}).get(id, 0.0))
-            var q := prod * taux
-            if id == "bois":
-                var jours: float = float(auto["bois"])
-                var libre := float(res.stocks["bois"]) * (1.0 - RESERVE_BOIS_JOURS / jours) if jours > RESERVE_BOIS_JOURS else 0.0
-                q = minf(q, libre)
-            q = minf(q, res.quantite(id))
-            if q < 0.01:
-                continue
-            if res.retirer(id, q, "impot"):
-                caisse[id] = quantite(id) + q
-                _recettes[id] = float(_recettes.get(id, 0.0)) + q
-                total_recettes[id] = float(total_recettes.get(id, 0.0)) + q
-    journal.append({"jour": jour, "taux": taux, "recettes": _recettes.duplicate(), "depenses": _depenses.duplicate(true), "caisse": caisse.duplicate()})
+        if v_col > 0.0:
+            for id in prod:
+                var vu := float(eco.valeurs.get(id, 0.0))
+                if not _prelevable(res, id) or vu <= 0.0:
+                    continue
+                var q := du * (_val(eco, id, float(prod[id])) / v_col) / vu
+                q = minf(q, float(prod[id]))
+                if id == "bois":
+                    var jours: float = float(auto["bois"])
+                    var libre := float(res.stocks["bois"]) * (1.0 - RESERVE_BOIS_JOURS / jours) if jours > RESERVE_BOIS_JOURS else 0.0
+                    q = minf(q, libre)
+                q = minf(q, res.quantite(id))
+                if q < 0.01:
+                    continue
+                if res.retirer(id, q, "impot"):
+                    caisse[id] = quantite(id) + q
+                    _recettes[id] = float(_recettes.get(id, 0.0)) + q
+                    total_recettes[id] = float(total_recettes.get(id, 0.0)) + q
+    journal.append({"jour": jour, "taux": taux, "base": base, "du": du, "recettes": _recettes.duplicate(), "depenses": _depenses.duplicate(true)})
     while journal.size() > JOURNAL_MAX:
         journal.pop_front()
     _recettes = {}
@@ -89,14 +129,14 @@ func _liste(d: Dictionary) -> String:
     return ", ".join(l) if not l.is_empty() else "rien"
 
 func texte() -> String:
-    var s := "Impôt : %d %% de la production de bois, pierre et argile. Caisse : %s." % [int(round(taux * 100.0)), _liste(caisse)]
+    var s := "Impôt : %d %%. Production : %d %% de la normale. Réserve commune : %s." % [int(round(taux * 100.0)), int(round(facteur_productivite() * 100.0)), _liste(caisse)]
     if not journal.is_empty():
         var d: Dictionary = journal[journal.size() - 1]
         var dep := {}
         for m in d["depenses"]:
             for id in d["depenses"][m]:
                 dep[id] = float(dep.get(id, 0.0)) + float(d["depenses"][m][id])
-        s += " Dernier mois : reçu %s, dépensé %s." % [_liste(d["recettes"]), _liste(dep)]
+        s += " Dernier mois : surplus imposable %d kg de mil, reçu %s, dépensé %s." % [int(round(float(d.get("base", 0.0)))), _liste(d["recettes"]), _liste(dep)]
     return s
 
 func vers_dict() -> Dictionary:

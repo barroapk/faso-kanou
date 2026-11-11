@@ -259,9 +259,9 @@ func _section_clotures(C) -> void:
 func _section_budget(C) -> void:
     boite.add_child(_label("Budget du clan", 30))
     boite.add_child(_label(C.budget.texte(), 22))
-    boite.add_child(_label("L'impôt met de côté une part de la production de bois, pierre et argile pour les chantiers et l'entretien. Cette part sort des stocks : elle ne sert plus à autre chose.", 21))
+    boite.add_child(_label("L'impôt prélève une part du surplus produit (jamais la nourriture ni l'eau) pour les chantiers et l'entretien. Au-delà de 10 %, le travail rend moins. Maximum : 30 %.", 21))
     var enfants: Array = []
-    for t in [0.0, 0.05, 0.10, 0.15, 0.20]:
+    for t in [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]:
         var tt: float = t
         enfants.append(_bouton("%d %%" % int(round(t * 100.0)), absf(C.budget.taux - t) > 0.001, func(): _faire(C.budget.regler(tt), "Impôt réglé.")))
     boite.add_child(_ligne(enfants))

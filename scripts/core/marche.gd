@@ -20,7 +20,7 @@ const JOURS_VISES := {"nourriture": 90.0, "eau": 30.0, "bois": 30.0, "sel": 60.0
 const FACTEUR_MIN := 0.5
 const FACTEUR_MAX := 3.0
 const SEUIL_ACHAT := 30.0      # l'ordinateur achète sous 30 jours de réserve
-const MONNAIE := "cauris"
+const MONNAIE := "or_alluvionnaire"
 
 var valeurs := {}              # prix de référence (kg de mil)
 var compteur := 0              # numéro des transactions
