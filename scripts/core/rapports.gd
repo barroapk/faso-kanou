@@ -89,6 +89,56 @@ func _resultats(c, jour: int) -> Array:
     l.append({"secteur": "finances", "lignes": lf, "taux": _taux(float(rec.get("impot", 0.0)), du), "raison": "aucun impôt dû ce mois-ci"})
     return l
 
+const CAUSES := {"naturelle": "mortalité naturelle", "fragilite": "fragilité (mauvaise santé)", "privation": "privation (santé épuisée)", "accouchement": "accouchement"}
+
+# Démographie depuis le dernier rapport : population, actifs potentiels / réellement employés, dépendants, naissances, décès.
+func _demographie(c, jour: int) -> Dictionary:
+    var pop = c.population
+    var enfants := 0
+    var anciens := 0
+    var aptes := 0
+    var employes := 0
+    for h in pop.habitants:
+        var a: int = pop.age(h, jour)
+        if a < pop.AGE_ADULTE:
+            enfants += 1
+        elif a >= pop.AGE_TRAVAIL_MAX:
+            anciens += 1
+        else:
+            aptes += 1
+            if pop.postes.has(h["metier"]) or h["metier"] == "chef":
+                employes += 1
+    var b: Dictionary = pop.bilan_demographique()
+    pop.reinitialiser_bilan()
+    var couv: float = c.satisfaction.valeur("nourriture")
+    return {"total": pop.habitants.size(), "enfants": enfants, "anciens": anciens, "aptes": aptes, "employes": employes,
+        "naissances": int(b["naissances"]), "deces": b["deces"], "deces_age": b["deces_age"], "couverture": couv,
+        "autorisation": pop.autorisation_conception(couv / 100.0 if couv >= 0.0 else 1.0)}
+
+func texte_demographie(d: Dictionary) -> String:
+    var dep: int = int(d["enfants"]) + int(d["anciens"])
+    var s := "Démographie (depuis le dernier rapport) : %d habitants, dont %d enfants, %d en âge de travailler (%d réellement employés) et %d anciens." % [int(d["total"]), int(d["enfants"]), int(d["aptes"]), int(d["employes"]), int(d["anciens"])]
+    s += "\nDépendants : %d pour %d actifs potentiels" % [dep, int(d["aptes"])]
+    if int(d["aptes"]) > 0:
+        s += " (%.1f par actif)" % (float(dep) / float(d["aptes"]))
+    s += ".\nNaissances : %d. Décès : %d" % [int(d["naissances"]), _somme(d["deces"])]
+    if _somme(d["deces"]) > 0:
+        var cs: PackedStringArray = []
+        for k in d["deces"]:
+            cs.append("%s %d" % [CAUSES.get(k, k), int(d["deces"][k])])
+        var ag: PackedStringArray = []
+        for k in d["deces_age"]:
+            ag.append("%s %d" % [k, int(d["deces_age"][k])])
+        s += " (causes : " + ", ".join(cs) + " ; âges : " + ", ".join(ag) + ")"
+    s += ".\nCouverture alimentaire sur 30 jours : %s. Conceptions autorisées : %d %%." % [("%d %%" % int(round(float(d["couverture"])))) if float(d["couverture"]) >= 0.0 else "indisponible", int(round(float(d["autorisation"]) * 100.0))]
+    return s
+
+func _somme(m: Dictionary) -> int:
+    var n := 0
+    for k in m:
+        n += int(m[k])
+    return n
+
 func _blocages(c, jour: int) -> Array:
     var l: Array = []
     for s in c.gouvernement.tableau(c, jour):
@@ -148,7 +198,7 @@ func mois_passe(c, jour: int) -> void:
     if dernier_jour < 0:
         dernier_jour = jour - 30
     var pm: Dictionary = c.conseil.habitant(c.population, int(c.conseil.chef_id)) if int(c.conseil.chef_id) >= 0 else {}
-    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat()}
+    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour)}
     dernier_jour = jour
     # Demandes : on retire celles qui n'ont plus d'objet, on ajoute les nouvelles besoins réels.
     var actives := {}

@@ -90,7 +90,7 @@ var aliments := {"fonio_sauvage": 200.0, "baobab_pulpe": 60.0, "karite_amande": 
 var bilan := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0, "sel": 0.0}
 var outils := 1.0
 var faim := false
-var couverture_nourriture := 1.0   # part du besoin alimentaire du jour réellement couverte (0 à 1)
+var couverture_nourriture := 1.0   # nourriture réellement distribuée / besoin théorique avant rationnement (0 à 1)
 var soif := false
 var jours_sans_sel := 0
 var richesse := {}   # richesse naturelle de l'île (data/iles.json), 1 = normal
@@ -460,6 +460,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     noter("perte", "nourriture", -_pertes_aliments())
     if jour > ration_jusqu:
         ration = 1.0
+    var besoin_brut := besoin_nourriture   # besoin théorique, avant rationnement
     besoin_nourriture *= ration
     var manque := _retirer(besoin_nourriture)
     noter("consommation", "nourriture", -(besoin_nourriture - manque))
@@ -506,7 +507,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     var avait_faim := faim
     var avait_soif := soif
     faim = manque > 0.001 or stocks["nourriture"] <= 0.0
-    couverture_nourriture = 1.0 - clampf(manque / besoin_nourriture, 0.0, 1.0) if besoin_nourriture > 0.0 else 1.0
+    couverture_nourriture = clampf((besoin_nourriture - manque) / besoin_brut, 0.0, 1.0) if besoin_brut > 0.0 else 1.0
     soif = stocks["eau"] <= 0.0
     if faim and not avait_faim:
         penurie.emit("nourriture")

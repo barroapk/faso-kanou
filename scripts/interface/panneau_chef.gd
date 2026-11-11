@@ -371,6 +371,9 @@ func _section_rapport(C, jour: int) -> void:
                 sl.append(C.satisfaction.texte_valeur(k))
             var faible: String = (" Point faible : " + C.satisfaction.NOMS[st["faible"]].to_lower() + ".") if str(st["faible"]) != "" else ""
             boite.add_child(_label("Satisfaction (30 derniers jours) : " + ", ".join(sl) + ".\nStabilité du clan : %d %% (%s).%s Effet pratique : aucun pour l'instant, c'est un indicateur." % [int(round(float(st["stabilite"]))), st["statut"], faible], 21))
+        var dm: Dictionary = r.get("demographie", {})
+        if not dm.is_empty():
+            boite.add_child(_label(R.texte_demographie(dm), 21))
         if not r["blocages"].is_empty():
             boite.add_child(_label("Blocages : " + " ; ".join(PackedStringArray(r["blocages"])), 21))
     boite.add_child(_label("Demandes (accepter ou refuser enregistre seulement votre décision : rien n'est exécuté)", 24))

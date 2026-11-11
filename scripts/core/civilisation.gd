@@ -630,7 +630,8 @@ func _mois_passe() -> void:
     routes.mois_passe(ressources, temps.mois())
     flotte.mois_passe(ressources, temps.mois())
     var logement: float = construction.effet_total("logement")
-    population.mois_passe(temps.jour_total, ressources.stocks["nourriture"] > 100.0, int(logement))
+    var couv: float = satisfaction.valeur("nourriture")
+    population.mois_passe(temps.jour_total, true, int(logement), couv / 100.0 if couv >= 0.0 else 1.0)
     conseil.mois_passe(population, temps.jour_total)
     besoins.mois_passe(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), not construction.chantiers.is_empty())
     if besoins.mode == "auto":

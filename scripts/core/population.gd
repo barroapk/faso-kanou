@@ -8,6 +8,16 @@ signal sortie(habitant)
 
 const JOURS_PAR_AN := 360
 const AGE_ADULTE := 14
+const AGE_TRAVAIL_MAX := 60          # au-delà : ancien, compté parmi les dépendants
+# Mortalité liée à la santé (v0.3.65) : le risque de référence vaut pour une santé >= SANTE_REF.
+# En dessous, il augmente progressivement ; la faim n'est pas comptée une seconde fois,
+# elle agit déjà sur la santé chaque jour.
+const SANTE_REF := 70
+const FRAGILITE_ADULTE := 1.0        # risque x2 au maximum (santé 0)
+const FRAGILITE_VULNERABLE := 2.0    # x3 au maximum : moins de 5 ans et 50 ans et plus
+# Conceptions : autorisées de façon progressive selon la couverture alimentaire des 30 derniers jours.
+const COUVERTURE_MIN := 0.4          # en dessous : aucune conception autorisée
+const COUVERTURE_PLEINE := 0.9       # au-dessus : toutes autorisées
 const PRENOMS_H := ["Ousmane", "Issa", "Adama", "Moussa", "Salif", "Karim", "Boukary", "Noaga", "Idrissa", "Seydou"]
 const PRENOMS_F := ["Aminata", "Fatimata", "Mariam", "Awa", "Salimata", "Rasmata", "Zalissa", "Assita", "Kadiatou", "Bintou"]
 
@@ -156,13 +166,13 @@ func nombre(m: String) -> int:
 
 # peut_naitre : condition de nourriture (donnée par la civilisation).
 # logement : nombre de places ; une grossesse compte déjà comme une place.
-func mois_passe(jour: int, peut_naitre := true, logement := 1000000) -> void:
+func mois_passe(jour: int, peut_naitre := true, logement := 1000000, couverture := 1.0) -> void:
     _fermer_couples(jour)
     _deces_du_mois(jour)
     _fermer_couples(jour)
     _naissances(jour, logement)
     _former_couples(jour)
-    _conceptions(jour, peut_naitre, logement)
+    _conceptions(jour, peut_naitre, logement, couverture)
     for h in habitants:
         if h["metier"] == "enfant" and age(h, jour) >= AGE_ADULTE:
             h["metier"] = "sans métier"
@@ -171,6 +181,18 @@ func mois_passe(jour: int, peut_naitre := true, logement := 1000000) -> void:
 # ---------- Mortalité ----------
 
 func risque_mois(h: Dictionary, jour: int) -> float:
+    return _risque_base(h, jour) * facteur_sante(h, jour)
+
+# 1 pour une santé correcte ; monte progressivement quand la santé baisse (plus vite pour les plus fragiles).
+func facteur_sante(h: Dictionary, jour: int) -> float:
+    var s: float = float(h["sante"])
+    if s >= float(SANTE_REF):
+        return 1.0
+    var a := age(h, jour)
+    var k: float = FRAGILITE_VULNERABLE if (a < 5 or a >= 50) else FRAGILITE_ADULTE
+    return 1.0 + k * (float(SANTE_REF) - s) / float(SANTE_REF)
+
+func _risque_base(h: Dictionary, jour: int) -> float:
     var a := age(h, jour)
     var coef := RISQUE_COUSINS if h.get("consanguin", false) else 1.0
     if a < 1:
@@ -192,7 +214,7 @@ func _deces_du_mois(jour: int) -> void:
         if rng.randf() < risque_mois(h, jour):
             morts.append(h)
     for h in morts:
-        _mourir(h)
+        _mourir(h, "fragilite" if facteur_sante(h, jour) > 1.0 else "naturelle", jour)
 
 # ---------- Migrations (appelées par migration.gd) ----------
 
@@ -214,7 +236,28 @@ func _archiver(h: Dictionary) -> void:
 func nouveau_couple(mari: Dictionary, femme: Dictionary, debut: int) -> Dictionary:
     return _nouveau_couple(mari, femme, debut)
 
-func _mourir(h: Dictionary) -> void:
+# Bilan démographique depuis le dernier rapport : naissances, décès par cause et par tranche d'âge.
+var bilan := {"naissances": 0, "deces": {}, "deces_age": {}}
+
+func bilan_demographique() -> Dictionary:
+    return bilan.duplicate(true)
+
+func reinitialiser_bilan() -> void:
+    bilan = {"naissances": 0, "deces": {}, "deces_age": {}}
+
+func _tranche(a: int) -> String:
+    if a < 5:
+        return "0-4 ans"
+    if a < 15:
+        return "5-14 ans"
+    if a < 50:
+        return "15-49 ans"
+    return "50 ans et plus"
+
+func _mourir(h: Dictionary, cause := "naturelle", jour := -1) -> void:
+    bilan["deces"][cause] = int(bilan["deces"].get(cause, 0)) + 1
+    var tr: String = _tranche(age(h, jour)) if jour >= 0 else "âge inconnu"
+    bilan["deces_age"][tr] = int(bilan["deces_age"].get(tr, 0)) + 1
     _archiver(h)
     habitants.erase(h)
     deces.emit(h)
@@ -367,7 +410,11 @@ func grossesses() -> int:
             n += 1
     return n
 
-func _conceptions(jour: int, peut_naitre: bool, logement: int) -> void:
+# Part des conceptions autorisées par les conditions alimentaires (la fécondité est un autre mécanisme).
+func autorisation_conception(couverture: float) -> float:
+    return clampf((couverture - COUVERTURE_MIN) / (COUVERTURE_PLEINE - COUVERTURE_MIN), 0.0, 1.0)
+
+func _conceptions(jour: int, peut_naitre: bool, logement: int, couverture := 1.0) -> void:
     if not peut_naitre:
         return
     for c in couples:
@@ -379,6 +426,9 @@ func _conceptions(jour: int, peut_naitre: bool, logement: int) -> void:
             return
         var mere := par_id(int(c["femme"]))
         if rng.randf() < fecondite_mois(c, mere, jour):
+            var autorise := autorisation_conception(couverture)
+            if autorise < 1.0 and rng.randf() >= autorise:
+                continue
             c["conception"] = jour
 
 func _naissances(jour: int, logement: int) -> void:
@@ -402,9 +452,10 @@ func _naissances(jour: int, logement: int) -> void:
             bebe["consanguin"] = true
         c["enfants"].append(int(bebe["id"]))
         c["dernier_enfant"] = jour
+        bilan["naissances"] = int(bilan["naissances"]) + 1
         naissance.emit(bebe)
         if rng.randf() < MORTALITE_EN_COUCHES:
-            _mourir(mere)
+            _mourir(mere, "accouchement", jour)
 
 func repartir(jour: int) -> void:
     for m in postes:
@@ -466,7 +517,7 @@ func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0, jour := -1) -> void
         if h["sante"] == 0:
             morts.append(h)
     for h in morts:
-        _mourir(h)
+        _mourir(h, "privation", jour)
 
 # ---------- Guérisseurs et soins (v0.3.45) ----------
 
@@ -703,7 +754,7 @@ func changer_metier(h: Dictionary, m: String) -> void:
     maj_competence(h)
 
 func vers_dict() -> Dictionary:
-    return {"habitants": habitants, "prochain_id": prochain_id, "postes": postes, "couples": couples, "prochain_couple": prochain_couple, "archives": _archives.values(), "graine": str(rng.seed), "etat": str(rng.state)}
+    return {"habitants": habitants, "prochain_id": prochain_id, "postes": postes, "couples": couples, "prochain_couple": prochain_couple, "archives": _archives.values(), "graine": str(rng.seed), "etat": str(rng.state), "bilan": bilan}
 
 func depuis_dict(d: Dictionary) -> void:
     habitants = []
@@ -733,6 +784,13 @@ func depuis_dict(d: Dictionary) -> void:
     var p: Dictionary = d.get("postes", {})
     for m in postes:
         postes[m] = int(p.get(m, nombre(m)))
+    reinitialiser_bilan()
+    var b: Dictionary = d.get("bilan", {})
+    bilan["naissances"] = int(b.get("naissances", 0))
+    for k in b.get("deces", {}):
+        bilan["deces"][str(k)] = int(b["deces"][k])
+    for k in b.get("deces_age", {}):
+        bilan["deces_age"][str(k)] = int(b["deces_age"][k])
     rng.seed = int(d.get("graine", "2026"))
     rng.state = int(d.get("etat", "0"))
 
