@@ -1,29 +1,32 @@
 extends RefCounted
 
 # Satisfaction et stabilité (v0.3.63) : MESURE SEULEMENT.
-#  - Trois indicateurs calculés sur les faits des 30 derniers jours (fenêtre glissante) :
+#  - Quatre indicateurs calculés sur les faits des 30 derniers jours (fenêtre glissante) :
 #      nourriture : part du besoin alimentaire réellement couverte chaque jour (personnes-jours nourries) ;
+#      eau        : part du besoin en eau réellement distribuée (stock vide = manque) ;
 #      santé      : soins donnés / malades à soigner, les jours où il y avait des malades ;
 #      salaires   : jours sans arriérés, un arriéré pesant d'autant plus qu'il représente de jours de salaires.
 #    Un indicateur sans objet (aucun malade, aucun salaire public) est « indisponible », jamais pénalisé.
 #  - Stabilité : elle bouge lentement, chaque mois, vers la situation des indicateurs (la pire
 #    compte pour moitié). Elle baisse au plus de 4 points par mois et remonte au plus de 3.
-#  - Aucun effet pratique dans cette version : aucun mécanisme existant ne la traduit sans pénalité
-#    fictive. Pas de production réduite, pas de migration, pas de contestation.
+#  - v0.3.66 : eau = 4e indicateur (part du besoin en eau réellement distribuée). Seul effet pratique
+#    de la stabilité : production des métiers -0 à -10 % (voir facteur_productivite). Pas de bonus,
+#    pas de migration, pas de contestation.
 
 signal evenement(texte)
 
 const FENETRE := 30
 const MIN_JOURS := 5
-const CLES := ["nourriture", "sante", "salaires"]
-const NOMS := {"nourriture": "Nourriture", "sante": "Santé", "salaires": "Salaires"}
+const CLES := ["nourriture", "eau", "sante", "salaires"]
+const NOMS := {"nourriture": "Nourriture", "eau": "Eau", "sante": "Santé", "salaires": "Salaires"}
+const PENALITE_MAX := 0.10    # effet maximal de la stabilité sur le travail (à stabilité 0)
 const BAISSE_MAX := 4.0
 const HAUSSE_MAX := 3.0
 const SEUIL_STABLE := 75.0
 const SEUIL_FRAGILE := 50.0
 const JOURS_ARRIERES_NULS := 10.0
 
-var jours := {"nourriture": [], "sante": [], "salaires": []}
+var jours := {"nourriture": [], "eau": [], "sante": [], "salaires": []}
 var stabilite := 100.0
 var statut := "stable"
 
@@ -36,6 +39,7 @@ func _pousser(cle: String, v: float) -> void:
 # Chaque jour, après les soins. valeur = -1 : indicateur sans objet ce jour-là.
 func jour(c, besoin_soins: float, soins: float) -> void:
     _pousser("nourriture", clampf(float(c.ressources.couverture_nourriture), 0.0, 1.0))
+    _pousser("eau", clampf(float(c.ressources.couverture_eau), 0.0, 1.0))
     _pousser("sante", clampf(soins / besoin_soins, 0.0, 1.0) if besoin_soins > 0.0 else -1.0)
     var f = c.finances
     var sj: float = f.salaires_jour(c)
@@ -88,6 +92,14 @@ func plus_faible() -> String:
             cle = k
     return cle
 
+# Seul effet pratique de la stabilité : le travail des métiers. Aucun effet au-dessus de 75 %,
+# pénalité progressive en dessous, au plus -10 % à 0 %. Jamais de bonus. Appliqué une seule fois
+# (dans ressources.gd), sans toucher à l'impôt ni aux outils.
+func facteur_productivite() -> float:
+    if stabilite >= SEUIL_STABLE:
+        return 1.0
+    return 1.0 - PENALITE_MAX * (SEUIL_STABLE - stabilite) / SEUIL_STABLE
+
 func mois_passe(_c, _jour: int) -> void:
     var cb := cible()
     if cb >= 0.0:
@@ -107,7 +119,7 @@ func etat() -> Dictionary:
     var v := {}
     for k in CLES:
         v[k] = valeur(k)
-    return {"valeurs": v, "stabilite": stabilite, "statut": statut, "faible": plus_faible()}
+    return {"valeurs": v, "stabilite": stabilite, "statut": statut, "faible": plus_faible(), "facteur": facteur_productivite()}
 
 func texte_valeur(k: String) -> String:
     var v := valeur(k)
@@ -124,7 +136,7 @@ func vers_dict() -> Dictionary:
     return {"jours": jours, "stabilite": stabilite, "statut": statut}
 
 func depuis_dict(d: Dictionary) -> void:
-    jours = {"nourriture": [], "sante": [], "salaires": []}
+    jours = {"nourriture": [], "eau": [], "sante": [], "salaires": []}
     for k in CLES:
         for v in d.get("jours", {}).get(k, []):
             jours[k].append(float(v))

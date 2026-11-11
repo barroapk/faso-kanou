@@ -653,6 +653,7 @@ func _mois_passe() -> void:
     raids.mois_passe()
     institutions.mois_passe(self, temps.jour_total)
     satisfaction.mois_passe(self, temps.jour_total)
+    ressources.facteur_stabilite = satisfaction.facteur_productivite()
     rapports.mois_passe(self, temps.jour_total)
     raids.decider(_clans(), temps.jour_total, caravanes, diplomatie, Callable(self, "_raid_connait"))
     _visites_ordinateur()
@@ -776,6 +777,7 @@ func _charger(nom: String) -> bool:
     rapports.depuis_dict(donnees.get("rapports", {}))
     missions.depuis_dict(donnees.get("missions", {}))
     satisfaction.depuis_dict(donnees.get("satisfaction", {}))
+    ressources.facteur_stabilite = satisfaction.facteur_productivite()
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))

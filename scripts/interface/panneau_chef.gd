@@ -370,7 +370,9 @@ func _section_rapport(C, jour: int) -> void:
             for k in C.satisfaction.CLES:
                 sl.append(C.satisfaction.texte_valeur(k))
             var faible: String = (" Point faible : " + C.satisfaction.NOMS[st["faible"]].to_lower() + ".") if str(st["faible"]) != "" else ""
-            boite.add_child(_label("Satisfaction (30 derniers jours) : " + ", ".join(sl) + ".\nStabilité du clan : %d %% (%s).%s Effet pratique : aucun pour l'instant, c'est un indicateur." % [int(round(float(st["stabilite"]))), st["statut"], faible], 21))
+            var fs: float = float(st.get("facteur", 1.0))
+            var effet: String = "aucun (stabilité au-dessus de 75 %)" if fs >= 0.9999 else "production des métiers −%.1f %%" % ((1.0 - fs) * 100.0)
+            boite.add_child(_label("Satisfaction (30 derniers jours) : " + ", ".join(sl) + ".\nStabilité du clan : %d %% (%s).%s Effet sur le travail : %s." % [int(round(float(st["stabilite"]))), st["statut"], faible, effet], 21))
         var dm: Dictionary = r.get("demographie", {})
         if not dm.is_empty():
             boite.add_child(_label(R.texte_demographie(dm), 21))

@@ -89,7 +89,7 @@ func _resultats(c, jour: int) -> Array:
     l.append({"secteur": "finances", "lignes": lf, "taux": _taux(float(rec.get("impot", 0.0)), du), "raison": "aucun impôt dû ce mois-ci"})
     return l
 
-const CAUSES := {"naturelle": "mortalité naturelle", "fragilite": "fragilité (mauvaise santé)", "privation": "privation (santé épuisée)", "accouchement": "accouchement"}
+const CAUSES := {"naturelle": "mortalité naturelle", "fragilite": "décès avec santé dégradée", "privation": "privation (santé épuisée)", "accouchement": "accouchement"}
 
 # Démographie depuis le dernier rapport : population, actifs potentiels / réellement employés, dépendants, naissances, décès.
 func _demographie(c, jour: int) -> Dictionary:
@@ -106,7 +106,7 @@ func _demographie(c, jour: int) -> Dictionary:
             anciens += 1
         else:
             aptes += 1
-            if pop.postes.has(h["metier"]) or h["metier"] == "chef":
+            if h["metier"] == "chef" or (h["metier"] != "sans métier" and c.ressources.travail_du_jour.has(int(h["id"]))):
                 employes += 1
     var b: Dictionary = pop.bilan_demographique()
     pop.reinitialiser_bilan()
@@ -117,7 +117,7 @@ func _demographie(c, jour: int) -> Dictionary:
 
 func texte_demographie(d: Dictionary) -> String:
     var dep: int = int(d["enfants"]) + int(d["anciens"])
-    var s := "Démographie (depuis le dernier rapport) : %d habitants, dont %d enfants, %d en âge de travailler (%d réellement employés) et %d anciens." % [int(d["total"]), int(d["enfants"]), int(d["aptes"]), int(d["employes"]), int(d["anciens"])]
+    var s := "Démographie (depuis le dernier rapport) : %d habitants, dont %d enfants, %d en âge de travailler (%d ayant réellement travaillé au dernier jour) et %d anciens." % [int(d["total"]), int(d["enfants"]), int(d["aptes"]), int(d["employes"]), int(d["anciens"])]
     s += "\nDépendants : %d pour %d actifs potentiels" % [dep, int(d["aptes"])]
     if int(d["aptes"]) > 0:
         s += " (%.1f par actif)" % (float(dep) / float(d["aptes"]))

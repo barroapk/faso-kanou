@@ -90,6 +90,9 @@ var aliments := {"fonio_sauvage": 200.0, "baobab_pulpe": 60.0, "karite_amande": 
 var bilan := {"nourriture": 0.0, "eau": 0.0, "bois": 0.0, "sel": 0.0}
 var outils := 1.0
 var faim := false
+var couverture_eau := 1.0          # eau réellement distribuée / besoin du jour (0 à 1)
+var facteur_stabilite := 1.0       # effet de la stabilité sur le travail (0,9 à 1), posé par la civilisation
+var travail_du_jour := {}          # id des habitants ayant réellement travaillé au dernier jour
 var couverture_nourriture := 1.0   # nourriture réellement distribuée / besoin théorique avant rationnement (0 à 1)
 var soif := false
 var jours_sans_sel := 0
@@ -412,20 +415,27 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     var variation := {"eau": 0.0, "bois": 0.0}
     var besoin_nourriture := 0.0
     var n: int = population.habitants.size()
+    var besoin_eau := 0.0
+    travail_du_jour = {}
     for h in population.habitants:
         var enfant: bool = population.age(h, jour) < 14
         var conso: Dictionary = CONSO_ENFANT if enfant else CONSO_ADULTE
         besoin_nourriture += conso["nourriture"]
         variation["eau"] -= conso["eau"]
+        besoin_eau += conso["eau"]
         variation["bois"] -= conso["bois"]
         if h["metier"] == "bâtisseur" and chantier_actif:
+            travail_du_jour[int(h["id"])] = true
             continue
         if h.get("occupe", false):
+            travail_du_jour[int(h["id"])] = true
             continue
         var p = PRODUCTION.get(h["metier"], {})
         if h["metier"] == "enfant":
             p = PRODUCTION["aide"] if population.age(h, jour) >= AGE_AIDE else {}
-        var efficacite: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * population.part_libre(h) * (float(budget.facteur_productivite()) if budget != null else 1.0)
+        if not p.is_empty():
+            travail_du_jour[int(h["id"])] = true
+        var efficacite: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * population.part_libre(h) * (float(budget.facteur_productivite()) if budget != null else 1.0) * facteur_stabilite
         for r in p:
             var q: float = p[r][s] * efficacite * _richesse(h["metier"], r) * _acces(h["metier"], r)
             if r == "nourriture":
@@ -483,6 +493,8 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         var brut: float = stocks[r] + variation[r]
         stocks[r] = clampf(brut, 0.0, capacite(r))
         bilan[r] = variation[r]
+        if r == "eau":
+            couverture_eau = clampf(1.0 - maxf(0.0, -brut) / besoin_eau, 0.0, 1.0) if besoin_eau > 0.0 else 1.0
         # Ce qui n'a pas pu entrer (réserve pleine) ou pas pu être consommé (stock vide).
         if stocks[r] - brut < 0.0:
             noter("trop_plein", r, stocks[r] - brut)
