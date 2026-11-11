@@ -652,6 +652,8 @@ func _jour_passe() -> void:
     var chantier_actif: bool = not construction.chantiers.is_empty()
     guerre.bonus_gouv = institutions.bonus("defense", self)
     ressources.travail_du_jour = {}    # qui a réellement travaillé aujourd'hui (rempli par tous les producteurs)
+    if temps.jour_total % 7 == 0:
+        besoins.controle_hebdo(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     recettes.jour_passe(population, ressources, temps.jour_total)
     missions.jour_passe(self, temps.jour_total)
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)

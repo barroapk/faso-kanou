@@ -185,6 +185,8 @@ func jour_passe(jour: int, pluie: bool) -> void:
     if not vivant():
         return
     var chantier: bool = not construction.chantiers.is_empty()
+    if jour % 7 == 0:
+        besoins.controle_hebdo(population, ressources, construction, jour, pluie, chantier)
     recettes.jour_passe(population, ressources, jour)
     decouvertes.jour_passe(population, recettes, jour, pression)
     gisements.jour_passe(population, ressources, routes, jour, _rng_sol)

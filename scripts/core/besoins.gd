@@ -56,6 +56,7 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
             _jour_plan = jour
             if population.postes != avant:
                 dernier_changement = jour
+        _appliquer_plancher()
     problemes = diagnostiquer()
     for p in problemes:
         if p["type"] == "stockage":
@@ -338,7 +339,7 @@ func _ajuster_postes() -> void:
         var choix := ""
         var max_jours := -1.0
         for m in _pop.postes:
-            if int(_pop.postes[m]) <= 0:
+            if int(_pop.postes[m]) <= 0 or _garde_porteur(m):
                 continue
             var jours := _score({m: -1}, false)
             if jours > max_jours:
@@ -391,7 +392,7 @@ func _equilibrer() -> void:
         var meilleur := {}
         var gain := base
         for de in _pop.postes:
-            if int(_pop.postes[de]) <= 0 or (_verrouille(de) and base > 40.0):
+            if int(_pop.postes[de]) <= 0 or (_verrouille(de) and base > 40.0) or _garde_porteur(de):
                 continue
             for vers in _pop.postes:
                 if vers == de or not _res.PRODUCTION.has(vers):
@@ -724,7 +725,9 @@ func _calibrer() -> Dictionary:
         for m in _pop.postes:
             prevu += int(_pop.postes[m]) * _rend(m, r, _s)
         if r == "eau":
-            prevu += 20.0 * _s
+            # Mêmes sources que la prévision du planificateur (_score) : pluie et
+            # petites mains comprises, sinon le coefficient les compterait deux fois.
+            prevu += 20.0 * _s + _aides() * float(_res.PRODUCTION["aide"]["eau"][_s]) * 0.7
         var vu := float(prod.get(r, 0.0)) / jours
         if prevu > 0.5 and vu > 0.0:
             k[r] = clampf(vu / prevu, 0.5, 1.2)
@@ -760,7 +763,7 @@ func _planifier() -> void:
                 gain = v
                 meilleur = d
             for de in metiers:
-                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or (_verrouille(de) and base > 40000.0):
+                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or (_verrouille(de) and base > 40000.0) or _garde_porteur(de):
                     continue
                 d = {de: -1, vers: 1}
                 v = _score(d)
@@ -781,6 +784,97 @@ func _planifier() -> void:
             evenement.emit("Le Premier ministre ouvre un poste de %s." % vers2)
         else:
             evenement.emit("Le Premier ministre réorganise : un %s devient %s." % [de2, vers2])
+# ---------- Eau : plancher vital et contrôle hebdomadaire (v0.3.72) ----------
+# Réserve d'eau (en jours) sous laquelle le contrôle hebdomadaire intervient.
+const RESERVE_EAU_JOURS := 30.0
+const RESERVE_PLANCHER_JOURS := 20.0
+const PORTEUR := "porteur d'eau"
+
+# Nombre minimal de porteurs (quand la réserve est basse) : la consommation (habitants et bêtes, marge
+# comprise) couverte avec le rendement de la SAISON SÈCHE, petites mains
+# comprises, sans compter la pluie. Jamais plus que les adultes moins un.
+func _plancher_porteurs() -> int:
+    if _cache.has("plancher"):
+        return int(_cache["plancher"])
+    var n := 0
+    var rend: float = _rend(PORTEUR, "eau", 0)
+    # Le plancher est un filet de sécurité : il ne joue que si la réserve d'eau est
+    # basse (moins de 20 jours). Au-dessus, la main-d'œuvre peut aller où elle
+    # manque (la nourriture) et la saison des pluies recharge les jarres.
+    var conso_eau: float = _conso("eau")
+    if conso_eau > 0.0 and float(_res.stocks["eau"]) / conso_eau >= _seuil_jours(RESERVE_PLANCHER_JOURS):
+        rend = 0.0
+    if rend > 0.5:
+        var besoin: float = _conso("eau")
+        if elevage != null and not elevage.animaux.is_empty():
+            besoin += float(elevage.prevision(_jour, false, paturage_ha)["eau"])
+        besoin *= 1.0 + float(MARGES[0])
+        besoin -= _aides() * float(_res.PRODUCTION["aide"]["eau"][0]) * 0.7
+        n = mini(int(ceil(maxf(0.0, besoin) / rend)), maxi(0, _adultes() - 1))
+    _cache["plancher"] = n
+    return n
+
+# Seuil en jours, ramené à 60 % de ce que les jarres peuvent contenir : un grand
+# clan dont la capacité d'eau est petite ne doit pas rester en alerte permanente.
+func _seuil_jours(jours: float) -> float:
+    var c: float = _conso("eau")
+    if c <= 0.0:
+        return jours
+    return minf(jours, 0.6 * _res.capacite("eau") / c)
+
+# Ce poste de porteurs est-il déjà au minimum vital ? Alors personne n'en part.
+func _garde_porteur(m: String) -> bool:
+    return m == PORTEUR and int(_pop.postes.get(PORTEUR, 0)) <= _plancher_porteurs()
+
+# Un adulte libre devient porteur ; sinon le travailleur dont le départ coûte
+# le moins (meilleur score). L'eau passe avant : on ignore les verrous.
+func _ajouter_porteur() -> bool:
+    if _libres() > 0:
+        _pop.postes[PORTEUR] = int(_pop.postes.get(PORTEUR, 0)) + 1
+        dernier_changement = _jour
+        evenement.emit("Le Premier ministre ouvre un poste de porteur d'eau (réserve d'eau insuffisante).")
+        return true
+    var meilleur := ""
+    var gain := -1.0e18
+    for de in _pop.postes:
+        if de == PORTEUR or int(_pop.postes[de]) <= 0:
+            continue
+        var v := _score({de: -1, PORTEUR: 1})
+        if v > gain:
+            gain = v
+            meilleur = de
+    if meilleur == "":
+        return false
+    _pop.postes[meilleur] = int(_pop.postes[meilleur]) - 1
+    _pop.postes[PORTEUR] = int(_pop.postes.get(PORTEUR, 0)) + 1
+    dernier_changement = _jour
+    evenement.emit("Le Premier ministre réorganise : un %s devient porteur d'eau (réserve d'eau insuffisante)." % meilleur)
+    return true
+
+func _appliquer_plancher() -> void:
+    var n := 0
+    while n < 3 and int(_pop.postes.get(PORTEUR, 0)) < _plancher_porteurs():
+        if not _ajouter_porteur():
+            return
+        n += 1
+
+# Chaque semaine : plancher de porteurs, puis réserve d'eau. Si elle tiendrait
+# moins de 30 jours (production inférieure à la consommation, saison sèche à
+# venir comprise), on ajoute des porteurs sans attendre le cycle mensuel.
+func controle_hebdo(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
+    if mode != "auto" or population.habitants.is_empty():
+        return
+    _contexte(population, ressources, construction, jour, pluie, chantier_actif)
+    _appliquer_plancher()
+    var n := 0
+    var max_porteurs: int = maxi(_plancher_porteurs(), _adultes() - 1)
+    while n < 3 and int(_pop.postes.get(PORTEUR, 0)) < max_porteurs and _rend(PORTEUR, "eau", 0) > 0.5:
+        if _jours("eau", {}) - float(SURVIE["eau"]) >= _seuil_jours(RESERVE_EAU_JOURS):
+            break
+        if not _ajouter_porteur():
+            break
+        n += 1
+
 func vers_dict() -> Dictionary:
     return {"mode": mode, "verrou": verrou, "dernier_changement": dernier_changement}
 
