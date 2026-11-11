@@ -680,7 +680,8 @@ func metiers_choisis() -> Array:
 
 func nom_metier(h: Dictionary) -> String:
     var m: String = h["metier"]
-    return str(_charger().get("metiers", {}).get(m, {}).get("feminin", m)) if h["sexe"] == "F" else m
+    var f: Dictionary = _charger().get("metiers", {}).get(m, {})
+    return str(f.get("feminin", m)) if h["sexe"] == "F" else str(f.get("nom", m))
 
 func peut_changer(h: Dictionary, jour: int) -> bool:
     return age(h, jour) >= AGE_ADULTE and h["metier"] != "chef"

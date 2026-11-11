@@ -31,7 +31,7 @@ func _ready() -> void:
     barre.add_child(clan)
 
     var chef := Button.new()
-    chef.text = "Chef"
+    chef.text = "Conseil"
     chef.add_theme_font_size_override("font_size", 30)
     chef.pressed.connect(_basculer_chef)
     barre.add_child(chef)

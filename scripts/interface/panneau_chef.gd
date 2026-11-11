@@ -58,7 +58,7 @@ func remplir() -> void:
         c.queue_free()
     var C = Civilisation
     var jour: int = C.temps.jour_total
-    boite.add_child(_label("Le chef", 36))
+    boite.add_child(_label("Conseil du dirigeant", 36))
     message = _label("", 24)
     message.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
     boite.add_child(message)
@@ -118,9 +118,9 @@ func _section_conseil(C, jour: int) -> void:
     boite.add_child(_label("Conseil des cinq", 30))
     var chef: Dictionary = cons.habitant(C.population, cons.chef_id)
     if chef.is_empty():
-        boite.add_child(_label("Pas de chef : nommez un membre du conseil."))
+        boite.add_child(_label("Pas de conseiller : nommez un membre du conseil."))
     else:
-        var t := "Chef : %s %s" % [chef["prenom"], chef["nom"]]
+        var t := "Conseiller : %s %s" % [chef["prenom"], chef["nom"]]
         t += " (intérim)" if cons.interim else " — mandat : encore %.1f an(s)" % cons.annees_restantes(jour)
         t += " — confiance du clan : %d %%" % int(cons.confiance)
         boite.add_child(_ligne([_label(t), _bouton("Renouveler", not cons.interim and jour >= cons.mandat_fin - 360,
@@ -131,13 +131,13 @@ func _section_conseil(C, jour: int) -> void:
             continue
         var n: Dictionary = cons.notes(h, C.population, jour)
         var t := "%s %s, %d ans — gestion %d, intelligence %d, influence %d" % [h["prenom"], h["nom"], C.population.age(h, jour), int(n["gestion"]), int(n["intelligence"]), int(n["influence"])]
-        boite.add_child(_ligne([_label(t, 22), _bouton("Nommer chef", mid != cons.chef_id or cons.interim,
-            func(): _faire(cons.nommer(mid, C.population, jour), "Nouveau chef nommé."))]))
+        boite.add_child(_ligne([_label(t, 22), _bouton("Nommer conseiller", mid != cons.chef_id or cons.interim,
+            func(): _faire(cons.nommer(mid, C.population, jour), "Nouveau conseiller nommé."))]))
 
 # ---------- 2. Alertes et propositions ----------
 
 func _section_alertes(C) -> void:
-    boite.add_child(_label("Alertes du chef", 30))
+    boite.add_child(_label("Alertes du conseiller", 30))
     var chef: Dictionary = C.conseil.habitant(C.population, C.conseil.chef_id)
     var prenom: String = chef.get("prenom", "Le conseil")
     if C.chef.alertes.is_empty():
@@ -470,7 +470,7 @@ func _section_archipel(C) -> void:
 func _section_mode(C) -> void:
     boite.add_child(_label("Gestion", 30))
     var auto: bool = C.besoins.mode == "auto"
-    var t := "Mode actuel : %s" % ("le chef applique seul ses solutions" if auto else "le chef conseille, vous décidez")
+    var t := "Mode actuel : %s" % ("le conseiller applique seul ses solutions" if auto else "le conseiller conseille, vous décidez")
     boite.add_child(_ligne([_label(t, 22), _bouton("Passer en %s" % ("conseil" if auto else "automatique"), true,
         func():
             C.besoins.mode = "conseil" if auto else "auto"

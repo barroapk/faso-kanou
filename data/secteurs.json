@@ -1,7 +1,7 @@
 {
   "_notes": "Socle du gouvernement (v0.3.52). Un secteur n'est pas un ministère : il apparaît d'abord comme tableau de bord des systèmes existants. 'source' = adaptateur qui lit les données réelles. Ajouter un secteur plus tard = une ligne ici + un adaptateur, sans toucher au socle.",
   "maturites": [
-    {"id": "coutumiere", "nom": "Coutumière", "texte": "Chef, conseil et responsabilités traditionnelles"},
+    {"id": "coutumiere", "nom": "Coutumière", "texte": "Dirigeant, conseil et responsabilités traditionnelles"},
     {"id": "emergente", "nom": "Émergente", "texte": "Responsables confiés à certaines fonctions"},
     {"id": "organisee", "nom": "Organisée", "texte": "Premiers ministères et institutions permanentes"},
     {"id": "administrative", "nom": "Administrative", "texte": "Ministres, services, archives, lois écrites"},

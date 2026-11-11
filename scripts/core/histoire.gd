@@ -66,7 +66,7 @@ func _message(texte: String, module: String) -> void:
     for r in REGLES:
         if r[0] != module or (r[1] != "" and texte.find(r[1]) < 0):
             continue
-        var t := texte.trim_prefix("DÉCISION : ").replace(" — ouvrez l'écran du chef.", "")
+        var t := texte.trim_prefix("DÉCISION : ").replace(" — ouvrez le conseil.", "")
         if texte.find("entre dans l'époque") >= 0 and not _clan_connu(texte):
             return
         if module == "defis" and texte.begins_with("DÉCISION : Les pluies"):
@@ -91,7 +91,7 @@ func _naissance(h: Dictionary) -> void:
 
 func _deces(h: Dictionary) -> void:
     if h.get("metier", "") == "chef":
-        noter("Démographie", "Mort du chef %s %s." % [h.get("prenom", "?"), h.get("nom", "")])
+        noter("Démographie", "Mort du conseiller %s %s." % [h.get("prenom", "?"), h.get("nom", "")])
 
 func noter(cat: String, texte: String) -> void:
     if _C == null:

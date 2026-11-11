@@ -183,7 +183,7 @@ func _proposer(cle: String, titre: String, texte: String, options: Array, jours:
     if decisions.any(func(d): return d["cle"] == cle):
         return
     decisions.append({"cle": cle, "titre": titre, "texte": texte, "options": options, "fin": jour + jours, "donnees": donnees})
-    evenement.emit("DÉCISION : %s — ouvrez l'écran du chef." % titre)
+    evenement.emit("DÉCISION : %s — ouvrez le conseil." % titre)
 
 func _situations(C) -> void:
     var jour: int = C.temps.jour_total
