@@ -13,5 +13,84 @@
  },
  "roles": {
   "protecteur": {"nom": "protecteur", "savoir": "combat", "temps": 0.25, "gain": 0.5}
+ },
+  "familles_notes": "Filiation des métiers (v0.3.43), données seulement : le jeu ne les lit pas encore. etat : actif (dans le jeu), partiel (existe sous une autre forme : tâches de recettes, héros, planificateur), prevu. epoque : 0 Fondation, 1 Expansion, 2 Navigation, 3 Puissance, 4 Civilisation, 5 Ère moderne. Un nouveau métier apparaît quand ses conditions sont réunies ; les anciens ne disparaissent jamais.",
+ "familles": {
+  "chasse_protection": {"nom": "Chasse et protection", "chaine": [
+    {"id": "chasseur", "nom": "Chasseur", "epoque": 0, "savoir": "chasse", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "protecteur", "nom": "Protecteur", "epoque": 0, "savoir": "combat", "depuis": ["chasseur"], "condition": "", "etat": "actif"},
+    {"id": "guerrier", "nom": "Guerrier", "epoque": 1, "savoir": "combat", "depuis": ["protecteur"], "condition": "armes en nombre (lance, arc) ; mobilisation", "etat": "prevu"},
+    {"id": "garde", "nom": "Garde et police", "epoque": 3, "savoir": "ordre", "depuis": ["guerrier"], "condition": "institution : justice", "etat": "prevu"},
+    {"id": "armee", "nom": "Armée", "epoque": 3, "savoir": "strategie", "depuis": ["guerrier"], "condition": "institution : armée", "etat": "prevu"},
+    {"id": "defense_techno", "nom": "Défense technologique", "epoque": 5, "savoir": "strategie", "depuis": ["armee"], "condition": "industrie", "etat": "prevu"}
+  ]},
+  "elevage": {"nom": "Élevage", "chaine": [
+    {"id": "eleveur", "nom": "Éleveur", "epoque": 1, "savoir": "elevage", "depuis": ["chasseur", "cueilleur"], "condition": "découverte : élevage", "etat": "partiel"},
+    {"id": "veterinaire", "nom": "Vétérinaire", "epoque": 3, "savoir": "soins_animaux", "depuis": ["eleveur", "guerisseur"], "condition": "savoir médecine", "etat": "prevu"},
+    {"id": "zootechnicien", "nom": "Zootechnicien", "epoque": 4, "savoir": "selection", "depuis": ["veterinaire"], "condition": "école", "etat": "prevu"},
+    {"id": "elevage_industriel", "nom": "Élevage industriel", "epoque": 5, "savoir": "elevage", "depuis": ["zootechnicien"], "condition": "industrie", "etat": "prevu"}
+  ]},
+  "agriculture": {"nom": "Agriculture", "chaine": [
+    {"id": "cultivateur", "nom": "Cultivateur", "epoque": 0, "savoir": "agriculture", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "irrigant", "nom": "Irrigant", "epoque": 1, "savoir": "irrigation", "depuis": ["cultivateur"], "condition": "découverte : irrigation", "etat": "prevu"},
+    {"id": "agronome", "nom": "Agronome", "epoque": 3, "savoir": "agronomie", "depuis": ["irrigant"], "condition": "école", "etat": "prevu"},
+    {"id": "agri_mecanisee", "nom": "Agriculture mécanisée", "epoque": 4, "savoir": "mecanique", "depuis": ["agronome"], "condition": "industrie", "etat": "prevu"},
+    {"id": "agri_automatisee", "nom": "Agriculture automatisée", "epoque": 5, "savoir": "automatisation", "depuis": ["agri_mecanisee"], "condition": "énergie, électronique", "etat": "prevu"}
+  ]},
+  "sante": {"nom": "Santé", "chaine": [
+    {"id": "cueilleur", "nom": "Cueilleur", "epoque": 0, "savoir": "cueillette", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "guerisseur", "nom": "Guérisseur", "epoque": 0, "savoir": "medecine", "depuis": ["cueilleur"], "condition": "connaissance des plantes", "etat": "prevu"},
+    {"id": "infirmier", "nom": "Infirmier", "epoque": 2, "savoir": "medecine", "depuis": ["guerisseur"], "condition": "bâtiment : infirmerie, matériel", "etat": "prevu"},
+    {"id": "medecin", "nom": "Médecin", "epoque": 4, "savoir": "medecine", "depuis": ["infirmier"], "condition": "école de médecine", "etat": "prevu"},
+    {"id": "medecine_avancee", "nom": "Médecine avancée", "epoque": 5, "savoir": "medecine", "depuis": ["medecin"], "condition": "hôpital, robotique médicale", "etat": "prevu"}
+  ]},
+  "metal_industrie": {"nom": "Métal et industrie", "chaine": [
+    {"id": "artisan", "nom": "Artisan", "epoque": 0, "savoir": "artisanat", "depuis": [], "condition": "", "etat": "partiel"},
+    {"id": "forgeron", "nom": "Forgeron", "epoque": 1, "savoir": "metallurgie", "depuis": ["artisan"], "condition": "découverte : métallurgie ; forge", "etat": "partiel"},
+    {"id": "metallurgiste", "nom": "Métallurgiste", "epoque": 3, "savoir": "metallurgie", "depuis": ["forgeron"], "condition": "découverte : acier", "etat": "prevu"},
+    {"id": "ouvrier_industriel", "nom": "Ouvrier industriel", "epoque": 4, "savoir": "industrie", "depuis": ["metallurgiste"], "condition": "usine, énergie", "etat": "prevu"},
+    {"id": "technicien_robotique", "nom": "Technicien en robotique", "epoque": 5, "savoir": "robotique", "depuis": ["ouvrier_industriel"], "condition": "électronique", "etat": "prevu"}
+  ]},
+  "textile_poterie": {"nom": "Textile et poterie", "chaine": [
+    {"id": "potier", "nom": "Potier", "epoque": 0, "savoir": "artisanat", "depuis": ["artisan"], "condition": "argile ; four", "etat": "prevu"},
+    {"id": "tisserand", "nom": "Tisserand", "epoque": 1, "savoir": "tissage", "depuis": ["artisan"], "condition": "découverte : tissage ; métier à tisser", "etat": "prevu"},
+    {"id": "manufacture", "nom": "Manufacture textile", "epoque": 4, "savoir": "industrie", "depuis": ["tisserand"], "condition": "usine, énergie", "etat": "prevu"}
+  ]},
+  "construction": {"nom": "Construction", "chaine": [
+    {"id": "batisseur", "nom": "Bâtisseur", "epoque": 0, "savoir": "construction", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "macon", "nom": "Maçon", "epoque": 1, "savoir": "construction", "depuis": ["batisseur"], "condition": "banco ou pierre", "etat": "prevu"},
+    {"id": "architecte", "nom": "Architecte", "epoque": 3, "savoir": "architecture", "depuis": ["macon"], "condition": "école", "etat": "prevu"},
+    {"id": "ingenieur_civil", "nom": "Ingénieur civil", "epoque": 4, "savoir": "genie_civil", "depuis": ["architecte"], "condition": "industrie", "etat": "prevu"},
+    {"id": "genie_automatise", "nom": "Génie automatisé", "epoque": 5, "savoir": "automatisation", "depuis": ["ingenieur_civil"], "condition": "électronique", "etat": "prevu"}
+  ]},
+  "mer_air": {"nom": "Mer et air", "chaine": [
+    {"id": "pecheur", "nom": "Pêcheur", "epoque": 0, "savoir": "peche", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "marin", "nom": "Marin", "epoque": 1, "savoir": "navigation", "depuis": ["pecheur"], "condition": "port ; embarcation", "etat": "prevu"},
+    {"id": "navigateur", "nom": "Navigateur", "epoque": 2, "savoir": "navigation", "depuis": ["marin"], "condition": "expéditions réussies", "etat": "partiel"},
+    {"id": "marine_marchande", "nom": "Marine marchande", "epoque": 3, "savoir": "navigation", "depuis": ["navigateur"], "condition": "flotte, commerce", "etat": "prevu"},
+    {"id": "aeronautique", "nom": "Aéronautique", "epoque": 5, "savoir": "aeronautique", "depuis": ["marine_marchande"], "condition": "aéroport", "etat": "prevu"}
+  ]},
+  "commerce_messagerie": {"nom": "Commerce et communication", "chaine": [
+    {"id": "porteur", "nom": "Porteur", "epoque": 0, "savoir": "portage", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "marchand", "nom": "Marchand", "epoque": 1, "savoir": "commerce", "depuis": ["porteur"], "condition": "caravanes ; or ou troc", "etat": "partiel"},
+    {"id": "negociant", "nom": "Négociant", "epoque": 3, "savoir": "commerce", "depuis": ["marchand"], "condition": "marché, flotte", "etat": "prevu"},
+    {"id": "banquier", "nom": "Banquier", "epoque": 4, "savoir": "finance", "depuis": ["negociant"], "condition": "institutions, or", "etat": "prevu"},
+    {"id": "messager", "nom": "Messager", "epoque": 0, "savoir": "portage", "depuis": ["porteur"], "condition": "routes", "etat": "prevu"},
+    {"id": "telecommunications", "nom": "Télécommunications", "epoque": 5, "savoir": "electronique", "depuis": ["messager"], "condition": "réseau, énergie", "etat": "prevu"}
+  ]},
+  "savoir_gouvernance": {"nom": "Savoir et gouvernance", "chaine": [
+    {"id": "ancien", "nom": "Ancien", "epoque": 0, "savoir": "transmission", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "instituteur", "nom": "Instituteur", "epoque": 2, "savoir": "enseignement", "depuis": ["ancien"], "condition": "bâtiment : école", "etat": "prevu"},
+    {"id": "conseiller", "nom": "Conseiller", "epoque": 1, "savoir": "conseil", "depuis": ["ancien"], "condition": "conseil du clan", "etat": "partiel"},
+    {"id": "juge", "nom": "Juge", "epoque": 3, "savoir": "justice", "depuis": ["conseiller"], "condition": "institution : justice", "etat": "prevu"},
+    {"id": "chercheur", "nom": "Chercheur", "epoque": 5, "savoir": "recherche", "depuis": ["instituteur"], "condition": "université, laboratoire", "etat": "prevu"}
+  ]},
+  "mines_energie": {"nom": "Mines et énergie", "chaine": [
+    {"id": "mineur", "nom": "Mineur", "epoque": 0, "savoir": "extraction", "depuis": [], "condition": "", "etat": "actif"},
+    {"id": "orpailleur", "nom": "Orpailleur", "epoque": 0, "savoir": "extraction", "depuis": ["mineur"], "condition": "gisement d'or", "etat": "partiel"},
+    {"id": "charbonnier", "nom": "Charbonnier", "epoque": 1, "savoir": "charbonnage", "depuis": ["mineur"], "condition": "découverte : charbonnage", "etat": "partiel"},
+    {"id": "mineur_industriel", "nom": "Mineur industriel", "epoque": 4, "savoir": "industrie", "depuis": ["mineur"], "condition": "machines, énergie", "etat": "prevu"},
+    {"id": "technicien_energie", "nom": "Technicien en énergie", "epoque": 5, "savoir": "energie", "depuis": ["mineur_industriel"], "condition": "centrale", "etat": "prevu"}
+  ]}
  }
 }
