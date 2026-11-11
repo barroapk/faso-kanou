@@ -131,6 +131,16 @@ func _section_conseil(C, jour: int) -> void:
             continue
         var n: Dictionary = cons.notes(h, C.population, jour)
         var t := "%s %s, %d ans — gestion %d, intelligence %d, influence %d" % [h["prenom"], h["nom"], C.population.age(h, jour), int(n["gestion"]), int(n["intelligence"]), int(n["influence"])]
+        var sv: Array = []
+        for k in h.get("savoirs", {}):
+            if float(h["savoirs"][k]) >= 15.0:
+                sv.append([str(k), int(h["savoirs"][k])])
+        sv.sort_custom(func(a, b): return a[1] > b[1])
+        var st: PackedStringArray = []
+        for x in sv.slice(0, 4):
+            st.append("%s %d" % [x[0], x[1]])
+        if not st.is_empty():
+            t += "\n   Savoirs : " + ", ".join(st)
         boite.add_child(_ligne([_label(t, 22), _bouton("Nommer conseiller", mid != cons.chef_id or cons.interim,
             func(): _faire(cons.nommer(mid, C.population, jour), "Nouveau conseiller nommé."))]))
 

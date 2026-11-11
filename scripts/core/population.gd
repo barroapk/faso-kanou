@@ -597,7 +597,7 @@ func donner_savoir(h: Dictionary, s: String, niveau: float) -> void:
 # Niveau dans le savoir du métier ; pour un enfant ou un ancien : son meilleur savoir.
 func maj_competence(h: Dictionary) -> void:
     var s := savoir_du_metier(h["metier"])
-    if s != "":
+    if s != "" and h["metier"] != "chef":   # le conseiller garde son meilleur savoir : être nommé ne fait rien perdre
         h["competence"] = savoir(h, s)
         return
     var m := 0.0
