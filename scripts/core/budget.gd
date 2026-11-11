@@ -16,7 +16,7 @@ signal evenement(texte)
 
 const TAUX_MAX := 0.30
 const SANS_MALUS := 0.10
-const INTOUCHABLES := ["nourriture", "eau"]
+const INTOUCHABLES := ["nourriture", "eau", "plantes_medicinales"]
 const MOTIFS_PRODUCTION := ["production", "extraction"]
 const MOTIFS_DEPENSE := ["construction", "entretien"]
 const RESERVE_BOIS_JOURS := 20.0

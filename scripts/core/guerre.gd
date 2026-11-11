@@ -94,6 +94,8 @@ func _aptes(pop, jour: int) -> Array:
             continue
         if ["chef", "enfant", "ancien"].has(h["metier"]):
             continue
+        if h.has("role") and h["role"] != "protecteur":
+            continue
         l.append(h)
     return l
 
@@ -118,7 +120,8 @@ func fixer_protecteurs(pop, jour: int, n: int) -> int:
             return rx
         return int(x["id"]) < int(y["id"]))
     for h in pop.habitants:
-        h.erase("role")
+        if h.get("role", "") == "protecteur":
+            h.erase("role")
     n = clampi(n, 0, max_protecteurs(pop, jour))
     for i in range(n):
         l[i]["role"] = "protecteur"

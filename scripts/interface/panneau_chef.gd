@@ -75,6 +75,7 @@ func remplir() -> void:
     _section_archipel(C)
     _section_budget(C)
     _section_force(C, jour)
+    _section_sante(C, jour)
     _section_mode(C)
 
 # ---------- Ascension : décisions, défis, époque ----------
@@ -256,6 +257,18 @@ func _section_clotures(C) -> void:
         boite.add_child(_ligne(enfants))
 
 # ---------- Routes (un réseau qui part du village) ----------
+
+func _regler_guerisseurs(C, jour: int, n: int) -> void:
+    C.population.fixer_guerisseurs(jour, n)
+    remplir()
+
+func _section_sante(C, jour: int) -> void:
+    var ng: int = C.population.nb_guerisseurs()
+    var mg: int = C.population.max_guerisseurs(jour)
+    var plantes: float = C.ressources.quantite("plantes_medicinales")
+    boite.add_child(_label("Santé", 30))
+    boite.add_child(_label("Guérisseurs : %d (maximum %d). Plantes médicinales en réserve : %.1f kg. Un guérisseur soigne jusqu'à %d malades par jour (%.2f kg de plantes chacun) et consacre 25 %% de son temps aux soins." % [ng, mg, plantes, C.population.SOINS_PAR_GUERISSEUR, C.population.PLANTES_PAR_SOIN], 21))
+    boite.add_child(_ligne([_label("Nombre de guérisseurs", 22), _bouton("−", ng > 0, func(): _regler_guerisseurs(C, jour, ng - 1)), _bouton("+", ng < mg, func(): _regler_guerisseurs(C, jour, ng + 1))]))
 
 func _regler_protecteurs(C, jour: int, n: int) -> void:
     C.guerre.fixer_protecteurs(C.population, jour, n)

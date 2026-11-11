@@ -41,6 +41,12 @@ const OUBLI_JOUR := 0.003          # savoir non pratiqué : environ -1 point par
 const PLANCHER_OUBLI := 0.5        # on n'oublie pas plus de la moitié de son meilleur niveau
 const APPRENTISSAGE_ENFANT := 0.01 # de 8 à 13 ans, l'enfant initié apprend le métier d'un parent
 const AGE_APPRENTISSAGE := 8
+# Soins (v0.3.45) : un guérisseur soigne les plus affaiblis avec des plantes médicinales réelles.
+const SOINS_PAR_GUERISSEUR := 3    # malades soignés par jour et par guérisseur
+const PLANTES_PAR_SOIN := 0.05     # kg de plantes consommés par malade soigné
+const SEUIL_SOINS := 80            # on soigne ceux dont la santé est sous ce niveau
+const PART_GUERISSEURS := 0.2      # au plus un cinquième des adultes aptes
+const CUEILLETTE_MIN_GUERISSEUR := 30.0   # connaître assez les plantes
 
 var habitants: Array = []
 var prochain_id := 1
@@ -461,6 +467,75 @@ func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0, jour := -1) -> void
             morts.append(h)
     for h in morts:
         _mourir(h)
+
+# ---------- Guérisseurs et soins (v0.3.45) ----------
+
+func _aptes_guerison(jour: int) -> Array:
+    var l: Array = []
+    for h in habitants:
+        if age(h, jour) < 16 or int(h["sante"]) < 50:
+            continue
+        if ["chef", "enfant"].has(h["metier"]):
+            continue
+        if h.has("role") and h["role"] != "guerisseur":
+            continue
+        if savoir(h, "cueillette") < CUEILLETTE_MIN_GUERISSEUR and savoir(h, "medecine") <= 0.0:
+            continue
+        l.append(h)
+    return l
+
+func nb_guerisseurs() -> int:
+    return habitants.filter(func(h): return h.get("role", "") == "guerisseur").size()
+
+func max_guerisseurs(jour: int) -> int:
+    return int(floor(_aptes_guerison(jour).size() * PART_GUERISSEURS))
+
+# Désigne n guérisseurs : les plus savants en médecine d'abord, puis ceux déjà en place.
+func fixer_guerisseurs(jour: int, n: int) -> int:
+    var l: Array = _aptes_guerison(jour)
+    l.sort_custom(func(x, y):
+        var cx: float = savoir(x, "medecine")
+        var cy: float = savoir(y, "medecine")
+        if cx != cy:
+            return cx > cy
+        var rx: bool = x.get("role", "") == "guerisseur"
+        var ry: bool = y.get("role", "") == "guerisseur"
+        if rx != ry:
+            return rx
+        return int(x["id"]) < int(y["id"]))
+    for h in habitants:
+        if h.get("role", "") == "guerisseur":
+            h.erase("role")
+    n = clampi(n, 0, max_guerisseurs(jour))
+    for i in range(n):
+        l[i]["role"] = "guerisseur"
+        if savoir(l[i], "medecine") <= 0.0:
+            donner_savoir(l[i], "medecine", 0.3 * savoir(l[i], "cueillette"))
+    return n
+
+# Chaque jour : soigne les plus affaiblis, tant qu'il y a des plantes. Renvoie le nombre de malades soignés.
+func soigner(res, jour: int) -> int:
+    var gs: Array = habitants.filter(func(h): return h.get("role", "") == "guerisseur" and not h.get("occupe", false))
+    if gs.is_empty():
+        return 0
+    var malades: Array = habitants.filter(func(h): return int(h["sante"]) < SEUIL_SOINS)
+    if malades.is_empty():
+        return 0
+    malades.sort_custom(func(a, b): return int(a["sante"]) < int(b["sante"]))
+    var meilleur := 0.0
+    for g in gs:
+        meilleur = maxf(meilleur, savoir(g, "medecine"))
+    var extra: int = 1 + int(round(2.0 * meilleur / 100.0))
+    var plafond: int = plafond_sante(res.jours_sans_sel)
+    var n := 0
+    for m in malades:
+        if n >= gs.size() * SOINS_PAR_GUERISSEUR:
+            break
+        if not res.retirer("plantes_medicinales", PLANTES_PAR_SOIN, "soin"):
+            break
+        m["sante"] = mini(plafond, int(m["sante"]) + extra)
+        n += 1
+    return n
 
 # ---------- Savoirs ----------
 

@@ -12,7 +12,8 @@
   "chef": {"savoir": "cueillette"}
  },
  "roles": {
-  "protecteur": {"nom": "protecteur", "savoir": "combat", "temps": 0.25, "gain": 0.5}
+  "protecteur": {"nom": "protecteur", "savoir": "combat", "temps": 0.25, "gain": 0.5},
+  "guerisseur": {"nom": "guérisseur", "savoir": "medecine", "temps": 0.25, "gain": 0.5}
  },
   "familles_notes": "Filiation des métiers (v0.3.43), données seulement : le jeu ne les lit pas encore. etat : actif (dans le jeu), partiel (existe sous une autre forme : tâches de recettes, héros, planificateur), prevu. epoque : 0 Fondation, 1 Expansion, 2 Navigation, 3 Puissance, 4 Civilisation, 5 Ère moderne. Un nouveau métier apparaît quand ses conditions sont réunies ; les anciens ne disparaissent jamais.",
  "familles": {
@@ -39,7 +40,7 @@
   ]},
   "sante": {"nom": "Santé", "chaine": [
     {"id": "cueilleur", "nom": "Cueilleur", "epoque": 0, "savoir": "cueillette", "depuis": [], "condition": "", "etat": "actif"},
-    {"id": "guerisseur", "nom": "Guérisseur", "epoque": 0, "savoir": "medecine", "depuis": ["cueilleur"], "condition": "connaissance des plantes", "etat": "prevu"},
+    {"id": "guerisseur", "nom": "Guérisseur", "epoque": 0, "savoir": "medecine", "depuis": ["cueilleur"], "condition": "connaissance des plantes", "etat": "actif"},
     {"id": "infirmier", "nom": "Infirmier", "epoque": 2, "savoir": "medecine", "depuis": ["guerisseur"], "condition": "bâtiment : infirmerie, matériel", "etat": "prevu"},
     {"id": "medecin", "nom": "Médecin", "epoque": 4, "savoir": "medecine", "depuis": ["infirmier"], "condition": "école de médecine", "etat": "prevu"},
     {"id": "medecine_avancee", "nom": "Médecine avancée", "epoque": 5, "savoir": "medecine", "depuis": ["medecin"], "condition": "hôpital, robotique médicale", "etat": "prevu"}

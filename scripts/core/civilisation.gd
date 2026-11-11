@@ -555,6 +555,7 @@ func _jour_passe() -> void:
     besoins.paturage_ha = paturage_ha()
     elevage.jour_passe(ressources, population, temps.jour_total, temps.saison_des_pluies(), besoins.paturage_ha)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
+    population.soigner(ressources, temps.jour_total)
     pression.jour_passe(ressources)
     for c in voisins:
         c.jour_passe(temps.jour_total, temps.saison_des_pluies())

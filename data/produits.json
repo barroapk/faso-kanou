@@ -2273,6 +2273,26 @@
    ],
    "obtention": "cadre en bois assemblé",
    "transforme_de": "bois"
+  },
+  "plantes_medicinales": {
+   "nom": "Plantes médicinales",
+   "categorie": "naturelle",
+   "sous_categorie": "plante",
+   "alimentaire": false,
+   "kcal_kg": 0,
+   "unite": "kg",
+   "masse_unite_kg": 1.0,
+   "perte_jour": 0.0,
+   "sec": true,
+   "valeur": 2.0,
+   "epoque": "pierre",
+   "disponibilite": "locale",
+   "terrains": [],
+   "saisons": [],
+   "usages": [
+    "soin"
+   ],
+   "obtention": "feuilles, écorces et racines cueillies par les cueilleurs"
   }
  },
  "version_catalogue": 2

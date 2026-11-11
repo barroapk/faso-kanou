@@ -60,6 +60,7 @@ const SEL_PAR_SEL_VEGETAL := 0.5        # simplification de jeu (pas une équiva
                                         # 1 kg de sel végétal remplace 0,5 kg de sel
 # Sous-produits de la chasse, par kg de viande : os et cornes, peaux.
 const OS_PAR_KG_VIANDE := 0.05
+const PLANTES_JOUR := 0.03             # kg de plantes médicinales cueillis par jour (v0.3.45)
 const PEAU_PAR_KG_VIANDE := 0.08
 
 # Cueillette par mois (janvier = 0) : part de chaque produit, total = 1.
@@ -416,6 +417,10 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
                     objets["peau"] = float(objets.get("peau", 0.0)) + viande * PEAU_PAR_KG_VIANDE
                     noter("production", "os_corne", viande * OS_PAR_KG_VIANDE)
                     noter("production", "peau", viande * PEAU_PAR_KG_VIANDE)
+                if h["metier"] == "cueilleur":
+                    var plantes: float = PLANTES_JOUR * efficacite
+                    objets["plantes_medicinales"] = float(objets.get("plantes_medicinales", 0.0)) + plantes
+                    noter("production", "plantes_medicinales", plantes)
             else:
                 variation[r] += q
                 noter("production", r, q)
