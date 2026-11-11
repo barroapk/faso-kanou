@@ -204,4 +204,7 @@ func depuis_dict(d: Dictionary) -> void:
         faites[str(k)] = int(d["faites"][k])
     commandes = []
     for c in d.get("commandes", []):
-        commandes.append({"recette": str(c["recette"]), "nombre": int(c.get("nombre", 1)), "reste": float(c["reste"])})
+        var cmd := {"recette": str(c["recette"]), "nombre": int(c.get("nombre", 1)), "reste": float(c["reste"])}
+        if c.has("mission"):
+            cmd["mission"] = str(c["mission"])
+        commandes.append(cmd)

@@ -337,6 +337,12 @@ func _section_gouvernement(C, jour: int) -> void:
         _postes_secteur(C, str(s["id"]), jour)
     boite.add_child(_label("Secteurs prévus : " + ", ".join(g.prevus()), 21))
 
+func _lancer_mission(C, did: String, jour: int) -> void:
+    var r: String = C.missions.lancer(C, jour)
+    if r == "":
+        C.rapports.decider(did, "acceptee", jour)
+    _faire(r, "Mission lancée.")
+
 # ---------- Rapport du Premier ministre : information et décisions, sans exécution ----------
 
 func _section_rapport(C, jour: int) -> void:
@@ -363,12 +369,30 @@ func _section_rapport(C, jour: int) -> void:
     boite.add_child(_label("Demandes (accepter ou refuser enregistre seulement votre décision : rien n'est exécuté)", 24))
     if R.demandes.is_empty():
         boite.add_child(_label("Aucune demande en attente.", 21))
+    var M = C.missions
     for d in R.demandes:
         var did: String = str(d["id"])
-        boite.add_child(_ligne([_label("%s : %s (coût : %s)" % [R.NOMS[d["secteur"]], d["texte"], d["cout"]], 21),
+        if did == "defense_armes":
+            var dv: Dictionary = M.devis(C, jour)
+            boite.add_child(_label("%s : %s" % [R.NOMS[d["secteur"]], d["texte"]], 21))
+            if dv["possible"]:
+                boite.add_child(_label(M.texte_devis(dv), 21))
+            else:
+                boite.add_child(_label("Mission impossible pour l'instant : " + str(dv["raison"]), 21))
+            boite.add_child(_ligne([_bouton("Lancer la mission", bool(dv["possible"]), func(): _lancer_mission(C, did, jour)),
+                _bouton("Refuser", true, func(): _faire(R.decider(did, "refusee", jour), "Décision enregistrée."))]))
+            continue
+        var note: String = M.note_impossible(did)
+        boite.add_child(_ligne([_label("%s : %s (coût : %s)%s" % [R.NOMS[d["secteur"]], d["texte"], d["cout"], (" Note : " + note) if note != "" else ""], 21),
             _bouton("Accepter", true, func(): _faire(R.decider(did, "acceptee", jour), "Décision enregistrée : aucune exécution à ce stade.")),
             _bouton("Refuser", true, func(): _faire(R.decider(did, "refusee", jour), "Décision enregistrée."))]))
-    boite.add_child(_label("Projets : aucun projet en cours (les missions viennent à une étape suivante).", 21))
+    var pr: String = M.texte_actuelle(jour)
+    boite.add_child(_label("Projets : " + (pr if pr != "" else "aucune mission en cours."), 21))
+    if not M.terminees.is_empty():
+        boite.add_child(_label("Dernière mission : " + M.texte_resultat(M.terminees.back()), 21))
+    var dos: String = M.texte_dossier(C)
+    if dos != "":
+        boite.add_child(_label(dos, 21))
     var dl: PackedStringArray = []
     for i in range(R.decisions.size() - 1, maxi(-1, R.decisions.size() - 6), -1):
         var x: Dictionary = R.decisions[i]

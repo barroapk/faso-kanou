@@ -40,6 +40,7 @@ const GOUVERNEMENT = preload("res://scripts/core/gouvernement.gd")
 const FINANCES = preload("res://scripts/core/finances.gd")
 const INSTITUTIONS = preload("res://scripts/core/institutions.gd")
 const RAPPORTS = preload("res://scripts/core/rapports.gd")
+const MISSIONS = preload("res://scripts/core/missions.gd")
 
 var temps
 var population
@@ -77,6 +78,7 @@ var gouvernement
 var finances
 var institutions
 var rapports
+var missions
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -110,6 +112,7 @@ func _creer_modules() -> void:
     budget.finances = finances
     institutions = INSTITUTIONS.new()
     rapports = RAPPORTS.new()
+    missions = MISSIONS.new()
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
@@ -575,6 +578,7 @@ func _jour_passe() -> void:
     finances.jour_passe(self, temps.jour_total)
     var chantier_actif: bool = not construction.chantiers.is_empty()
     recettes.jour_passe(population, ressources, temps.jour_total)
+    missions.jour_passe(self, temps.jour_total)
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
     # Réputation : délégations mieux reçues (+0 à 20 %), première rencontre (+0 à 5).
     expeditions.bonus_reputation = float(reputation()) / 100.0
@@ -701,6 +705,7 @@ func sauvegarder() -> void:
         "finances": finances.vers_dict(),
         "institutions": institutions.vers_dict(),
         "rapports": rapports.vers_dict(),
+        "missions": missions.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -760,6 +765,7 @@ func _charger(nom: String) -> bool:
     finances.depuis_dict(donnees.get("finances", {}))
     institutions.depuis_dict(donnees.get("institutions", {}))
     rapports.depuis_dict(donnees.get("rapports", {}))
+    missions.depuis_dict(donnees.get("missions", {}))
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
         routes.sentiers_existants(agriculture.champs.map(func(c): return "parcelle_" + str(c.get("parcelle", ""))).filter(func(x): return x != "parcelle_"))
