@@ -33,6 +33,17 @@ const POIDS_AUTO := {"competence": 0.4, "experience": 0.2, "loyaute": 0.2, "sant
 
 var ecartes := {}      # "secteur:poste" -> ids refusés par le joueur (non sauvegardé)
 
+# ---------- Délégations du conseiller (v0.3.57) ----------
+# Le conseiller conseille ; il n'agit seul que dans ce que le dirigeant lui délègue : peu de
+# domaines, une durée, révocable à tout moment. Jamais de guerre, d'alliance, de loi ni d'impôt.
+# Pas de conseiller en vie => délégation suspendue (rien n'est dépensé ni appliqué).
+const DELEGATIONS := {
+    "travail": {"nom": "Gestion du travail", "limites": "réaffecte les travailleurs, ouvre des postes de métier courants et gère les cultures ; aucun budget, aucune guerre, loi ni impôt."},
+    "remplacement": {"nom": "Remplacement des responsables", "limites": "remplace un responsable mort ou parti par le meilleur candidat admissible (compétence 10 au moins, jamais seul de son métier vital) ; ne crée aucun nouveau poste."},
+}
+var delegations := {}   # id -> {"jusqu": jour de fin (-1 = sans limite), "suspendue": bool}
+var vacances := {}      # "secteur:poste" -> {"echec": bool} : postes laissés vacants par une mort, un départ ou le conseil
+
 static func _charger() -> void:
     if not _cat.is_empty():
         return
@@ -178,11 +189,18 @@ func _finances(c) -> Dictionary:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"secteurs": secteurs}
+    return {"secteurs": secteurs, "delegations": delegations, "vacances": vacances}
 
 func depuis_dict(d: Dictionary) -> void:
     for id in actifs():
         secteurs[id] = _vide()
+    delegations = {}
+    for id in d.get("delegations", {}):
+        var x: Dictionary = d["delegations"][id]
+        delegations[str(id)] = {"jusqu": int(x.get("jusqu", -1)), "suspendue": bool(x.get("suspendue", false))}
+    vacances = {}
+    for k in d.get("vacances", {}):
+        vacances[str(k)] = {"echec": bool(d["vacances"][k].get("echec", false))}
     for id in d.get("secteurs", {}):
         var x: Dictionary = d["secteurs"][id]
         secteurs[str(id)] = {"ministere": bool(x.get("ministere", false)), "responsables": x.get("responsables", []).map(func(i): return int(i)), "postes": _postes_lus(x.get("postes", {})), "budget_part": float(x.get("budget_part", 0.0))}
@@ -329,7 +347,7 @@ func refuser(sid: String, poste: String, id: int) -> void:
     ecartes[cle].append(id)
 
 # Renvoie "" si c'est fait, sinon la raison du refus. Revérifie toujours que la personne peut occuper le poste.
-func nommer(sid: String, poste: String, id: int, c, jour: int) -> String:
+func nommer(sid: String, poste: String, id: int, c, jour: int, par_conseiller := false) -> String:
     var h := _habitant(c, id)
     if h.is_empty():
         return "Cette personne n'est plus là."
@@ -341,7 +359,11 @@ func nommer(sid: String, poste: String, id: int, c, jour: int) -> String:
     h["fonction"] = {"secteur": sid, "poste": poste, "temps": float(d.get("temps", 0.0)), "depuis": jour}
     _sync(sid)
     ecartes.erase(sid + ":" + poste)
-    evenement.emit("%s %s est nommé %s (%s)." % [h["prenom"], h["nom"], d["nom"], _nom_secteur(sid)])
+    vacances.erase(sid + ":" + poste)
+    if par_conseiller:
+        evenement.emit("Le conseiller nomme %s %s %s (%s), selon votre délégation." % [h["prenom"], h["nom"], d["nom"], _nom_secteur(sid)])
+    else:
+        evenement.emit("%s %s est nommé %s (%s)." % [h["prenom"], h["nom"], d["nom"], _nom_secteur(sid)])
     return ""
 
 # Le joueur peut toujours relever quelqu'un ; la personne n'apprécie pas (loyauté -10).
@@ -360,6 +382,10 @@ func revoquer(sid: String, poste: String, c) -> String:
 
 # Chaque jour : mort ou départ => poste vacant ; devenu conseiller => fonction retirée ; temps toujours appliqué.
 func verifier(c) -> void:
+    _verifier_postes(c)
+    _verifier_delegations(c, int(c.temps.jour_total))
+
+func _verifier_postes(c) -> void:
     for sid in secteurs:
         for poste in secteurs[sid]["postes"].keys():
             var id := int(secteurs[sid]["postes"][poste])
@@ -368,11 +394,93 @@ func verifier(c) -> void:
             if h.is_empty():
                 secteurs[sid]["postes"].erase(poste)
                 _sync(sid)
+                vacances[sid + ":" + poste] = {"echec": false}
                 evenement.emit("Le poste de %s (%s) est vacant : son titulaire est mort ou parti." % [d.get("nom", poste), _nom_secteur(sid)])
             elif h["metier"] == "chef":
                 secteurs[sid]["postes"].erase(poste)
                 _sync(sid)
                 h.erase("fonction")
+                vacances[sid + ":" + poste] = {"echec": false}
                 evenement.emit("%s %s devient conseiller : le poste de %s (%s) est vacant." % [h["prenom"], h["nom"], d.get("nom", poste), _nom_secteur(sid)])
             elif not h.has("fonction"):
                 h["fonction"] = {"secteur": sid, "poste": poste, "temps": float(d.get("temps", 0.0)), "depuis": 0}
+
+# ---------- Délégations ----------
+
+func _conseiller_present(c) -> bool:
+    return int(c.conseil.chef_id) >= 0 and not c.conseil.habitant(c.population, int(c.conseil.chef_id)).is_empty()
+
+func delegation_active(id: String) -> bool:
+    return delegations.has(id) and not bool(delegations[id]["suspendue"])
+
+# duree_jours : -1 = sans limite. Redéléguer modifie la durée.
+func deleguer(id: String, duree_jours: int, c, jour: int) -> String:
+    if not DELEGATIONS.has(id):
+        return "Délégation inconnue."
+    if not _conseiller_present(c):
+        return "Il faut d'abord un conseiller."
+    delegations[id] = {"jusqu": (jour + duree_jours) if duree_jours >= 0 else -1, "suspendue": false}
+    if id == "travail":
+        c.besoins.mode = "auto"
+    evenement.emit("Délégation accordée au conseiller : %s." % str(DELEGATIONS[id]["nom"]).to_lower())
+    return ""
+
+func retirer_delegation(id: String, c) -> String:
+    if not delegations.has(id):
+        return "Cette tâche n'est pas déléguée."
+    delegations.erase(id)
+    if id == "travail":
+        c.besoins.mode = "conseil"
+    evenement.emit("Délégation retirée : %s. Le conseiller conseille de nouveau, vous décidez." % str(DELEGATIONS[id]["nom"]).to_lower())
+    return ""
+
+func texte_delegation(id: String, jour: int) -> String:
+    if not delegations.has(id):
+        return "non déléguée (le conseiller propose seulement)"
+    var d: Dictionary = delegations[id]
+    var fin := "sans limite de durée" if int(d["jusqu"]) < 0 else "encore %d jour(s)" % maxi(0, int(d["jusqu"]) - jour)
+    return ("suspendue (pas de conseiller), " if bool(d["suspendue"]) else "déléguée, ") + fin
+
+func _verifier_delegations(c, jour: int) -> void:
+    # Anciennes parties : le mode automatique existait déjà ; il devient une délégation sans limite.
+    if c.besoins.mode == "auto" and not delegations.has("travail"):
+        delegations["travail"] = {"jusqu": -1, "suspendue": false}
+    var present := _conseiller_present(c)
+    for id in delegations.keys():
+        var d: Dictionary = delegations[id]
+        if int(d["jusqu"]) >= 0 and jour >= int(d["jusqu"]):
+            delegations.erase(id)
+            if id == "travail":
+                c.besoins.mode = "conseil"
+            evenement.emit("Délégation terminée : %s. Le conseiller propose de nouveau seulement." % str(DELEGATIONS[id]["nom"]).to_lower())
+        elif not present and not bool(d["suspendue"]):
+            d["suspendue"] = true
+            if id == "travail":
+                c.besoins.mode = "conseil"
+            evenement.emit("Délégation suspendue : pas de conseiller (%s)." % str(DELEGATIONS[id]["nom"]).to_lower())
+        elif present and bool(d["suspendue"]):
+            d["suspendue"] = false
+            if id == "travail":
+                c.besoins.mode = "auto"
+            evenement.emit("Délégation rétablie : %s." % str(DELEGATIONS[id]["nom"]).to_lower())
+    if delegation_active("remplacement"):
+        _remplacer(c, jour)
+
+# Remplacement délégué : seulement un poste devenu vacant, seulement par une proposition admissible.
+func _remplacer(c, jour: int) -> void:
+    for poste in ["titulaire", "adjoint"]:
+        for cle in vacances.keys():
+            var parts: PackedStringArray = str(cle).split(":")
+            if parts.size() != 2 or parts[1] != poste:
+                continue
+            var sid: String = parts[0]
+            if titulaire_de(sid, poste) >= 0:
+                vacances.erase(cle)
+                continue
+            var p: Dictionary = proposer(sid, poste, c, jour)
+            if p.is_empty():
+                if not bool(vacances[cle]["echec"]):
+                    vacances[cle]["echec"] = true
+                    evenement.emit("Le conseiller ne trouve personne de convenable pour le poste de %s (%s) : à vous de décider." % [postes_def()[poste]["nom"], _nom_secteur(sid)])
+            else:
+                nommer(sid, poste, int(p["id"]), c, jour, true)

@@ -560,13 +560,19 @@ func _section_archipel(C) -> void:
 # ---------- 5. Mode de gestion ----------
 
 func _section_mode(C) -> void:
-    boite.add_child(_label("Gestion", 30))
-    var auto: bool = C.besoins.mode == "auto"
-    var t := "Mode actuel : %s" % ("le conseiller applique seul ses solutions" if auto else "le conseiller conseille, vous décidez")
-    boite.add_child(_ligne([_label(t, 22), _bouton("Passer en %s" % ("conseil" if auto else "automatique"), true,
-        func():
-            C.besoins.mode = "conseil" if auto else "auto"
-            _faire("", "Mode changé."))]))
+    var g = C.gouvernement
+    var jour: int = C.temps.jour_total
+    boite.add_child(_label("Délégations du conseiller", 30))
+    boite.add_child(_label("Le conseiller conseille, vous décidez. Il n'agit seul que dans ce que vous lui déléguez, pour la durée choisie, et vous pouvez retirer la délégation à tout moment. Jamais de guerre, d'alliance, de loi ni d'impôt.", 21))
+    for id in g.DELEGATIONS:
+        var di: String = id
+        var def: Dictionary = g.DELEGATIONS[id]
+        boite.add_child(_ligne([_label("%s : %s" % [def["nom"], g.texte_delegation(id, jour)], 22),
+            _bouton("1 an", true, func(): _faire(g.deleguer(di, 360, C, jour), "Délégation accordée.")),
+            _bouton("5 ans", true, func(): _faire(g.deleguer(di, 1800, C, jour), "Délégation accordée.")),
+            _bouton("Sans limite", true, func(): _faire(g.deleguer(di, -1, C, jour), "Délégation accordée.")),
+            _bouton("Retirer", g.delegations.has(id), func(): _faire(g.retirer_delegation(di, C), "Délégation retirée."))]))
+        boite.add_child(_label("Limites : " + str(def["limites"]), 19))
 
 func _process(delta: float) -> void:
     if not visible:

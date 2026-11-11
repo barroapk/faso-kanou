@@ -38,6 +38,8 @@ const REGLES := [
     ["raids", "Raid : accord", "Conflits", false],
     ["gouvernement", " est nommé ", "Politique", false],
     ["gouvernement", " est vacant", "Politique", false],
+    ["gouvernement", "Le conseiller nomme ", "Politique", false],
+    ["gouvernement", "Délégation ", "Politique", false],
     ["gouvernement", " est relevé de ses fonctions", "Politique", false],
     ["routes", " terminé.", "Construction", true],
 ]
