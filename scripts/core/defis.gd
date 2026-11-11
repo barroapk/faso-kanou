@@ -34,7 +34,27 @@ func _init() -> void:
 func conditions(C) -> Array:
     return conditions_clan(epoque, C, "joueur", C.voisins.map(func(v): return v.id), C.diplomatie, C.expeditions.connues.size())
 
+# v0.3.70 : en plus des conditions historiques, le clan doit être en bon état (même règle pour tous) :
+#  - aucune famine en cours ;
+#  - stabilité d'au moins 50 %, évaluée seulement si le clan a une mesure de stabilité (le joueur).
+#    Les clans de l'ordinateur n'en ont pas encore : pour eux la condition n'existe pas (ni blocage
+#    ni avantage), seule la famine compte. Une stabilité sans données reste à sa valeur courante.
+const STABILITE_MIN := 50.0
+
+static func conditions_sante(C) -> Array:
+    var l: Array = [["Aucune famine en cours", not bool(C.ressources.faim)]]
+    var s = C.get("satisfaction")
+    if s != null:
+        l.append(["Stabilité du clan d'au moins %d %%" % int(STABILITE_MIN), float(s.stabilite) >= STABILITE_MIN])
+    return l
+
 static func conditions_clan(epoque: int, C, id: String, autres: Array, diplomatie, iles_connues: int) -> Array:
+    var l: Array = _conditions_historiques(epoque, C, id, autres, diplomatie, iles_connues)
+    if epoque < EPOQUES.size() - 2:
+        l.append_array(conditions_sante(C))
+    return l
+
+static func _conditions_historiques(epoque: int, C, id: String, autres: Array, diplomatie, iles_connues: int) -> Array:
     var amis := 0
     var allies := 0
     for a in autres:

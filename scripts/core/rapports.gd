@@ -180,6 +180,42 @@ static func texte_voisins(l: Array) -> String:
             s += " Ce clan connaît la famine : un cadeau de vivres est possible."
     return s
 
+# Progression vers l'époque suivante : pour informer, pas pour imposer des missions.
+func _epoques(c) -> Dictionary:
+    var df = c.defis
+    var conds: Array = df.conditions(c) if df.epoque < df.EPOQUES.size() - 1 else []
+    var faites: Array = []
+    var manque: Array = []
+    for x in conds:
+        (faites if bool(x[1]) else manque).append(str(x[0]))
+    var voisins_ep: Array = []
+    for v in c.voisins:
+        if c.voisin_connu(v):
+            voisins_ep.append("%s (%s)" % [v.nom, df.EPOQUES[int(v.epoque)]])
+    return {"actuelle": df.EPOQUES[df.epoque], "prochaine": df.EPOQUES[df.epoque + 1] if df.epoque < df.EPOQUES.size() - 1 else "", "faites": faites, "manque": manque,
+        "famine": bool(c.ressources.faim), "stabilite": float(c.satisfaction.stabilite), "voisins": voisins_ep, "moderne": df.epoque >= df.EPOQUES.size() - 2}
+
+static func texte_epoques(e: Dictionary) -> String:
+    var s := "Époque : %s." % e["actuelle"]
+    if bool(e["moderne"]):
+        s += " L'étape suivante viendra plus tard."
+    elif str(e["prochaine"]) != "":
+        s += " Prochaine : %s." % e["prochaine"]
+        if not e["faites"].is_empty():
+            s += "\nDéjà remplies : " + " ; ".join(PackedStringArray(e["faites"])) + "."
+        if not e["manque"].is_empty():
+            s += "\nIl manque : " + " ; ".join(PackedStringArray(e["manque"])) + "."
+        var bloc: Array = []
+        if bool(e["famine"]):
+            bloc.append("la famine en cours")
+        if float(e["stabilite"]) < 50.0:
+            bloc.append("une stabilité de %d %% (minimum 50 %%)" % int(round(float(e["stabilite"]))))
+        if not bloc.is_empty():
+            s += "\nBlocage lié à l'état du clan : " + " et ".join(PackedStringArray(bloc)) + "."
+    if not e["voisins"].is_empty():
+        s += "\nClans connus : " + ", ".join(PackedStringArray(e["voisins"])) + "."
+    return s
+
 func _blocages(c, jour: int) -> Array:
     var l: Array = []
     for s in c.gouvernement.tableau(c, jour):
@@ -239,7 +275,7 @@ func mois_passe(c, jour: int) -> void:
     if dernier_jour < 0:
         dernier_jour = jour - 30
     var pm: Dictionary = c.conseil.habitant(c.population, int(c.conseil.chef_id)) if int(c.conseil.chef_id) >= 0 else {}
-    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour), "travail": c.travail.etat(c.population, jour), "voisins": _voisins(c, jour)}
+    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour), "travail": c.travail.etat(c.population, jour), "voisins": _voisins(c, jour), "epoques": _epoques(c)}
     dernier_jour = jour
     # Demandes : on retire celles qui n'ont plus d'objet, on ajoute les nouvelles besoins réels.
     var actives := {}

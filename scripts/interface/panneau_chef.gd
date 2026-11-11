@@ -379,6 +379,9 @@ func _section_rapport(C, jour: int) -> void:
         var tv: Dictionary = r.get("travail", {})
         if not tv.is_empty():
             boite.add_child(_label(C.travail.texte(tv), 21))
+        var ep: Dictionary = r.get("epoques", {})
+        if not ep.is_empty():
+            boite.add_child(_label(R.texte_epoques(ep), 21))
         var vs: Array = r.get("voisins", [])
         boite.add_child(_label(R.texte_voisins(vs), 21))
         for x in vs:
