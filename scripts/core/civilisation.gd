@@ -571,6 +571,7 @@ func _jour_passe() -> void:
     equipement.jour_passe(population, chantier_actif)
     guerre.jour_passe(population, temps.jour_total)
     raids.jour_passe(Callable(self, "_clan"), temps.jour_total, diplomatie)
+    gouvernement.verifier(self)
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
     if construction.chantiers.is_empty():

@@ -36,6 +36,9 @@ const REGLES := [
     ["flotte", "mis à l'eau", "Construction", true],
     ["raids", "Raid de ", "Conflits", false],
     ["raids", "Raid : accord", "Conflits", false],
+    ["gouvernement", " est nommé ", "Politique", false],
+    ["gouvernement", " est vacant", "Politique", false],
+    ["gouvernement", " est relevé de ses fonctions", "Politique", false],
     ["routes", " terminé.", "Construction", true],
 ]
 const IGNORER := ["Fête des ancêtres"]

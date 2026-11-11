@@ -7,9 +7,13 @@
     {"id": "administrative", "nom": "Administrative", "texte": "Ministres, services, archives, lois écrites"},
     {"id": "avancee", "nom": "Avancée", "texte": "Gouvernement spécialisé, administrations complexes"}
   ],
+  "postes": {
+    "titulaire": {"nom": "responsable", "temps": 0.25, "age_min": 20},
+    "adjoint": {"nom": "adjoint", "temps": 0.10, "age_min": 18}
+  },
   "secteurs": {
-    "sante": {"nom": "Santé", "source": "sante", "mission": "Soigner les malades avec des guérisseurs, des plantes et une infirmerie."},
-    "defense": {"nom": "Défense", "source": "defense", "mission": "Protéger le clan et monter des raids avec des combattants et des armes."},
+    "sante": {"nom": "Santé", "source": "sante", "savoir": "medecine", "mission": "Soigner les malades avec des guérisseurs, des plantes et une infirmerie."},
+    "defense": {"nom": "Défense", "source": "defense", "savoir": "combat", "mission": "Protéger le clan et monter des raids avec des combattants et des armes."},
     "finances": {"nom": "Finances", "source": "finances", "mission": "Prélever l'impôt en nature et financer chantiers et entretien."},
     "justice": {"nom": "Justice", "source": "", "prevu": "étape justice"},
     "education": {"nom": "Éducation et savoirs", "source": "", "prevu": "étape éducation"},

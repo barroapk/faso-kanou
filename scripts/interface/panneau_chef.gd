@@ -312,7 +312,7 @@ func _section_raids(C) -> void:
 func _section_gouvernement(C, jour: int) -> void:
     var g = C.gouvernement
     boite.add_child(_label("Gouvernement", 30))
-    boite.add_child(_label("Maturité : %s (%s). Aucun ministère constitué : ce tableau montre les systèmes qui existent déjà, sans bonus administratif." % [g.maturite()["nom"], g.maturite()["texte"]], 21))
+    boite.add_child(_label("Maturité : %s (%s). Aucun ministère constitué : ce tableau montre les systèmes qui existent déjà. Une fonction confiée prend une part du temps de travail de la personne (pas de bonus pour l'instant)." % [g.maturite()["nom"], g.maturite()["texte"]], 21))
     for s in g.tableau(C, jour):
         boite.add_child(_label(str(s["nom"]), 24))
         var lignes: PackedStringArray = []
@@ -322,7 +322,89 @@ func _section_gouvernement(C, jour: int) -> void:
         if not s["besoins"].is_empty():
             boite.add_child(_label("À surveiller : " + " ".join(s["besoins"]), 21))
         boite.add_child(_label("Rattaché : " + ", ".join(s["rattaches"]), 21))
+        _postes_secteur(C, str(s["id"]), jour)
     boite.add_child(_label("Secteurs prévus : " + ", ".join(g.prevus()), 21))
+
+# ---------- Nominations : le jeu propose, le joueur choisit ----------
+
+var _nom := {}   # nomination en cours : {"sid", "poste", "mode", "filtres"}
+
+func _postes_secteur(C, sid: String, jour: int) -> void:
+    var g = C.gouvernement
+    for poste in ["titulaire", "adjoint"]:
+        var d: Dictionary = g.postes_def()[poste]
+        var id: int = g.titulaire_de(sid, poste)
+        var sp: String = sid
+        var po: String = poste
+        var nom: String = str(d["nom"]).capitalize()
+        if id >= 0:
+            var h: Dictionary = C.conseil.habitant(C.population, id)
+            if h.is_empty():
+                continue
+            boite.add_child(_ligne([_label("%s : %s %s (%d %% de son temps)" % [nom, h["prenom"], h["nom"], int(float(d["temps"]) * 100.0)], 21), _bouton("Relever", true, func(): _relever(C, sp, po))]))
+        else:
+            boite.add_child(_ligne([_label("%s : vacant" % nom, 21),
+                _bouton("Proposition", true, func(): _ouvrir(C, sp, po, "auto")),
+                _bouton("Concours", true, func(): _ouvrir(C, sp, po, "concours"))]))
+            if _nom.get("sid", "") == sid and _nom.get("poste", "") == poste:
+                _detail_nomination(C, jour)
+
+func _relever(C, sid: String, poste: String) -> void:
+    _nom = {}
+    _faire(C.gouvernement.revoquer(sid, poste, C), "Fonction retirée.")
+
+func _ouvrir(C, sid: String, poste: String, mode: String) -> void:
+    if _nom.get("sid", "") == sid and _nom.get("poste", "") == poste and _nom.get("mode", "") == mode:
+        _nom = {}
+    else:
+        _nom = {"sid": sid, "poste": poste, "mode": mode, "filtres": C.gouvernement.filtres_defaut()}
+    remplir()
+
+func _nommer(C, sid: String, poste: String, id: int, jour: int) -> void:
+    var r: String = C.gouvernement.nommer(sid, poste, id, C, jour)
+    if r == "":
+        _nom = {}
+    _faire(r, "Nomination faite.")
+
+func _ligne_candidat(g, cand: Dictionary) -> String:
+    var v: Dictionary = cand["v"]
+    var t := "%s, %d ans, %s — compétence %d, expérience %d, loyauté %d, santé %d, temps libre %d %%, ancienneté %d an(s)" % [cand["nom"], int(cand["age"]), cand["metier"], int(v["competence"]), int(v["experience"]), int(v["loyaute"]), int(v["sante"]), int(v["disponibilite"]), int(v["anciennete"])]
+    if bool(cand["vital"]):
+        t += " — attention : seul(e) de son métier (poste vital)"
+    return t
+
+func _detail_nomination(C, jour: int) -> void:
+    var g = C.gouvernement
+    var sid: String = _nom["sid"]
+    var poste: String = _nom["poste"]
+    if _nom["mode"] == "auto":
+        var p: Dictionary = g.proposer(sid, poste, C, jour)
+        if p.is_empty():
+            boite.add_child(_label("Aucun candidat convenable pour l'instant. Essayez un concours.", 21))
+            return
+        var pid: int = int(p["id"])
+        boite.add_child(_ligne([_label("Proposition : " + _ligne_candidat(g, p), 21),
+            _bouton("Nommer", true, func(): _nommer(C, sid, poste, pid, jour)),
+            _bouton("Refuser", true, func(): g.refuser(sid, poste, pid); remplir())]))
+        return
+    var f: Dictionary = _nom["filtres"]
+    boite.add_child(_label("Filtres du concours (un filtre désactivé n'écarte personne) :", 21))
+    for k in g.CRITERES:
+        var kk: String = k
+        var pas: int = 1 if k == "anciennete" else 10
+        var fk: Dictionary = f[k]
+        var t := "%s %s ≥ %d" % ["[x]" if bool(fk["actif"]) else "[  ]", g.NOMS_CRITERES[k], int(fk["seuil"])]
+        boite.add_child(_ligne([_label(t, 21),
+            _bouton("Oui/Non", true, func(): f[kk]["actif"] = not bool(f[kk]["actif"]); remplir()),
+            _bouton("-", int(fk["seuil"]) > 0, func(): f[kk]["seuil"] = maxi(0, int(f[kk]["seuil"]) - pas); remplir()),
+            _bouton("+", true, func(): f[kk]["seuil"] = int(f[kk]["seuil"]) + pas; remplir())]))
+    var l: Array = g.candidats(sid, poste, C, jour, f)
+    boite.add_child(_label("%d candidat(s) admissible(s), classés par compétence (les critères sont affichés séparément, vous choisissez) :" % l.size(), 21))
+    for i in mini(l.size(), 6):
+        var cid: int = int(l[i]["id"])
+        boite.add_child(_ligne([_label(_ligne_candidat(g, l[i]), 20), _bouton("Nommer", true, func(): _nommer(C, sid, poste, cid, jour))]))
+    if l.size() > 6:
+        boite.add_child(_label("... et %d autre(s) : durcissez les filtres pour les voir." % (l.size() - 6), 20))
 
 func _section_budget(C) -> void:
     boite.add_child(_label("Budget du clan", 30))

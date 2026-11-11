@@ -105,6 +105,7 @@ func _ready() -> void:
     Civilisation.construction.evenement.connect(_afficher_message)
     Civilisation.besoins.evenement.connect(_afficher_message)
     Civilisation.conseil.evenement.connect(_afficher_message)
+    Civilisation.gouvernement.evenement.connect(_afficher_message)
     Civilisation.chef.evenement.connect(_afficher_message)
     Civilisation.migration.evenement.connect(_afficher_message)
     Civilisation.recettes.evenement.connect(_afficher_message)

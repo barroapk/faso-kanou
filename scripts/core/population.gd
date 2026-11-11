@@ -572,10 +572,15 @@ static func savoir_du_metier(m: String) -> String:
 static func savoir_du_role(h: Dictionary) -> String:
     return str(_charger().get("roles", {}).get(str(h.get("role", "")), {}).get("savoir", ""))
 
+# Part du temps qui reste au métier : le rôle secondaire (protecteur...) et la fonction de
+# gouvernement (responsable, adjoint) en prennent chacun une partie, jamais tout.
 static func part_libre(h: Dictionary) -> float:
-    if not h.has("role"):
-        return 1.0
-    return 1.0 - float(_charger().get("roles", {}).get(str(h["role"]), {}).get("temps", 0.0))
+    var p := 1.0
+    if h.has("role"):
+        p -= float(_charger().get("roles", {}).get(str(h["role"]), {}).get("temps", 0.0))
+    if h.has("fonction") and typeof(h["fonction"]) == TYPE_DICTIONARY:
+        p -= float(h["fonction"].get("temps", 0.0))
+    return maxf(0.2, p)
 
 func savoir(h: Dictionary, s: String) -> float:
     if s == "":
