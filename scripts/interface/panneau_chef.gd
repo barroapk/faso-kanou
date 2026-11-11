@@ -257,9 +257,17 @@ func _section_clotures(C) -> void:
 
 # ---------- Routes (un réseau qui part du village) ----------
 
+func _regler_protecteurs(C, jour: int, n: int) -> void:
+    C.guerre.fixer_protecteurs(C.population, jour, n)
+    remplir()
+
 func _section_force(C, jour: int) -> void:
     boite.add_child(_label("Force militaire", 30))
     boite.add_child(_label(C.guerre.texte(C.population, C.equipement, C.clotures, C.ressources, jour), 22))
+    var np: int = C.guerre.nb_protecteurs(C.population)
+    var mp: int = C.guerre.max_protecteurs(C.population, jour)
+    boite.add_child(_label("Protecteurs : %d (maximum %d). Un protecteur consacre 25 %% de son temps à garder le clan : sa production baisse, son combat progresse." % [np, mp], 21))
+    boite.add_child(_ligne([_label("Nombre de protecteurs", 22), _bouton("−", np > 0, func(): _regler_protecteurs(C, jour, np - 1)), _bouton("+", np < mp, func(): _regler_protecteurs(C, jour, np + 1))]))
 
 func _section_budget(C) -> void:
     boite.add_child(_label("Budget du clan", 30))

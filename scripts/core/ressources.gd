@@ -397,7 +397,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         var p = PRODUCTION.get(h["metier"], {})
         if h["metier"] == "enfant":
             p = PRODUCTION["aide"] if population.age(h, jour) >= AGE_AIDE else {}
-        var efficacite: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * (float(budget.facteur_productivite()) if budget != null else 1.0)
+        var efficacite: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * population.part_libre(h) * (float(budget.facteur_productivite()) if budget != null else 1.0)
         for r in p:
             var q: float = p[r][s] * efficacite * _richesse(h["metier"], r) * _acces(h["metier"], r)
             if r == "nourriture":

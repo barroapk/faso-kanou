@@ -1,0 +1,17 @@
+{
+ "_notes": "Catalogue des métiers (v0.3.42). Un métier = un savoir + (plus tard) des conditions. Les savoirs restent à l'habitant toute sa vie. 'choisi' : le joueur peut l'attribuer. 'roles' : activité secondaire ; 'temps' = part du temps de travail qu'elle prend sur le métier principal.",
+ "metiers": {
+  "chasseur": {"savoir": "chasse", "feminin": "chasseuse", "choisi": true},
+  "cueilleur": {"savoir": "cueillette", "feminin": "cueilleuse", "choisi": true},
+  "pêcheur": {"savoir": "peche", "feminin": "pêcheuse", "choisi": true},
+  "cultivateur": {"savoir": "agriculture", "feminin": "cultivatrice", "choisi": true},
+  "porteur d'eau": {"savoir": "portage", "feminin": "porteuse d'eau", "choisi": true},
+  "bâtisseur": {"savoir": "construction", "feminin": "bâtisseuse", "choisi": true},
+  "mineur": {"savoir": "extraction", "feminin": "mineuse", "choisi": true},
+  "sans métier": {"savoir": "cueillette", "choisi": true},
+  "chef": {"savoir": "cueillette"}
+ },
+ "roles": {
+  "protecteur": {"nom": "protecteur", "savoir": "combat", "temps": 0.25, "gain": 0.5}
+ }
+}

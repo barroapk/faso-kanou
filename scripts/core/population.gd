@@ -10,9 +10,6 @@ const JOURS_PAR_AN := 360
 const AGE_ADULTE := 14
 const PRENOMS_H := ["Ousmane", "Issa", "Adama", "Moussa", "Salif", "Karim", "Boukary", "Noaga", "Idrissa", "Seydou"]
 const PRENOMS_F := ["Aminata", "Fatimata", "Mariam", "Awa", "Salimata", "Rasmata", "Zalissa", "Assita", "Kadiatou", "Bintou"]
-const FEMININ := {"chasseur": "chasseuse", "cueilleur": "cueilleuse", "porteur d'eau": "porteuse d'eau", "bâtisseur": "bâtisseuse",
-    "pêcheur": "pêcheuse", "cultivateur": "cultivatrice", "mineur": "mineuse"}
-const METIERS_CHOISIS := ["chasseur", "cueilleur", "pêcheur", "cultivateur", "porteur d'eau", "bâtisseur", "mineur", "sans métier"]
 
 # ---------- Démographie (réglages) ----------
 const AGE_UNION_F := 16
@@ -36,17 +33,7 @@ const RISQUE_COUSINS := 1.3          # mortalité avant 5 ans multipliée pour l
 # Chaque habitant a des savoirs (0 à 100) : h["savoirs"] = {savoir: niveau}.
 # h["competence"] reste le niveau dans le savoir de son métier actuel
 # (c'est lui qu'utilisent la production et le chef).
-const SAVOIR_DU_METIER := {
-    "chasseur": "chasse",
-    "cueilleur": "cueillette",
-    "sans métier": "cueillette",
-    "chef": "cueillette",
-    "porteur d'eau": "portage",
-    "bâtisseur": "construction",
-    "cultivateur": "agriculture",
-    "pêcheur": "peche",
-    "mineur": "extraction",
-}
+# Les métiers, leurs savoirs et les rôles secondaires viennent de data/metiers.json (v0.3.42).
 const GAIN_PRATIQUE := 0.02        # par jour, de moins en moins vite près de 100 (10 -> ~50 en 10 ans)
 const COEF_APPRENTI := 1.5         # travailler à côté d'un maître (60 et plus)
 const NIVEAU_MAITRE := 60.0
@@ -477,8 +464,25 @@ func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0, jour := -1) -> void
 
 # ---------- Savoirs ----------
 
+static var _catalogue := {}
+
+static func _charger() -> Dictionary:
+    if _catalogue.is_empty():
+        var d = JSON.parse_string(FileAccess.get_file_as_string("res://data/metiers.json"))
+        _catalogue = d if typeof(d) == TYPE_DICTIONARY else {"metiers": {}, "roles": {}}
+    return _catalogue
+
 static func savoir_du_metier(m: String) -> String:
-    return SAVOIR_DU_METIER.get(m, "")
+    return str(_charger().get("metiers", {}).get(m, {}).get("savoir", ""))
+
+# Rôle secondaire (protecteur...) : savoir pratiqué à côté, et part de temps prise sur le métier.
+static func savoir_du_role(h: Dictionary) -> String:
+    return str(_charger().get("roles", {}).get(str(h.get("role", "")), {}).get("savoir", ""))
+
+static func part_libre(h: Dictionary) -> float:
+    if not h.has("role"):
+        return 1.0
+    return 1.0 - float(_charger().get("roles", {}).get(str(h["role"]), {}).get("temps", 0.0))
 
 func savoir(h: Dictionary, s: String) -> float:
     if s == "":
@@ -538,8 +542,13 @@ func pratiquer(jour: int) -> void:
                 if heros.has(pratique) and not h.has("heros"):
                     gain *= 1.0 + float(heros[pratique])
                 donner_savoir(h, pratique, n + gain)
+        var aussi: String = savoir_du_role(h)
+        if aussi != "" and aussi != pratique:
+            var na: float = savoir(h, aussi)
+            var gr: float = float(_charger()["roles"][str(h["role"])].get("gain", 0.5))
+            donner_savoir(h, aussi, na + GAIN_PRATIQUE * gr * (1.0 - na / 100.0))
         for s in h.get("savoirs", {}).keys():
-            if s == pratique:
+            if s == pratique or s == aussi:
                 continue
             var plancher := float(h["savoirs_max"].get(s, 0.0)) * PLANCHER_OUBLI
             if float(h["savoirs"][s]) > plancher:
@@ -569,11 +578,16 @@ func _migrer_savoirs(h: Dictionary) -> void:
     maj_competence(h)
 
 func metiers_choisis() -> Array:
-    return METIERS_CHOISIS
+    var l: Array = []
+    var m: Dictionary = _charger().get("metiers", {})
+    for k in m:
+        if bool(m[k].get("choisi", false)):
+            l.append(k)
+    return l
 
 func nom_metier(h: Dictionary) -> String:
     var m: String = h["metier"]
-    return FEMININ.get(m, m) if h["sexe"] == "F" else m
+    return str(_charger().get("metiers", {}).get(m, {}).get("feminin", m)) if h["sexe"] == "F" else m
 
 func peut_changer(h: Dictionary, jour: int) -> bool:
     return age(h, jour) >= AGE_ADULTE and h["metier"] != "chef"
