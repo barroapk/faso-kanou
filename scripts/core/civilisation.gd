@@ -495,6 +495,16 @@ func evaluer_raid(cible: String) -> Dictionary:
         return {"possible": false, "raison": "Clan inconnu."}
     return raids.evaluer(self, "joueur", v, cible, temps.jour_total, caravanes, int(expeditions.connues.get(v.agriculture.ile_id, 0)) >= 2, diplomatie)
 
+# Un clan de l'ordinateur sait-il où se trouve sa cible ?
+func _raid_connait(a: String, b: String) -> bool:
+    var va = voisin(a)
+    if va == null:
+        return false
+    if b == "joueur":
+        return nous_connait(va)
+    var vb = voisin(b)
+    return vb != null and va.iles_connues.has(vb.agriculture.ile_id)
+
 func repondre_raid(choix: String) -> String:
     return raids.repondre(Callable(self, "_clan"), temps.jour_total, diplomatie, choix)
 
@@ -612,6 +622,7 @@ func _mois_passe() -> void:
     preload("res://scripts/core/echanges_animaux.gd").mois(voisins, temps.jour_total)
     diplomatie.mois_passe()
     raids.mois_passe()
+    raids.decider(_clans(), temps.jour_total, caravanes, diplomatie, Callable(self, "_raid_connait"))
     _visites_ordinateur()
     defis.mois_passe(self)
     _epoques_ordinateur()

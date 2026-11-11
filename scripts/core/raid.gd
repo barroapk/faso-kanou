@@ -28,10 +28,16 @@ const DELAI_POURPARLERS := 2   # jours pour répondre quand le joueur est concer
 const PART_RANCON := 0.5       # une rançon offerte vaut la moitié du butin attendu
 const ACCEPTE_MIN := 0.4       # l'attaquant accepte si l'offre vaut au moins 40 % du butin attendu
 
+const COOLDOWN := 120           # jours entre deux raids lancés par le même clan de l'ordinateur
+const PROBA_MOIS := 0.05        # chance mensuelle de base qu'un clan envisage un raid
+const GRACE_JOUEUR := 1095      # jours : l'ordinateur n'attaque pas le joueur pendant les 3 premières années
+const POP_MIN_CIBLE := 8        # on ne s'attaque jamais à un clan de moins de 8 habitants
+const RESERVE_FAIM_JOURS := 90.0
 const CRAINTE_GAIN := {"victoire": 6.0, "partiel": 4.0, "negocie": 3.0, "repousse": 0.0, "defaite": -4.0}
 const CRAINTE_OUBLI := 0.97     # la crainte s'estompe chaque mois
 const CRAINTE_MAX := 100.0
 
+var dernier := {}               # clan -> jour de son dernier raid lancé
 var crainte := {}               # clan -> crainte qu'il inspire (0 à 100), gagnée par ses raids
 var sur_renommee: Callable      # (delta) -> change la renommée du joueur
 var en_cours: Array = []
@@ -332,6 +338,54 @@ func _consequences(x: Dictionary, att, issue: String, effet: float, jour: int, d
         elif x["dst"] == "joueur" and (issue == "repousse" or issue == "defaite"):
             sur_renommee.call(5)
 
+# Les clans de l'ordinateur décident, une fois par mois, d'un raid POSSIBLE (mêmes règles que le joueur).
+# Jamais contre un ami ou un allié ; sans faim, pas contre un clan neutre ; le rival BARRO FASO
+# n'attaque jamais le joueur ; une seule attaque à la fois contre le joueur.
+# clans : [[id, clan], ...] ; connait : Callable(id_attaquant, id_cible) -> bool.
+func decider(clans: Array, jour: int, caravanes, diplo, connait: Callable) -> void:
+    for q in clans:
+        var id: String = q[0]
+        var c = q[1]
+        if id == "joueur" or not c.vivant() or jour - int(dernier.get(id, -100000)) < COOLDOWN:
+            continue
+        var faim: bool = c.ressources.total_aliments() < float(c.ressources._conso_jour(c.population, jour, "nourriture")) * RESERVE_FAIM_JOURS
+        var cibles: Array = []
+        var hostile := false
+        for t in clans:
+            var did: String = t[0]
+            var d = t[1]
+            if did == id or (d.has_method("vivant") and not d.vivant()) or d.population.habitants.size() < POP_MIN_CIBLE:
+                continue
+            if did == "joueur" and (jour < GRACE_JOUEUR or id == "barro_faso" or _attaque_sur("joueur")):
+                continue
+            var etat: String = diplo.etat(id, did)
+            if etat == "amitié" or etat == "alliance" or (etat == "neutralité" and not faim):
+                continue
+            if not connait.call(id, did):
+                continue
+            hostile = hostile or etat == "hostilité" or etat == "rivalité"
+            cibles.append(t)
+        if cibles.is_empty():
+            continue
+        var proba: float = PROBA_MOIS * (3.0 if faim else 1.0) * (2.0 if hostile else 1.0)
+        if rng.randf() >= proba:
+            continue
+        var meilleur: Array = []
+        var score := 0.0
+        for t in cibles:
+            var e: Dictionary = evaluer(c, id, t[1], t[0], jour, caravanes, true, diplo)
+            if bool(e["possible"]) and float(e["butin"]) / maxf(1.0, float(e["vivres"])) > score:
+                score = float(e["butin"]) / maxf(1.0, float(e["vivres"]))
+                meilleur = t
+        if not meilleur.is_empty() and lancer(c, id, meilleur[1], meilleur[0], jour, caravanes, true, diplo) == "":
+            dernier[id] = jour
+
+func _attaque_sur(cle: String) -> bool:
+    for x in en_cours:
+        if x["dst"] == cle and x["etat"] != "fini":
+            return true
+    return false
+
 func mois_passe() -> void:
     for k in crainte.keys():
         crainte[k] = float(crainte[k]) * CRAINTE_OUBLI
@@ -371,11 +425,14 @@ func texte(cle: String) -> String:
     return "\n".join(l)
 
 func vers_dict() -> Dictionary:
-    return {"en_cours": en_cours, "historique": historique, "crainte": crainte}
+    return {"en_cours": en_cours, "historique": historique, "crainte": crainte, "dernier": dernier}
 
 func depuis_dict(d: Dictionary) -> void:
     en_cours = []
     historique = []
+    dernier = {}
+    for k in d.get("dernier", {}):
+        dernier[str(k)] = int(d["dernier"][k])
     crainte = {}
     for k in d.get("crainte", {}):
         crainte[str(k)] = float(d["crainte"][k])
