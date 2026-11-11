@@ -97,6 +97,7 @@ var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (a
 # Flux du mois, pour la comptabilité (economie.gd) : motif -> {ressource: quantité}
 # (+ entrée, - sortie). La nourriture est comptée en kgEM sous "nourriture".
 var flux := {}
+var budget = null                # budget.gd : caisse commune hors stocks (v0.3.40)
 var prod_metier := {}            # nourriture produite par métier depuis le dernier plan du chef (v0.3.34)
 
 func _init() -> void:
@@ -267,8 +268,16 @@ func ajouter(id: String, q: float, motif := "transfert") -> void:
         _:
             objets[id] = float(objets.get(id, 0.0)) + q
 
+# Stock + caisse commune : ce dont les chantiers et l'entretien disposent vraiment.
+func quantite_commune(id: String) -> float:
+    return quantite(id) + (budget.quantite(id) if budget != null else 0.0)
+
 # Retire q si c'est possible ; sinon ne retire rien et renvoie false.
 func retirer(id: String, q: float, motif := "transfert") -> bool:
+    if budget != null and q > 0.0:
+        q -= budget.depenser(id, q, motif)
+        if q <= 0.000001:
+            return true
     if quantite(id) + 0.000001 < q:
         return false
     if _lieu(id) != "outils":

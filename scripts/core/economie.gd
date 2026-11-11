@@ -83,13 +83,15 @@ func indicateurs(pop, res, cons, eq, jour: int) -> Dictionary:
     var tr := tresorerie(res)
     var st := valeur_stocks(res)
     var pa := patrimoine(cons, eq)
+    var ca: float = res.budget.valeur(self) if res.budget != null else 0.0
     var au: Dictionary = res.autonomie(pop, jour)
     return {
         "jour": jour,
         "tresorerie": tr,
         "stocks": st,
         "patrimoine": pa,
-        "richesse": tr + st + pa,
+        "caisse": ca,
+        "richesse": tr + st + pa + ca,
         "autonomie_nourriture": minf(9999.0, float(au["nourriture"])),
         "autonomie_eau": minf(9999.0, float(au["eau"])),
         "capacite_productive": capacite_productive(pop, res),

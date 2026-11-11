@@ -73,6 +73,7 @@ func remplir() -> void:
     _section_sous_sol(C)
     _section_flotte(C)
     _section_archipel(C)
+    _section_budget(C)
     _section_mode(C)
 
 # ---------- Ascension : décisions, défis, époque ----------
@@ -254,6 +255,16 @@ func _section_clotures(C) -> void:
         boite.add_child(_ligne(enfants))
 
 # ---------- Routes (un réseau qui part du village) ----------
+
+func _section_budget(C) -> void:
+    boite.add_child(_label("Budget du clan", 30))
+    boite.add_child(_label(C.budget.texte(), 22))
+    boite.add_child(_label("L'impôt met de côté une part de la production de bois, pierre et argile pour les chantiers et l'entretien. Cette part sort des stocks : elle ne sert plus à autre chose.", 21))
+    var enfants: Array = []
+    for t in [0.0, 0.05, 0.10, 0.15, 0.20]:
+        var tt: float = t
+        enfants.append(_bouton("%d %%" % int(round(t * 100.0)), absf(C.budget.taux - t) > 0.001, func(): _faire(C.budget.regler(tt), "Impôt réglé.")))
+    boite.add_child(_ligne(enfants))
 
 func _section_routes(C) -> void:
     var ro = C.routes

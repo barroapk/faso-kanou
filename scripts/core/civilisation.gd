@@ -15,6 +15,7 @@ const RECETTES = preload("res://scripts/core/recettes.gd")
 const EQUIPEMENT = preload("res://scripts/core/equipement.gd")
 const DECOUVERTES = preload("res://scripts/core/decouvertes.gd")
 const ECONOMIE = preload("res://scripts/core/economie.gd")
+const BUDGET = preload("res://scripts/core/budget.gd")
 const CLAN = preload("res://scripts/core/clan.gd")
 const DIPLOMATIE = preload("res://scripts/core/diplomatie.gd")
 const MARCHE = preload("res://scripts/core/marche.gd")
@@ -46,6 +47,7 @@ var recettes
 var equipement
 var decouvertes
 var economie
+var budget
 var voisins: Array = []
 var diplomatie
 var marche
@@ -88,6 +90,8 @@ func _creer_modules() -> void:
     decouvertes = DECOUVERTES.new()
     construction.connaissances = decouvertes
     economie = ECONOMIE.new()
+    budget = BUDGET.new()
+    ressources.budget = budget
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
@@ -575,6 +579,7 @@ func _mois_passe() -> void:
     migration.mois_passe(population, ressources, construction, temps.jour_total)
     pression.mois_passe(population, ressources, equipement, temps.jour_total)
     decouvertes.mois_passe(population, ressources, recettes, temps.jour_total, pression, besoins.mode == "auto")
+    budget.mois_passe(ressources, population, temps.jour_total)
     economie.mois_passe(population, ressources, construction, equipement, temps.jour_total)
     for c in voisins:
         c.mois_passe(temps.jour_total, temps.saison_des_pluies())
@@ -614,6 +619,7 @@ func sauvegarder() -> void:
         "equipement": equipement.vers_dict(),
         "decouvertes": decouvertes.vers_dict(),
         "economie": economie.vers_dict(),
+        "budget": budget.vers_dict(),
         "voisins": voisins.map(func(c): return c.vers_dict()),
         "diplomatie": diplomatie.vers_dict(),
         "marche": marche.vers_dict(),
@@ -667,6 +673,7 @@ func _charger(nom: String) -> bool:
     equipement.depuis_dict(donnees.get("equipement", {}))
     decouvertes.depuis_dict(donnees.get("decouvertes", {}))
     economie.depuis_dict(donnees.get("economie", {}), ressources)
+    budget.depuis_dict(donnees.get("budget", {}))
     marche.depuis_dict(donnees.get("marche", {}))
     caravanes.depuis_dict(donnees.get("caravanes", {}))
     agriculture.depuis_dict(donnees.get("agriculture", {}))

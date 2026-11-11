@@ -137,7 +137,7 @@ func construire(dest: String, niv: String, res, territoire) -> String:
         return "Cette route est déjà à ce niveau ou mieux."
     var c := cout(dest, niv)
     for r in c:
-        if res.quantite(r) < float(c[r]):
+        if res.quantite_commune(r) < float(c[r]):
             return "Il faut %s." % texte_cout(c)
     for r in c:
         res.retirer(r, float(c[r]), "construction")
@@ -198,7 +198,7 @@ func reparer(travail: float, res) -> void:
     for r in t.get("cout", {}):
         var besoin: float = float(t["cout"][r]) * PART_REPARATION * gain
         if besoin > 0.0:
-            gain = minf(gain, res.quantite(r) / (float(t["cout"][r]) * PART_REPARATION))
+            gain = minf(gain, res.quantite_commune(r) / (float(t["cout"][r]) * PART_REPARATION))
     if gain <= 0.0:
         return
     for r in t.get("cout", {}):

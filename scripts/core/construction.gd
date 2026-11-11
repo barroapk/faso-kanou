@@ -46,6 +46,8 @@ func disponible(type: String) -> bool:
     return dec == "" or (connaissances != null and connaissances.connait(dec))
 
 func _quantite(ressources, r: String) -> float:
+    if ressources.has_method("quantite_commune"):
+        return ressources.quantite_commune(r)
     if ressources.has_method("quantite"):
         return ressources.quantite(r)
     return float(ressources.stocks.get(r, 0.0))
