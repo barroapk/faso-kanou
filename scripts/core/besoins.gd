@@ -1012,7 +1012,8 @@ const EAU_EN_KG := 0.08                  # 1 L d'eau = 0,08 kg de nourriture (tr
 const PART_EXCEDENT_RESERVE := 0.5       # part de l'excédent de réserve mobilisable
 const RESERVE_PROTEGEE_JOURS := 90.0
 const ETALEMENT_JOURS := 360.0
-const NOYAU_TETES := 4                   # 1 mâle + 3 femelles par espèce
+const NOYAU_MALES := 1                   # noyau de repeuplement : 1 mâle adulte...
+const NOYAU_FEMELLES := 3                # ... et 3 femelles adultes par espèce
 const TENSION_JOURS := 60.0
 const ROUGE_JOURS := 30.0
 
@@ -1045,6 +1046,12 @@ func _tension_nourriture() -> bool:
     _cache["tension"] = t
     return t
 
+# Le noyau de repeuplement manque-t-il ? Il faut un mâle adulte et trois femelles
+# adultes, pas seulement quatre bêtes (les petits ne se reproduisent pas encore).
+func _noyau_manque(esp: String) -> bool:
+    var r: Dictionary = elevage.reproducteurs(esp, _jour)
+    return int(r["m"]) < NOYAU_MALES or int(r["f"]) < NOYAU_FEMELLES
+
 func _zone_rouge() -> bool:
     if reserve_vivres_jours() < ROUGE_JOURS or _famine_imminente():
         return true
@@ -1061,10 +1068,25 @@ func _regler_troupeau() -> void:
     _hist_prod_humaine.append(maxf(0.0, prod_mois - prod_bete))
     if _hist_prod_humaine.size() > 12:
         _hist_prod_humaine.pop_front()
-    if elevage.animaux.is_empty() or _hist_prod_humaine.size() < 3:
+    if elevage.animaux.is_empty():
         elevage.quota_naissances = {}
         return
-    # Production humaine par jour : fenêtre de 90 jours, plafonnée par la moyenne de l'année
+    var especes_f: Array = []
+    for a in elevage.animaux:
+        if a["sexe"] == "f" and elevage.adulte(a, _jour) and not especes_f.has(a["esp"]):
+            especes_f.append(a["esp"])
+    # Historique trop court (nouvelle partie ou chargement) : mode prudent, seul le
+    # noyau de repeuplement peut se reconstituer, hors zone rouge ; aucune croissance libre.
+    if _hist_prod_humaine.size() < 3:
+        var prudent := {}
+        for esp in especes_f:
+            prudent[esp] = 1 if (not _zone_rouge() and _noyau_manque(esp)) else 0
+        elevage.quota_naissances = prudent
+        budget_troupeau = {"zone": "prudent", "quotas": prudent}
+        return
+    # Production humaine par jour : le MINIMUM entre la moyenne des 3 derniers mois et celle de
+    # l'historique (jusqu'à 12 mois) : ce n'est pas une fenêtre glissante de 90 jours pure.
+    # Fenêtre de 90 jours, plafonnée par la moyenne de l'année
     # (une récolte tombe tous les 80 à 120 jours : sans ce plafond, elle gonflerait le budget).
     var n3: int = 3
     var s3 := 0.0
@@ -1104,10 +1126,6 @@ func _regler_troupeau() -> void:
         zone = "orange"
     var marge_n: float = SEUIL_REPRODUCTION * budget - cout
     var marge_t: float = SEUIL_REPRODUCTION * cap_travail - travail
-    var especes_f: Array = []
-    for a in elevage.animaux:
-        if a["sexe"] == "f" and elevage.adulte(a, _jour) and not especes_f.has(a["esp"]):
-            especes_f.append(a["esp"])
     var quotas := {}
     for esp in especes_f:
         var q := 0
@@ -1122,8 +1140,8 @@ func _regler_troupeau() -> void:
             var qt: float = marge_t / float(especes_f.size()) / maxf(0.0001, dt)
             q = int(floor(minf(qn, qt)))
         # Noyau de repeuplement : une petite espèce peut se reconstituer, sauf en zone rouge.
-        if zone != "rouge" and elevage.nombre(esp) < NOYAU_TETES:
+        if zone != "rouge" and _noyau_manque(esp):
             q = maxi(q, 1)
         quotas[esp] = maxi(0, q)
     elevage.quota_naissances = quotas
-    budget_troupeau = {"zone": zone, "budget": budget, "cout": cout, "surplus": surplus, "excedent": excedent, "travail": travail, "cap_travail": cap_travail, "p_h": p_h, "c_h": c_h, "quotas": quotas}
+    budget_troupeau = {"zone": zone, "budget": budget, "cout": cout, "surplus": surplus, "excedent": excedent, "travail": travail, "cap_travail": cap_travail, "p_h": p_h, "c_h": c_h, "quotas": quotas, "fenetre": "min(90 j, historique %d mois)" % _hist_prod_humaine.size()}

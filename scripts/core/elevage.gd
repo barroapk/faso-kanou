@@ -20,8 +20,11 @@ var rng := RandomNumberGenerator.new()
 var elevage_connu := false
 # v0.3.77 (H2a) : régulation de la reproduction par le Premier ministre d'un clan de l'ordinateur.
 # quota_naissances : espèce -> nombre de nouvelles gestations permises ce mois-ci
-# (absente = aucune limite, comme avant). Le joueur n'est jamais limité.
+# Pour un clan de l'ordinateur (regule = vrai), une espèce absente du quota n'a AUCUNE
+# gestation permise (après un chargement, ou avant le premier calcul du mois, rien ne
+# naît sans règle). Pour le joueur (regule = faux), pas de limite, comme avant.
 var quota_naissances := {}
+var regule := false
 var prod_kgem_mois := 0.0     # lait et œufs produits ce mois-ci, en kg équivalent mil
 # Animaux affectés à un service (ex. transport : espèce -> nombre). Vide aujourd'hui :
 # aucune espèce ne porte de charge dans le jeu. Place réservée pour le transport futur.
@@ -87,11 +90,21 @@ func petits_attendus(esp: String) -> float:
     return (float(e["portee"][0]) + float(e["portee"][1])) / 2.0 * float(e["survie_petits"])
 
 func _quota_permet(esp: String) -> bool:
-    return not quota_naissances.has(esp) or int(quota_naissances[esp]) > 0
+    if not regule:
+        return true
+    return int(quota_naissances.get(esp, 0)) > 0
 
 func _quota_utiliser(esp: String) -> void:
     if quota_naissances.has(esp):
         quota_naissances[esp] = int(quota_naissances[esp]) - 1
+
+# Reproducteurs adultes d'une espèce : {"m": mâles, "f": femelles}.
+func reproducteurs(esp: String, jour: int) -> Dictionary:
+    var r := {"m": 0, "f": 0}
+    for a in animaux:
+        if a["esp"] == esp and adulte(a, jour):
+            r[a["sexe"]] = int(r[a["sexe"]]) + 1
+    return r
 
 func _retirer_grain(res, kgem: float) -> float:
     var reste := kgem

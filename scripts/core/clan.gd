@@ -89,6 +89,7 @@ func _modules() -> void:
     besoins.elevage = elevage
     besoins.agriculture = agriculture
     besoins.regule_troupeau = true      # v0.3.77 : le PM d'un clan de l'ordinateur règle la reproduction
+    elevage.regule = true               # sans quota du PM, aucune gestation (même après un chargement)
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
