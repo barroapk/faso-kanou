@@ -548,6 +548,7 @@ func _avis(cle: String, texte: String) -> void:
 const HORIZON := 60
 const METIERS_VITAUX := ["porteur d'eau", "cueilleur", "chasseur", "pêcheur", "bâtisseur", "cultivateur"]
 const GAIN_MIN := 40.0
+var agriculture = null            # v0.3.74 : travail restant aux champs semés
 var elevage = null                # v0.3.36 : les bêtes boivent, mangent, donnent lait et œufs
 var paturage_ha := 0.0
 var _cache := {}                  # rendements et consommation du mois
@@ -784,23 +785,46 @@ func _planifier() -> void:
             evenement.emit("Le Premier ministre ouvre un poste de %s." % vers2)
         else:
             evenement.emit("Le Premier ministre réorganise : un %s devient %s." % [de2, vers2])
-# ---------- Cultivateurs : protégés entre semis et récolte (v0.3.73) ----------
-# Un poste verrouillé ne cède personne, sauf urgence. Pour les cultivateurs,
-# l'urgence est une famine imminente : moins de 7 jours de vivres, ou une
-# rupture prévue avant la récolte. Les autres métiers gardent la règle d'avant.
+# ---------- Cultivateurs : protégés tant qu'un champ semé a besoin d'eux (v0.3.73-74) ----------
+# Un poste verrouillé ne cède personne, sauf urgence. Les cultivateurs sont
+# protégés seulement à hauteur du travail qui reste aux champs semés (au moins
+# 80 % du travail requis de chaque champ) : le surplus peut partir, et une fois
+# les travaux finis plus rien ne les retient. Exception : famine imminente
+# (moins de 7 jours de vivres, ou rupture prévue avant la récolte).
 func _bloque(m: String, base: float) -> bool:
+    if m == "cultivateur":
+        if int(_pop.postes.get("cultivateur", 0)) > _cultivateurs_requis():
+            return false
+        return not _famine_imminente()
     if not _verrouille(m):
         return false
-    if m == "cultivateur":
-        return not _famine_imminente()
     return base > 40000.0
+
+# Cultivateurs nécessaires pour finir à temps 80 % du travail de chaque champ
+# semé : le travail restant de chaque champ réparti sur les jours qui le séparent
+# de sa récolte (un champ pressé pèse donc plus lourd qu'un champ lointain).
+func _cultivateurs_requis() -> int:
+    if agriculture == null:
+        return 0
+    var par_jour := 0.0
+    for c in agriculture.champs:
+        if c["etat"] != "seme" or not agriculture.accessible(c):
+            continue
+        var f: Dictionary = agriculture.cultures[c["culture"]]
+        var restant: float = maxf(0.0, 0.8 * agriculture.travail_requis(c) - float(c["travail"]))
+        var jours: int = maxi(1, int(c["semis"]) + int(f["cycle"]) - _jour)
+        par_jour += restant / float(jours)
+    if par_jour <= 0.0:
+        return 0
+    return int(ceil(par_jour / maxf(0.1, agriculture.force_moyenne(_pop, _res))))
 
 func _famine_imminente() -> bool:
     var c: float = maxf(0.1, _conso("nourriture"))
     var stock: float = _res.total_aliments()
     if stock / c < 7.0:
         return true
-    var avant_recolte: float = float(int(verrou.get("cultivateur", -1)) - _jour)
+    var recolte: int = agriculture.prochaine_recolte() if agriculture != null else int(verrou.get("cultivateur", -1))
+    var avant_recolte: float = float(recolte - _jour)
     var net: float = _production("nourriture") - c
     return avant_recolte > 0.0 and net < 0.0 and stock / -net < avant_recolte
 

@@ -148,6 +148,7 @@ func _creer_modules() -> void:
     gouvernement = GOUVERNEMENT.new()
     raids.sur_renommee = func(d): defis.renommee = maxi(0, int(defis.renommee) + int(d))
     besoins.elevage = elevage
+    besoins.agriculture = agriculture
     histoire = HISTOIRE.new()
     histoire.observer(self)
     marche.caravanes = caravanes

@@ -330,6 +330,31 @@ func prochaine_recolte() -> int:
             j = maxi(j, fin)
     return j
 
+# ---------- Discipline agricole (v0.3.74) ----------
+
+# Force de travail d'un cultivateur moyen, en jours-adulte par jour (compétence,
+# outil et stabilité compris : le travail réel, pas un travail théorique).
+func force_moyenne(pop, res) -> float:
+    var n := 0
+    var t := 0.0
+    for h in pop.habitants:
+        if h["metier"] == "cultivateur":
+            n += 1
+            t += (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0)) * res.facteur_stabilite
+    return t / float(n) if n > 0 else res.facteur_stabilite
+
+func surface_semee() -> float:
+    var s := 0.0
+    for c in champs:
+        if c["etat"] == "seme":
+            s += float(c["ha"])
+    return s
+
+# Surface qu'une équipe peut vraiment travailler pendant un cycle de culture.
+func surface_travaillable(force_jour: float, culture: String) -> float:
+    var f: Dictionary = cultures[culture]
+    return force_jour * float(f["cycle"]) / float(f["travail"])
+
 # ---------- Décisions de l'ordinateur (et conseil pour le joueur) ----------
 
 # Avant et pendant les semis : un champ à la taille des cultivateurs, semé avec
@@ -342,6 +367,7 @@ func gerer_auto(pop, res, jour: int, connait: Callable) -> void:
         return
     _postes_cultivateurs(pop, jour)
     var n: int = int(pop.postes.get("cultivateur", 0))
+    var force_jour: float = force_moyenne(pop, res) * float(n)
     var voulu := maxf(1.0, n * float(regle.get("ha_par_cultivateur", 2.0)))
     if surface_cultivee() < voulu:
         creer_champ(voulu - surface_cultivee())
@@ -355,6 +381,10 @@ func gerer_auto(pop, res, jour: int, connait: Callable) -> void:
             for s in cultures[culture]["semences"]:
                 dispo = maxf(dispo, float(semences.get(s, 0.0)) + res.quantite(s))
             var ha_possible := dispo / float(cultures[culture]["semence_ha"])
+            # On ne sème pas plus que les cultivateurs ne peuvent travailler (v0.3.74) :
+            # ni semence gaspillée, ni champ semé sans bras.
+            var travaillable: float = surface_travaillable(force_jour, culture) - surface_semee()
+            ha_possible = minf(ha_possible, travaillable)
             if ha_possible < 0.1:
                 continue
             if ha_possible < float(c["ha"]):

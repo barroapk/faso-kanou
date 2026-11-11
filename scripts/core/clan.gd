@@ -87,6 +87,7 @@ func _modules() -> void:
     guerre = GUERRE.new()
     gouvernement = GOUVERNEMENT.new()
     besoins.elevage = elevage
+    besoins.agriculture = agriculture
     ressources.construction = construction
 
 func _identite(cle: String, fiche: Dictionary) -> void:
