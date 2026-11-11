@@ -198,7 +198,7 @@ func mois_passe(c, jour: int) -> void:
     if dernier_jour < 0:
         dernier_jour = jour - 30
     var pm: Dictionary = c.conseil.habitant(c.population, int(c.conseil.chef_id)) if int(c.conseil.chef_id) >= 0 else {}
-    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour)}
+    dernier = {"jour": jour, "pm": ("%s %s" % [pm["prenom"], pm["nom"]]) if not pm.is_empty() else "", "resultats": _resultats(c, jour), "blocages": _blocages(c, jour), "alerte": _alerte(c), "satisfaction": c.satisfaction.etat(), "demographie": _demographie(c, jour), "travail": c.travail.etat(c.population, jour)}
     dernier_jour = jour
     # Demandes : on retire celles qui n'ont plus d'objet, on ajoute les nouvelles besoins réels.
     var actives := {}

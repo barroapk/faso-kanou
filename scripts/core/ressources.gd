@@ -92,7 +92,8 @@ var outils := 1.0
 var faim := false
 var couverture_eau := 1.0          # eau réellement distribuée / besoin du jour (0 à 1)
 var facteur_stabilite := 1.0       # effet de la stabilité sur le travail (0,9 à 1), posé par la civilisation
-var travail_du_jour := {}          # id des habitants ayant réellement travaillé au dernier jour
+var travail_du_jour := {}          # id des habitants ayant réellement travaillé (remis à zéro chaque jour par la civilisation)
+var travail                        # journal du travail (travail.gd), branché par la civilisation
 var couverture_nourriture := 1.0   # nourriture réellement distribuée / besoin théorique avant rationnement (0 à 1)
 var soif := false
 var jours_sans_sel := 0
@@ -416,7 +417,6 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     var besoin_nourriture := 0.0
     var n: int = population.habitants.size()
     var besoin_eau := 0.0
-    travail_du_jour = {}
     for h in population.habitants:
         var enfant: bool = population.age(h, jour) < 14
         var conso: Dictionary = CONSO_ENFANT if enfant else CONSO_ADULTE
@@ -436,8 +436,12 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         if not p.is_empty():
             travail_du_jour[int(h["id"])] = true
         var efficacite: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * population.part_libre(h) * (float(budget.facteur_productivite()) if budget != null else 1.0) * facteur_stabilite
+        if travail != null and not p.is_empty():
+            travail.noter_travail(str(h["metier"]), 1.0, efficacite, efficacite / facteur_stabilite - efficacite)
         for r in p:
             var q: float = p[r][s] * efficacite * _richesse(h["metier"], r) * _acces(h["metier"], r)
+            if travail != null:
+                travail.noter_prod(str(h["metier"]), r, q, q / facteur_stabilite - q)
             if r == "nourriture":
                 if h["metier"] == "pêcheur":
                     _recolter(q, {"poisson": 1.0})

@@ -76,7 +76,7 @@ func capacite_productive(pop, res) -> float:
         var eff := (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
         for r in p:
             var q: float = (float(p[r][0]) + float(p[r][1])) / 2.0 * eff
-            t += q * (1.0 if r == "nourriture" else float(valeurs.get(r, 0.0)))
+            t += q * res.facteur_stabilite * (1.0 if r == "nourriture" else float(valeurs.get(r, 0.0)))
     return t
 
 func indicateurs(pop, res, cons, eq, jour: int) -> Dictionary:

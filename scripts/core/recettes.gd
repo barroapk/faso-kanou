@@ -166,7 +166,11 @@ func jour_passe(pop, res, jour: int) -> void:
             meilleur["tache"] = comp
         if r["outil"] != "" and res.equipement != null:
             res.equipement.user(r["outil"])
-        c["reste"] = float(c["reste"]) - (0.5 + pop.savoir(meilleur, comp) / 100.0)
+        var brut: float = 0.5 + pop.savoir(meilleur, comp) / 100.0
+        var progres: float = brut * res.facteur_stabilite    # une seule application, à l'avancement du travail
+        c["reste"] = float(c["reste"]) - progres
+        if res.travail != null:
+            res.travail.noter_travail("fabrication", 1.0, progres, brut - progres)
         if float(c["reste"]) <= 0.000001:
             commandes.pop_front()
             _livrer(c, res)

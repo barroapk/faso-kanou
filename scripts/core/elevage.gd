@@ -86,7 +86,11 @@ func jour_passe(res, pop, jour: int, pluie: bool, paturage_ha: float) -> void:
     for h in pop.habitants:
         if h["metier"] == "éleveur" and not h.get("occupe", false) and not h.has("expedition"):
             eleveurs += 1
-    var soin := clampf(float(eleveurs) / maxf(0.01, besoin_eleveurs), 0.0, 1.0)
+            res.travail_du_jour[int(h["id"])] = true
+    # Seul le soin donné par les éleveurs dépend du travail (donc de la stabilité) ; la reproduction reste biologique.
+    var soin := clampf(float(eleveurs) * res.facteur_stabilite / maxf(0.01, besoin_eleveurs), 0.0, 1.0)
+    if res.travail != null and eleveurs > 0:
+        res.travail.noter_travail("éleveur", float(eleveurs), float(eleveurs) * res.facteur_stabilite, float(eleveurs) * (1.0 - res.facteur_stabilite))
     # Pâture partagée, puis fourrage/grain pour le reste.
     var dem := 0.0
     for a in animaux:

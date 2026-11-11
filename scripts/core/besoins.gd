@@ -477,7 +477,7 @@ func _efficacite(m: String) -> float:
         if h["metier"] == m:
             total += 0.6 + float(h["competence"]) / 100.0 * 0.8
             n += 1
-    return total / n if n > 0 else 0.7
+    return (total / n if n > 0 else 0.7) * _res.facteur_stabilite    # même facteur que la production réelle
 
 func _rendement(m: String, r: String) -> float:
     var p: Dictionary = _res.PRODUCTION.get(m, {})

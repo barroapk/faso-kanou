@@ -248,9 +248,15 @@ func jour_passe(pop, res, cons, jour: int, pluie: bool) -> void:
     var mois := (jour / 30) % 12
     _remplir_retenue(cons, pluie, mois)
     var force := 0.0
+    var perte_force := 0.0
     for h in pop.habitants:
         if h["metier"] == "cultivateur" and not h.get("occupe", false):
-            force += (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
+            var brut: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
+            force += brut * res.facteur_stabilite    # le facteur de stabilité s'applique ici, une seule fois
+            perte_force += brut * (1.0 - res.facteur_stabilite)
+            res.travail_du_jour[int(h["id"])] = true
+    if res.travail != null and force > 0.0:
+        res.travail.noter_travail("cultivateur (champs)", 0.0, force, perte_force)
     var semes: Array = champs.filter(func(c): return c["etat"] == "seme" and accessible(c))
     var reste_total := 0.0
     for c in semes:
@@ -307,6 +313,8 @@ func _recolter(c: Dictionary, res, pop, jour: int) -> void:
     if kg > 0.0:
         recoltes += 1
     res.ajouter(f["produit"], kg, "production")
+    if res.travail != null:
+        res.travail.noter_prod("cultivateur (champs)", str(f["produit"]), kg, 0.0, float(f["rendement"]) * float(c["ha"]) * float(c["fertilite"]) - kg)
     # Le paysan garde de quoi ressemer le même champ (+20 % de sécurité).
     garder_semences(f["produit"], float(f["semence_ha"]) * float(c["ha"]) * 1.2, res)
     c["fertilite"] = float(c["fertilite"]) * (1.0 - float(f["epuisement"]))

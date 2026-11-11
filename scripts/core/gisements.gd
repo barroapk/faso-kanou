@@ -132,12 +132,17 @@ func jour_passe(pop, res, routes, jour: int, rng: RandomNumberGenerator) -> void
             continue
         var t: String = sites[i % sites.size()]
         i += 1
-        var eff: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
+        var eff_brut: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * float(h.get("bonus_outil", 1.0))
+        var eff: float = eff_brut * res.facteur_stabilite    # une seule application du facteur de stabilité
+        res.travail_du_jour[int(h["id"])] = true
         var r: float = 0.5 + 0.5 * float(ile["richesse"].get(t, 1.0))
         var q: float = float(TYPES[t]["base"]) * eff * r * teneur(t)
         if routes != null:
             q *= routes.acces(TYPES[t]["route"])
         res.ajouter(TYPES[t]["produit"], q, "extraction")
+        if res.travail != null:
+            res.travail.noter_travail("mineur", 1.0, eff, eff_brut - eff)
+            res.travail.noter_prod("mineur", str(TYPES[t]["produit"]), q, q / res.facteur_stabilite - q)
         connus[t]["extrait"] = float(connus[t]["extrait"]) + q
 
 func vers_dict() -> Dictionary:

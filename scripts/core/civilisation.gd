@@ -42,6 +42,7 @@ const INSTITUTIONS = preload("res://scripts/core/institutions.gd")
 const RAPPORTS = preload("res://scripts/core/rapports.gd")
 const MISSIONS = preload("res://scripts/core/missions.gd")
 const SATISFACTION = preload("res://scripts/core/satisfaction.gd")
+const TRAVAIL = preload("res://scripts/core/travail.gd")
 
 var temps
 var population
@@ -81,6 +82,7 @@ var institutions
 var rapports
 var missions
 var satisfaction
+var travail
 var ile_joueur := ""
 var ile_confirmee := false   # faux : l'écran de choix de l'île s'affiche
 var graine_monde := 0        # tirée à chaque nouvelle partie, sauvegardée
@@ -116,6 +118,8 @@ func _creer_modules() -> void:
     rapports = RAPPORTS.new()
     missions = MISSIONS.new()
     satisfaction = SATISFACTION.new()
+    travail = TRAVAIL.new()
+    ressources.travail = travail
     diplomatie = DIPLOMATIE.new()
     marche = MARCHE.new()
     caravanes = CARAVANES.new()
@@ -580,6 +584,7 @@ func ignorer_alerte(cle: String) -> String:
 func _jour_passe() -> void:
     finances.jour_passe(self, temps.jour_total)
     var chantier_actif: bool = not construction.chantiers.is_empty()
+    ressources.travail_du_jour = {}    # qui a réellement travaillé aujourd'hui (rempli par tous les producteurs)
     recettes.jour_passe(population, ressources, temps.jour_total)
     missions.jour_passe(self, temps.jour_total)
     decouvertes.jour_passe(population, recettes, temps.jour_total, pression)
@@ -609,6 +614,7 @@ func _jour_passe() -> void:
     _livrer_animaux()
     besoins.paturage_ha = paturage_ha()
     elevage.jour_passe(ressources, population, temps.jour_total, temps.saison_des_pluies(), besoins.paturage_ha)
+    travail.fin_de_jour(population, ressources.travail_du_jour, temps.jour_total)
     population.jour_passe(ressources.faim, ressources.soif, ressources.jours_sans_sel, temps.jour_total)
     var besoin_soins: float = float(population.a_soigner().size())
     institutions.noter_besoin("sante", besoin_soins)
@@ -655,6 +661,7 @@ func _mois_passe() -> void:
     satisfaction.mois_passe(self, temps.jour_total)
     ressources.facteur_stabilite = satisfaction.facteur_productivite()
     rapports.mois_passe(self, temps.jour_total)
+    travail.nouveau_mois()
     raids.decider(_clans(), temps.jour_total, caravanes, diplomatie, Callable(self, "_raid_connait"))
     _visites_ordinateur()
     defis.mois_passe(self)
@@ -716,6 +723,7 @@ func sauvegarder() -> void:
         "rapports": rapports.vers_dict(),
         "missions": missions.vers_dict(),
         "satisfaction": satisfaction.vers_dict(),
+        "travail": travail.vers_dict(),
         "livraisons": livraisons,
         "ile_joueur": ile_joueur,
         "ile_confirmee": ile_confirmee,
@@ -777,6 +785,7 @@ func _charger(nom: String) -> bool:
     rapports.depuis_dict(donnees.get("rapports", {}))
     missions.depuis_dict(donnees.get("missions", {}))
     satisfaction.depuis_dict(donnees.get("satisfaction", {}))
+    travail.depuis_dict(donnees.get("travail", {}))
     ressources.facteur_stabilite = satisfaction.facteur_productivite()
     livraisons = donnees.get("livraisons", [])
     if not donnees.has("routes"):   # ancienne sauvegarde : les champs déjà là ont leur sentier
