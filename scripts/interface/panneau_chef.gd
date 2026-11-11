@@ -74,6 +74,7 @@ func remplir() -> void:
     _section_flotte(C)
     _section_archipel(C)
     _section_budget(C)
+    _section_force(C, jour)
     _section_mode(C)
 
 # ---------- Ascension : décisions, défis, époque ----------
@@ -255,6 +256,10 @@ func _section_clotures(C) -> void:
         boite.add_child(_ligne(enfants))
 
 # ---------- Routes (un réseau qui part du village) ----------
+
+func _section_force(C, jour: int) -> void:
+    boite.add_child(_label("Force militaire", 30))
+    boite.add_child(_label(C.guerre.texte(C.population, C.equipement, C.clotures, C.ressources, jour), 22))
 
 func _section_budget(C) -> void:
     boite.add_child(_label("Budget du clan", 30))
