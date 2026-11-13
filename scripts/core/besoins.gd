@@ -68,6 +68,7 @@ func mois_passe(population, ressources, construction, jour: int, pluie: bool, ch
             _avis("logement", "Logement : %d place(s) libre(s) pour %d couple(s) qui peuvent avoir un enfant. Construisez des huttes." % [maxi(0, p["places"]), int(p["besoin"])])
         elif p["type"] == "deficit" and p["solutions"].is_empty():
             _avis(p["ressource"] + "_bras", "Pas assez de bras pour produire assez de %s." % p["ressource"])
+    _gerer_sel()
 
 # Diagnostic seul, sans action ni message : utilisé par le chef entre deux mois.
 func actualiser(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool) -> void:
@@ -581,6 +582,7 @@ const HORIZON := 60
 const METIERS_VITAUX := ["porteur d'eau", "cueilleur", "chasseur", "pêcheur", "bâtisseur", "cultivateur"]
 const GAIN_MIN := 40.0
 var agriculture = null            # v0.3.74 : travail restant aux champs semés
+var recettes = null               # D-2 : le PM peut lancer une fournée de sel végétal
 var elevage = null                # v0.3.36 : les bêtes boivent, mangent, donnent lait et œufs
 var paturage_ha := 0.0
 var _cache := {}                  # rendements et consommation du mois
@@ -1243,3 +1245,94 @@ func _regler_troupeau() -> void:
         quotas[esp] = maxi(0, q)
     elevage.quota_naissances = quotas
     budget_troupeau = {"zone": zone, "budget": budget, "cout": cout, "surplus": surplus, "excedent": excedent, "travail": travail, "cap_travail": cap_travail, "p_h": p_h, "c_h": c_h, "quotas": quotas, "fenetre": "min(90 j, historique %d mois)" % _hist_prod_humaine.size()}
+
+# ---------- Sel (D-2) : deux décisions seulement, une fois par mois après le plan ----------
+# Le sel passe après l'eau et la nourriture. Le PM ajoute un pêcheur ou lance une fournée de
+# sel végétal ; il propose l'achat et la réduction du séchage au joueur, sans les faire.
+const PECHEUR := "pêcheur"
+
+# Sel que rapporterait un pêcheur de plus : même formule que la pêche (ressources.gd).
+func _sel_estime_pecheur() -> float:
+    return _res.SEL_MARIN * _efficacite(PECHEUR) * _res.outils * (0.5 + 0.5 * float(_res.richesse.get("sel", 1.0)))
+
+func _gerer_sel() -> void:
+    if _pop.habitants.is_empty():
+        return
+    var touche: bool = _res.jours_sans_sel >= _res.SEL_SEUIL_EFFET
+    var d0: float = _res.delai_sel(_pop)
+    if not touche and d0 >= _res.SEL_ALERTE_JOURS:
+        return
+    var debut: String = ("Sel : la santé du clan est limitée à %d." % _res.plafond_sel()) if touche else ("Sel : la santé serait touchée dans environ %d jours." % int(d0))
+    debut += _res.texte_attendu()
+    if mode != "auto":
+        evenement.emit(debut + " Le Premier ministre conseille : des pêcheurs, du sel végétal ou un achat (écran du chef, « Sel et santé »).")
+        return
+    if _urgence():
+        evenement.emit(debut + " L'eau ou la nourriture sont en urgence : le Premier ministre s'en occupe d'abord.")
+        return
+    var l: PackedStringArray = [debut, _sel_pecheur(touche)]
+    var v := _sel_vegetal()
+    if v != "":
+        l.append(v)
+    if float(_res.hist_sel_sechage.reduce(func(a, b): return a + float(b), 0.0)) > 0.0:
+        l.append("Vous pouvez aussi réduire le séchage, qui consomme du sel.")
+    evenement.emit(" ".join(l))
+
+# Décision A : un pêcheur de plus, seulement si le gain est utile et sûr.
+func _sel_pecheur(touche: bool) -> String:
+    if not _pop.metiers_choisis().has(PECHEUR) or float(_res.richesse.get("poisson", 1.0)) <= 0.0:
+        return "Pas de pêche possible sur notre île : il ne déplace personne."
+    if _verrouille(PECHEUR):
+        return "Vous avez fixé le nombre de pêcheurs : il n'y touche pas."
+    # Gain minimum : comparer la situation avec et sans le pêcheur envisagé.
+    var gain := _sel_estime_pecheur()
+    var c: float = _res.sel_conso(_pop)
+    var couvre: bool = _res.sel_prod() + gain >= c
+    var d1: float = _res.delai_sel(_pop, gain)
+    if not couvre and (touche or d1 <= _res.SEL_ALERTE_JOURS):
+        return "Un pêcheur de plus ne rapporterait qu'environ %.3f kg de sel par jour pour un besoin de %.3f : gain trop faible, il ne déplace personne." % [gain, c]
+    if _jour - dernier_changement < DELAI_CHANGEMENT:
+        return "Un pêcheur aiderait, mais son délai de 60 jours court encore (%d jours) : vous pouvez l'affecter vous-même (fiche d'un habitant)." % (DELAI_CHANGEMENT - (_jour - dernier_changement))
+    var de := ""
+    if _libres() > 0:
+        if not _vital_sauf({PECHEUR: 1}):
+            return "Un adulte libre pourrait pêcher, mais il aide déjà à nourrir le clan : il ne le déplace pas."
+    else:
+        var manque_bois := false
+        if _cons != null and _cons.has_method("prevision_entretien"):
+            manque_bois = float(_cons.prevision_entretien(_res, 30)["manque"]) > 0.0
+        var meilleur := -1.0e18
+        for m in _pop.postes:
+            if m == PECHEUR or int(_pop.postes[m]) <= 0 or _garde_porteur(m) or _tout_protege(m) or _verrouille(m):
+                continue
+            if m == "bâtisseur" and manque_bois:
+                continue
+            var d := {m: -1, PECHEUR: 1}
+            if not _vital_sauf(d):
+                continue
+            var v := minf(_jours("eau", d), minf(_jours("nourriture", d), _jours("bois", d)))
+            if v > meilleur:
+                meilleur = v
+                de = m
+        if de == "":
+            return "Personne ne peut devenir pêcheur sans mettre en danger l'eau, la nourriture ou le bois, ou sans toucher à vos affectations protégées."
+        _pop.postes[de] = int(_pop.postes[de]) - 1
+    _pop.postes[PECHEUR] = int(_pop.postes.get(PECHEUR, 0)) + 1
+    dernier_changement = _jour
+    _cache.clear()
+    return ("Il ouvre un poste de pêcheur" if de == "" else "Un %s devient pêcheur" % de) + " : environ %.3f kg de sel par jour en plus, pour un besoin de %.3f." % [gain, c]
+
+# Décision B : une fournée de sel végétal, si la recette est possible sans mettre l'eau ni le bois en danger.
+func _sel_vegetal() -> String:
+    if recettes == null:
+        return ""
+    if recettes.en_cours("sel_vegetal"):
+        return "Une fournée de sel végétal est déjà en cours."
+    var e: Dictionary = recettes.etat("sel_vegetal", _pop, _res, _cons, _jour)
+    if not e["possible"]:
+        return "Sel végétal impossible pour l'instant : %s" % str(e["raisons"][0])
+    if float(_res.stocks["eau"]) - 20.0 < _conso("eau") * float(SURVIE["eau"]) or float(_res.stocks["bois"]) - 4.0 < _conso("bois") * 10.0:
+        return "Sel végétal possible, mais l'eau ou le bois manqueraient : il attend."
+    if recettes.commander("sel_vegetal", _pop, _res, _cons, _jour) != "":
+        return ""
+    return "Il lance une fournée de sel végétal (environ 0,25 kg de sel)."

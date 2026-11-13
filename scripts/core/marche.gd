@@ -53,6 +53,8 @@ func _vitale(c, id: String) -> String:
     return ""
 
 func _jours(c, v: String, jour: int) -> float:
+    if v == "sel":
+        return float(c.ressources.autonomie_sel(c.population))    # D-2 : même formule que l'affichage et le PM
     return float(c.ressources.autonomie(c.population, jour).get(v, 9999.0))
 
 func valeur_ref(id: String) -> float:
@@ -226,7 +228,7 @@ func mois_passe(clans: Array, ids_ordinateur: Array, jour: int, diplomatie) -> v
     for ca in clans:
         if not ids_ordinateur.has(ca[0]) or ca[1].population.habitants.is_empty():
             continue
-        for v in ["eau", "nourriture", "bois"]:
+        for v in ["eau", "nourriture", "bois", "sel"]:    # D-2 : le sel après les besoins vitaux
             var j := _jours(ca[1], v, jour)
             if j >= SEUIL_ACHAT:
                 continue
@@ -238,7 +240,7 @@ func mois_passe(clans: Array, ids_ordinateur: Array, jour: int, diplomatie) -> v
                 var id: String = v if v != "nourriture" else _aliment_a_vendre(cb[1], jour)
                 if id == "":
                     continue
-                var conso: float = ca[1].ressources._conso_jour(ca[1].population, jour, v)
+                var conso: float = ca[1].ressources.sel_conso(ca[1].population) if v == "sel" else ca[1].ressources._conso_jour(ca[1].population, jour, v)
                 var q := conso * (SEUIL_ACHAT - j)
                 if caravanes != null:
                     q -= caravanes.en_attente(ca[0], id)

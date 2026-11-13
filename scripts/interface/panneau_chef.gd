@@ -65,6 +65,7 @@ func remplir() -> void:
     _section_ascension(C)
     _section_conseil(C, jour)
     _section_alertes(C)
+    _section_sel(C, jour)
     _section_experiences(C, jour)
     _section_territoire(C)
     _section_agriculture(C, jour)
@@ -164,6 +165,64 @@ func _section_alertes(C) -> void:
             var t := "   → %s : %s. Risque : %s" % [p["cout"], p["effet"], p["risque"]]
             boite.add_child(_ligne([_label(t, 21), _bouton("Appliquer", true,
                 func(): _faire(C.appliquer_proposition(cle, i), "Proposition appliquée."))]))
+
+# ---------- Sel et santé (D-2) ----------
+
+const RECETTES_SEL := {"creuser_argile": "Creuser de l'argile", "canari": "Faire un canari", "sel_vegetal": "Faire du sel végétal"}
+
+func _section_sel(C, jour: int) -> void:
+    var r = C.ressources
+    var pop = C.population
+    boite.add_child(_label("Sel et santé", 30))
+    boite.add_child(_label(r.texte_sel(pop)))
+    var ap: float = r.autonomie_sel_prevue(pop)
+    boite.add_child(_label("Stock %.1f kg, sel végétal %.1f kg. Besoin %.3f kg/jour (séchage compris), production %.3f kg/jour. Autonomie du stock : %s ; au rythme actuel : %s. Ce sont des estimations." % [
+        float(r.stocks["sel"]), float(r.objets.get("sel_vegetal", 0.0)), r.sel_conso(pop), r.sel_prod(),
+        _jours_txt(r.autonomie_sel(pop), r), _jours_txt(ap, r)], 21))
+    boite.add_child(_label("Sans sel, la santé de tout le clan baisse lentement (jamais sous 60) ; elle remonte quand le sel revient. Réponses : des pêcheurs (fiche d'un habitant), moins de séchage, le sel gemme (sous-sol), un achat ou du sel végétal :", 21))
+    for id in RECETTES_SEL:
+        var rid: String = id
+        var e: Dictionary = C.recettes.etat(rid, pop, r, C.construction, jour)
+        var d: Dictionary = C.recettes.definitions[rid]
+        var cout: PackedStringArray = []
+        for g in ["entrees", "combustible"]:
+            for m in d[g]:
+                cout.append("%s %s" % [String.num(float(d[g][m])), m])
+        var t := "%s : %s, %s jour(s) d'un adulte libre" % [RECETTES_SEL[rid], ", ".join(cout), String.num(float(d["jours_travail"]))]
+        if str(d["outil"]) != "":
+            t += ", outil : %s" % d["outil"]
+        if rid == "sel_vegetal":
+            var c: float = r.sel_conso(pop)
+            t += " → environ %.2f kg de sel, soit %d jour(s) de besoin" % [float(d["sorties"]["sel_vegetal"]) * r.SEL_PAR_SEL_VEGETAL, int(float(d["sorties"]["sel_vegetal"]) * r.SEL_PAR_SEL_VEGETAL / c) if c > 0.0 else 0]
+        if C.recettes.en_cours(rid):
+            t += ". Déjà en cours."
+        elif not e["possible"]:
+            t += ". Impossible : %s" % str(e["raisons"][0])
+        boite.add_child(_label(t, 21))
+        boite.add_child(_bouton(RECETTES_SEL[rid], e["possible"] and not C.recettes.en_cours(rid), func(): _faire(C.commander_recette(rid), "Commande lancée : %s." % RECETTES_SEL[rid])))
+    # Achat : 90 jours de besoin, au clan connu qui le propose.
+    var q: float = maxf(1.0, r.sel_conso(pop) * 90.0)
+    var offres := 0
+    var raison := "Aucun clan connu ne peut nous vendre de sel."
+    for v in C.voisins:
+        if not C.voisin_connu(v):
+            continue
+        var vid: String = v.id
+        var dv: Dictionary = C.devis_commerce("joueur", vid, "sel", q)
+        if not dv.get("possible", false):
+            raison = str(dv.get("raison", raison))
+            continue
+        var paie: PackedStringArray = []
+        for p in dv["paiement"]:
+            paie.append("%.1f %s" % [float(dv["paiement"][p]), p])
+        offres += 1
+        boite.add_child(_label("Acheter %.1f kg de sel à %s, contre %s ; environ %d jours de besoin, livré par bateau." % [float(dv["quantite"]), v.nom, ", ".join(paie), int(float(dv["quantite"]) / r.sel_conso(pop)) if r.sel_conso(pop) > 0.0 else 0], 21))
+        boite.add_child(_bouton("Acheter du sel à %s" % v.nom, true, func(): _faire(C.commercer("joueur", vid, "sel", q), "Achat conclu : le sel arrive par bateau.")))
+    if offres == 0:
+        boite.add_child(_label("Achat de sel : %s" % raison, 21))
+
+func _jours_txt(j: float, r) -> String:
+    return "sans limite" if j >= r.SEL_SANS_LIMITE else "%d jours" % int(j)
 
 # ---------- 3. Expériences ----------
 

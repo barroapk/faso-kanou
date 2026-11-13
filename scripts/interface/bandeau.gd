@@ -111,6 +111,7 @@ func _ready() -> void:
     for p in [panneau, panneau_travail, panneau_chef, panneau_construction]:
         _rendre_opaque(p)
     Civilisation.construction.evenement.connect(_afficher_message)
+    Civilisation.ressources.evenement.connect(_afficher_message)    # D-2 : alertes du sel
     Civilisation.besoins.evenement.connect(_afficher_message)
     Civilisation.conseil.evenement.connect(_afficher_message)
     Civilisation.gouvernement.evenement.connect(_afficher_message)
@@ -237,7 +238,7 @@ func _creer_panneau_fin() -> void:
 func _process(delta: float) -> void:
     etiquette_pop.text = "Habitants : %d" % Civilisation.population.habitants.size()
     etiquette_date.text = Civilisation.temps.texte()
-    etiquette_res.text = Civilisation.ressources.texte() + "\n" + Civilisation.ressources.texte_aliments() + "   Richesse du clan : %d" % int(Civilisation.economie.valeur_stocks(Civilisation.ressources) + Civilisation.economie.patrimoine(Civilisation.construction, Civilisation.equipement) + Civilisation.economie.tresorerie(Civilisation.ressources)) + _texte_entretien()
+    etiquette_res.text = Civilisation.ressources.texte() + "\n" + Civilisation.ressources.texte_sel(Civilisation.population) + "\n" + Civilisation.ressources.texte_aliments() + "   Richesse du clan : %d" % int(Civilisation.economie.valeur_stocks(Civilisation.ressources) + Civilisation.economie.patrimoine(Civilisation.construction, Civilisation.equipement) + Civilisation.economie.tresorerie(Civilisation.ressources)) + _texte_entretien()
     panneau_fin.visible = Civilisation.population.habitants.is_empty()
     if temps_message > 0.0:
         temps_message -= delta

@@ -149,6 +149,7 @@ func _creer_modules() -> void:
     raids.sur_renommee = func(d): defis.renommee = maxi(0, int(defis.renommee) + int(d))
     besoins.elevage = elevage
     besoins.agriculture = agriculture
+    besoins.recettes = recettes
     histoire = HISTOIRE.new()
     histoire.observer(self)
     marche.caravanes = caravanes
@@ -672,6 +673,7 @@ func _jour_passe() -> void:
     guerre.jour_passe(population, temps.jour_total)
     raids.jour_passe(Callable(self, "_clan"), temps.jour_total, diplomatie)
     gouvernement.verifier(self)
+    ressources.sel_attendu = caravanes.en_attente("joueur", "sel")    # D-2 : signalé, jamais compté dans le stock
     ressources.jour_passe(population, temps.jour_total, temps.saison_des_pluies(), chantier_actif)
     construction.jour_passe(travail_batisseurs())
     if construction.chantiers.is_empty():
@@ -698,6 +700,7 @@ func _jour_passe() -> void:
     satisfaction.jour(self, besoin_soins, soins)
     pression.jour_passe(ressources)
     for c in voisins:
+        c.ressources.sel_attendu = caravanes.en_attente(c.id, "sel")
         c.jour_passe(temps.jour_total, temps.saison_des_pluies())
     caravanes.jour_passe(_clan, temps.jour_total)
     if temps.jour_total % chef.REVUE_JOURS == 0:

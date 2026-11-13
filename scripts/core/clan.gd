@@ -88,6 +88,7 @@ func _modules() -> void:
     gouvernement = GOUVERNEMENT.new()
     besoins.elevage = elevage
     besoins.agriculture = agriculture
+    besoins.recettes = recettes
     besoins.regule_troupeau = true      # v0.3.77 : le PM d'un clan de l'ordinateur règle la reproduction
     elevage.regule = true               # sans quota du PM, aucune gestation (même après un chargement)
     ressources.construction = construction
@@ -344,10 +345,11 @@ func _gerer(jour: int) -> void:
             recettes.commander(equipement.definitions[o]["reparation"], population, ressources, construction, jour)
     if ressources.stocks["sel"] < 5.0 and ressources.quantite("cendres") >= 10.0:
         if ressources.quantite("canari") < 1.0:
-            if ressources.quantite("argile") < 8.0:
+            if ressources.quantite("argile") < 8.0 and not recettes.en_cours("creuser_argile"):
                 recettes.commander("creuser_argile", population, ressources, construction, jour)
-            recettes.commander("canari", population, ressources, construction, jour)
-        else:
+            if not recettes.en_cours("canari"):
+                recettes.commander("canari", population, ressources, construction, jour)
+        elif not recettes.en_cours("sel_vegetal"):    # D-2 : jamais en double avec le PM
             recettes.commander("sel_vegetal", population, ressources, construction, jour)
 
 # ---------- Sauvegarde ----------

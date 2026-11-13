@@ -127,6 +127,13 @@ func etat(id: String, pop, res, cons, jour: int, nombre := 1) -> Dictionary:
 
 # ---------- Lancer et faire avancer ----------
 
+# Une commande de cette recette est-elle déjà en file ? (D-2 : pas de double commande)
+func en_cours(id: String) -> bool:
+    for c in commandes:
+        if c["recette"] == id:
+            return true
+    return false
+
 # Renvoie "" si la commande est lancée, sinon la première raison du refus.
 func commander(id: String, pop, res, cons, jour: int, nombre := 1) -> String:
     var e := etat(id, pop, res, cons, jour, nombre)

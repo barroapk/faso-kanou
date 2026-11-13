@@ -128,6 +128,9 @@ func remplir() -> void:
     var protection := ""
     if pop.est_protege(habitant, jour):
         protection = "\nAffectation décidée par vous : protégée encore %d jours." % (int(habitant["protege_jusqu"]) - jour)
+    var plafond: int = Civilisation.ressources.plafond_sel()
+    if plafond < 100 and int(habitant["sante"]) >= plafond:
+        protection += "\nSanté limitée à %d par le manque de sel (voir « Sel et santé », écran du chef)." % plafond
     infos.text = "%s %s · %d ans · santé %d · compétence %d\nMétier : %s\nFamille : %s%s" % [habitant["prenom"], habitant["nom"], pop.age(habitant, jour), int(habitant["sante"]), int(habitant["competence"]), pop.nom_metier(habitant), _famille_texte(), protection]
     for c in lignes.get_children():
         c.queue_free()

@@ -502,8 +502,8 @@ func changer_postes(m: String, delta: int, jour: int) -> void:
 
 # Plafond de santé quand le sel manque : rien pendant 30 jours, puis -1 point
 # tous les 6 jours, jusqu'à 60 au plus bas. Le manque de sel seul ne tue pas.
-static func plafond_sante(jours_sans_sel: int) -> int:
-    return 100 - clampi((jours_sans_sel - 30) / 6, 0, 40)
+static func plafond_sante(jours_sans_sel: float) -> int:
+    return 100 - clampi(int(floor((jours_sans_sel - 30.0) / 6.0)), 0, 40)    # D-2 : compteur décimal, même résultat pour un entier
 
 func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0, jour := -1) -> void:
     pratiquer(jour)

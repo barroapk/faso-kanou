@@ -96,7 +96,21 @@ var travail_du_jour := {}          # id des habitants ayant réellement travaill
 var travail                        # journal du travail (travail.gd), branché par la civilisation
 var couverture_nourriture := 1.0   # nourriture réellement distribuée / besoin théorique avant rationnement (0 à 1)
 var soif := false
-var jours_sans_sel := 0
+var jours_sans_sel := 0.0         # compteur de manque de sel (D-2) : + part non couverte, - SEL_RECUP par jour couvert
+
+# ---------- Danger du sel (D-2) ----------
+signal evenement(texte)
+const SEL_RECUP := 3.0               # baisse du compteur par jour entièrement couvert
+const SEL_COMPTEUR_MAX := 270.0      # au-delà, la santé est déjà à son plancher (60)
+const SEL_SEUIL_EFFET := 36.0        # compteur où le plafond de santé passe sous 100
+const SEL_ALERTE_JOURS := 120.0      # alerte d'anticipation : effet sanitaire prévu dans moins de 120 jours
+const SEL_FIN_ALERTE_JOURS := 150.0  # l'alerte de niveau 1 se lève au-dessus (pas de va-et-vient)
+var hist_sel_prod: Array = []        # sel produit (pêche, gisement, sel végétal), 7 derniers jours
+var hist_sel_sechage: Array = []     # sel utilisé par le séchage, 7 derniers jours
+var _sel_prod_jour := 0.0
+var _sel_sechage_jour := 0.0
+var alerte_sel := 0                  # 0 aucune, 1 réserve basse, 2 pénurie, 3 santé touchée
+var sel_attendu := 0.0               # sel acheté encore en route (posé par la civilisation), jamais compté dans le stock
 # Danger des greniers (v0.4) : stock au-dessus de la capacité (bâtiment fragile ou en ruine).
 const PERTE_EXCEDENT := 0.1        # part de l'excédent perdue chaque jour (règle 3)
 var hist_prod_bois: Array = []     # production de bois des 7 derniers jours (prévision d'entretien, règle 4)
@@ -263,6 +277,10 @@ func quantite(id: String) -> float:
     return float(objets.get(id, 0.0))
 
 func ajouter(id: String, q: float, motif := "transfert") -> void:
+    if id == "sel" and motif == "extraction":
+        _sel_prod_jour += maxf(0.0, minf(float(stocks["sel"]) + q, capacite("sel")) - float(stocks["sel"]))
+    elif id == "sel_vegetal" and motif == "fabrication":
+        _sel_prod_jour += q * SEL_PAR_SEL_VEGETAL
     if _lieu(id) != "outils":
         var reel := q
         if _lieu(id) == "stocks":
@@ -386,6 +404,7 @@ func _secher(population, jour: int) -> void:
         aliments[id] = float(aliments[id]) - q
         aliments[out] = float(aliments.get(out, 0.0)) + kgem * (1.0 - PERTE_SECHAGE) / facteur(out)
         stocks["sel"] = float(stocks["sel"]) - q * SECHAGE_SEL
+        _sel_sechage_jour += q * SECHAGE_SEL
         stocks["bois"] = float(stocks["bois"]) - q * SECHAGE_BOIS
         noter("transformation", "nourriture", -kgem * PERTE_SECHAGE)
         noter("transformation", "sel", -q * SECHAGE_SEL)
@@ -475,6 +494,7 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
                 if h["metier"] == "pêcheur":
                     _recolter(q, {"poisson": 1.0})
                     var sel_jour := SEL_MARIN * efficacite * (0.5 + 0.5 * float(richesse.get("sel", 1.0)))
+                    _sel_prod_jour += maxf(0.0, minf(float(stocks["sel"]) + sel_jour, capacite("sel")) - float(stocks["sel"]))
                     stocks["sel"] = minf(float(stocks["sel"]) + sel_jour, capacite("sel"))
                     noter("production", "sel", sel_jour)
                 else:
@@ -566,7 +586,21 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         noter("consommation", "sel_vegetal", -vegetal)
         besoin_sel -= vegetal * SEL_PAR_SEL_VEGETAL
     bilan["sel"] = stocks["sel"] - sel_avant
-    jours_sans_sel = jours_sans_sel + 1 if besoin_sel > 0.000001 and n > 0 else 0
+    # D-2 : le compteur monte de la part non couverte, et redescend progressivement.
+    var part_manque := clampf(besoin_sel / (n * SEL_PAR_PERSONNE), 0.0, 1.0) if n > 0 else 0.0
+    if part_manque > 0.000001:
+        jours_sans_sel = minf(SEL_COMPTEUR_MAX, jours_sans_sel + part_manque)
+    else:
+        jours_sans_sel = maxf(0.0, jours_sans_sel - SEL_RECUP)
+    hist_sel_prod.append(_sel_prod_jour)
+    hist_sel_sechage.append(_sel_sechage_jour)
+    while hist_sel_prod.size() > 7:
+        hist_sel_prod.pop_front()
+    while hist_sel_sechage.size() > 7:
+        hist_sel_sechage.pop_front()
+    _sel_prod_jour = 0.0
+    _sel_sechage_jour = 0.0
+    _alertes_sel(population, jour, part_manque)
     var avait_faim := faim
     var avait_soif := soif
     faim = manque > 0.001 or stocks["nourriture"] <= 0.0
@@ -576,8 +610,6 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
         penurie.emit("nourriture")
     if soif and not avait_soif:
         penurie.emit("eau")
-    if jours_sans_sel == 1:
-        penurie.emit("sel")
 
 # ---------- Affichage ----------
 
@@ -590,8 +622,106 @@ func texte() -> String:
         else:
             etat = "%s%.1f/j" % ["+" if bilan[r] >= 0.0 else "", bilan[r]]
         morceaux.append("%s %d/%d %s (%s)" % [r.capitalize(), int(stocks[r]), int(capacite(r)), UNITES[r], etat])
-    morceaux.append("Sel %.1f kg" % stocks["sel"])
-    return "   ".join(morceaux)
+    return "   ".join(morceaux)    # le sel a sa propre ligne (texte_sel, D-2)
+
+# ---------- Sel : entrées communes S, C, P et prévision (D-2) ----------
+# Une seule source pour l'affichage, les alertes et le Premier ministre.
+
+static func _moyenne(h: Array) -> float:
+    if h.is_empty():
+        return 0.0
+    var t := 0.0
+    for q in h:
+        t += float(q)
+    return t / h.size()
+
+# S : stock de sel + équivalent du sel végétal (kg de sel).
+func sel_stock() -> float:
+    return float(stocks["sel"]) + float(objets.get("sel_vegetal", 0.0)) * SEL_PAR_SEL_VEGETAL
+
+# C : consommation par jour (habitants + séchage moyen des 7 derniers jours).
+func sel_conso(population) -> float:
+    return population.habitants.size() * SEL_PAR_PERSONNE + _moyenne(hist_sel_sechage)
+
+# P : production par jour (moyenne des 7 derniers jours ; achats exclus).
+func sel_prod() -> float:
+    return _moyenne(hist_sel_prod)
+
+const SEL_SANS_LIMITE := 999999.0
+
+# Autonomie du stock : S / C, sans production.
+func autonomie_sel(population) -> float:
+    var c := sel_conso(population)
+    return sel_stock() / c if c > 0.0 else SEL_SANS_LIMITE
+
+# Autonomie prévisionnelle : S / (C - P) si P < C. extra : production ajoutée (aperçu du PM).
+func autonomie_sel_prevue(population, extra := 0.0) -> float:
+    var c := sel_conso(population)
+    var p := sel_prod() + extra
+    if c <= 0.0 or p >= c:
+        return SEL_SANS_LIMITE
+    return sel_stock() / (c - p)
+
+# Jours avant le premier effet sur la santé (compteur 36). 0 si la santé est déjà touchée,
+# SEL_SANS_LIMITE si la production couvre la consommation. Pendant que le stock couvre
+# les besoins, le compteur baisse de SEL_RECUP par jour ; ensuite il monte de la part manquante.
+func delai_sel(population, extra := 0.0) -> float:
+    if jours_sans_sel >= SEL_SEUIL_EFFET:
+        return 0.0
+    var c := sel_conso(population)
+    var p := sel_prod() + extra
+    if c <= 0.0 or p >= c:
+        return SEL_SANS_LIMITE
+    var t1 := sel_stock() / (c - p)
+    var c1 := maxf(0.0, jours_sans_sel - SEL_RECUP * t1)
+    return t1 + (SEL_SEUIL_EFFET - c1) / (1.0 - p / c)
+
+func plafond_sel() -> int:
+    return preload("res://scripts/core/population.gd").plafond_sante(jours_sans_sel)
+
+func texte_attendu() -> String:
+    return " (%.1f kg de sel attendus)" % sel_attendu if sel_attendu > 0.05 else ""
+
+# Ligne du bandeau : stock, autonomie et, pendant un manque, la limite de santé ou le délai.
+func texte_sel(population) -> String:
+    var a := autonomie_sel(population)
+    var t := "Sel %.1f kg · %s" % [float(stocks["sel"]), "sans limite" if a >= SEL_SANS_LIMITE else "%d j" % int(a)]
+    if jours_sans_sel >= SEL_SEUIL_EFFET:
+        t += " · santé limitée à %d (manque de sel)" % plafond_sel()
+    elif jours_sans_sel > 0.0 or alerte_sel > 0:
+        var d := delai_sel(population)
+        if d < SEL_SANS_LIMITE:
+            t += " · santé touchée dans ~%d j" % int(d)
+    return t + texte_attendu()
+
+# Messages des quatre niveaux, chacun une fois par franchissement de seuil.
+func _alertes_sel(population, _jour: int, part_manque: float) -> void:
+    if population.habitants.is_empty():
+        return
+    if jours_sans_sel >= SEL_SEUIL_EFFET:
+        if alerte_sel < 3:
+            alerte_sel = 3
+            evenement.emit("Le manque de sel limite la santé de tout le clan à %d. Les soins ne peuvent pas aller au-delà. Pêcheurs, achat ou sel végétal : voir « Sel et santé » (écran du chef).%s" % [plafond_sel(), texte_attendu()])
+        return
+    if alerte_sel == 3:
+        alerte_sel = 0
+        evenement.emit("Le sel est revenu : la santé n'est plus limitée.")
+        return
+    if part_manque > 0.000001:
+        if alerte_sel < 2:
+            alerte_sel = 2
+            var d := delai_sel(population)
+            evenement.emit("Pénurie de sel : %d %% du besoin couvert aujourd'hui. La santé sera touchée dans environ %d jours.%s" % [int(round((1.0 - part_manque) * 100.0)), int(d), texte_attendu()])
+        return
+    if alerte_sel == 2 and jours_sans_sel <= 0.0:
+        alerte_sel = 0
+    var d2 := delai_sel(population)
+    var manque_prevu := sel_prod() < sel_conso(population)
+    if alerte_sel == 0 and manque_prevu and d2 < SEL_ALERTE_JOURS:
+        alerte_sel = 1
+        evenement.emit("Le sel baisse : au rythme actuel, la santé commencera à baisser dans environ %d jours.%s" % [int(d2), texte_attendu()])
+    elif alerte_sel == 1 and (not manque_prevu or d2 > SEL_FIN_ALERTE_JOURS):
+        alerte_sel = 0
 
 # Les 3 produits alimentaires les plus abondants, pour l'affichage.
 func texte_aliments() -> String:
@@ -605,7 +735,7 @@ func texte_aliments() -> String:
 # ---------- Sauvegarde ----------
 
 func vers_dict() -> Dictionary:
-    return {"stocks": stocks, "aliments": aliments, "objets": objets, "jours_sans_sel": jours_sans_sel, "outils": outils, "faim": faim, "soif": soif, "ration": ration, "ration_jusqu": ration_jusqu}
+    return {"stocks": stocks, "aliments": aliments, "objets": objets, "jours_sans_sel": jours_sans_sel, "hist_sel_prod": hist_sel_prod, "hist_sel_sechage": hist_sel_sechage, "alerte_sel": alerte_sel, "outils": outils, "faim": faim, "soif": soif, "ration": ration, "ration_jusqu": ration_jusqu}
 
 func depuis_dict(d: Dictionary) -> void:
     var st: Dictionary = d.get("stocks", {})
@@ -624,7 +754,10 @@ func depuis_dict(d: Dictionary) -> void:
     var ob: Dictionary = d.get("objets", {})
     for id in ob:
         objets[str(id)] = float(ob[id])
-    jours_sans_sel = int(d.get("jours_sans_sel", 0))
+    jours_sans_sel = float(d.get("jours_sans_sel", 0))
+    hist_sel_prod = Array(d.get("hist_sel_prod", [])).map(func(x): return float(x))
+    hist_sel_sechage = Array(d.get("hist_sel_sechage", [])).map(func(x): return float(x))
+    alerte_sel = int(d.get("alerte_sel", 0))
     outils = float(d.get("outils", 1.0))
     faim = bool(d.get("faim", false))
     soif = bool(d.get("soif", false))
