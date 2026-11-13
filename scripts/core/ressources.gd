@@ -96,7 +96,7 @@ var travail_du_jour := {}          # id des habitants ayant réellement travaill
 var travail                        # journal du travail (travail.gd), branché par la civilisation
 var couverture_nourriture := 1.0   # nourriture réellement distribuée / besoin théorique avant rationnement (0 à 1)
 var soif := false
-var jours_sans_sel := 0.0         # compteur de manque de sel (D-2) : + part non couverte, - SEL_RECUP par jour couvert
+var jours_sans_sel := 0.0         # compteur de manque de sel (D-2) : variation par jour = 1 - 4 x couverture (de -3 à +1)
 
 # ---------- Danger du sel (D-2) ----------
 signal evenement(texte)
@@ -588,10 +588,8 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     bilan["sel"] = stocks["sel"] - sel_avant
     # D-2 : le compteur monte de la part non couverte, et redescend progressivement.
     var part_manque := clampf(besoin_sel / (n * SEL_PAR_PERSONNE), 0.0, 1.0) if n > 0 else 0.0
-    if part_manque > 0.000001:
-        jours_sans_sel = minf(SEL_COMPTEUR_MAX, jours_sans_sel + part_manque)
-    else:
-        jours_sans_sel = maxf(0.0, jours_sans_sel - SEL_RECUP)
+    # Variation proportionnelle à la couverture c du jour : 1 - 4c (= 4 x part_manque - SEL_RECUP).
+    jours_sans_sel = clampf(jours_sans_sel + _variation_sel(part_manque), 0.0, SEL_COMPTEUR_MAX)
     hist_sel_prod.append(_sel_prod_jour)
     hist_sel_sechage.append(_sel_sechage_jour)
     while hist_sel_prod.size() > 7:
@@ -674,7 +672,15 @@ func delai_sel(population, extra := 0.0) -> float:
         return SEL_SANS_LIMITE
     var t1 := sel_stock() / (c - p)
     var c1 := maxf(0.0, jours_sans_sel - SEL_RECUP * t1)
-    return t1 + (SEL_SEUIL_EFFET - c1) / (1.0 - p / c)
+    # Après le stock, la production seule couvre p/c du besoin : le compteur varie de 1 - 4 p/c par jour.
+    var rythme := _variation_sel(1.0 - p / c)
+    if rythme <= 0.000001:
+        return SEL_SANS_LIMITE
+    return t1 + (SEL_SEUIL_EFFET - c1) / rythme
+
+# Variation quotidienne du compteur selon la part du besoin non couverte (0 = tout couvert, 1 = rien).
+func _variation_sel(part_manque: float) -> float:
+    return 4.0 * clampf(part_manque, 0.0, 1.0) - SEL_RECUP
 
 func plafond_sel() -> int:
     return preload("res://scripts/core/population.gd").plafond_sante(jours_sans_sel)

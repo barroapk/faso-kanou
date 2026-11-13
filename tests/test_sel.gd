@@ -56,7 +56,12 @@ func _process(_d) -> bool:
     r.stocks["sel"] = 0.5 * _besoin(C)
     var avant: float = r.jours_sans_sel
     _jour(C)
-    _t(absf(r.jours_sans_sel - avant - 0.5) < 0.02, "jour couvert à 50 %% : +0,5 (%.3f)" % (r.jours_sans_sel - avant))
+    _t(absf(r.jours_sans_sel - avant + 1.0) < 0.02, "jour couvert à 50 %% : -1 (%.3f)" % (r.jours_sans_sel - avant))
+    for cv in [[0.0, 1.0], [0.25, 0.0], [0.5, -1.0], [0.75, -2.0], [1.0, -3.0]]:
+        r.jours_sans_sel = 100.0
+        r.stocks["sel"] = float(cv[0]) * _besoin(C) + (0.000001 if float(cv[0]) >= 1.0 else 0.0)
+        _jour(C)
+        _t(absf(r.jours_sans_sel - 100.0 - float(cv[1])) < 0.02, "couverture %d %% : variation %+.0f (%.3f)" % [int(float(cv[0]) * 100.0), float(cv[1]), r.jours_sans_sel - 100.0])
     r.stocks["sel"] = 0.0
     r.jours_sans_sel = 269.6
     _jour(C)
@@ -168,11 +173,14 @@ func _process(_d) -> bool:
     print("--- 8. Approvisionnement régulier ou par lots (même quantité)")
     var fin := {}
     for mode in ["régulier", "lots"]:
-        r.jours_sans_sel = 60.0
+        r.jours_sans_sel = 120.0
         r.stocks["sel"] = 0.0
         var total := 0.0
+        var b: float = _besoin(C)
+        var pop0: int = C.population.habitants.size()
+        var fige: Array = C.population.habitants.duplicate()
+        var id_fige: int = C.population.prochain_id
         for i in 60:
-            var b: float = _besoin(C)
             if mode == "régulier":
                 r.stocks["sel"] = 0.5 * b
                 total += 0.5 * b
@@ -180,10 +188,16 @@ func _process(_d) -> bool:
                 r.stocks["sel"] = 5.0 * b + 0.000001
                 total += 5.0 * b
             _jour(C)
+            C.population.habitants = fige.duplicate()
+            C.population.prochain_id = id_fige
         fin[mode] = [r.jours_sans_sel, r.plafond_sel(), total]
+        print("      (%s : habitants %d -> %d)" % [mode, pop0, C.population.habitants.size()])
     print("      régulier : compteur %.1f, plafond %d, sel fourni %.2f kg" % fin["régulier"])
     print("      par lots : compteur %.1f, plafond %d, sel fourni %.2f kg" % fin["lots"])
-    _t(true, "écart relevé pour décision : %.1f points de compteur, %d points de plafond" % [float(fin["régulier"][0]) - float(fin["lots"][0]), int(fin["lots"][1]) - int(fin["régulier"][1])])
+    _t(absf(float(fin["régulier"][0]) - float(fin["lots"][0])) < 0.5 and absf(float(fin["régulier"][2]) - float(fin["lots"][2])) < 0.5, "même quantité, même compteur final (écart %.2f)" % absf(float(fin["régulier"][0]) - float(fin["lots"][0])))
+    r.jours_sans_sel = 0.0
+    r.stocks["sel"] = 0.0
+    r.alerte_sel = 0
 
     print("--- 9. Rien de gratuit : un achat retire chez le vendeur ce qu'il ajoute chez l'acheteur")
     var a = C.voisins[0]
@@ -283,6 +297,9 @@ func _process(_d) -> bool:
     var acheteur = C.voisins[2]
     acheteur.ressources.stocks["sel"] = 0.0
     C.caravanes.en_route = []
+    for v in C.voisins:
+        for bt in v.flotte.bateaux:
+            bt["occupe_jusqu"] = 0
     C.marche.mois_passe(C._clans(), C._ids_voisins(), C.temps.jour_total, C.diplomatie)
     var attendu1: float = C.caravanes.en_attente(acheteur.id, "sel")
     C.marche.mois_passe(C._clans(), C._ids_voisins(), C.temps.jour_total, C.diplomatie)
