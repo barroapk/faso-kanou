@@ -535,6 +535,8 @@ func _conso_humaine(r: String) -> float:
         c += float(table.get(r, 0.0))
     if r == "nourriture":
         c += float(_res.stocks[r]) * _res.taux_pertes()
+    elif r == "bois" and _cons != null and _cons.has_method("entretien_mois"):
+        c += _cons.entretien_mois() / 30.0    # règle 7 : l'entretien des bâtiments, ramené à un besoin par jour
     return c
 
 # Ce que les bêtes prélèvent réellement dans les réserves, par jour : l'eau des
@@ -907,6 +909,90 @@ func conversion_permise(de: String) -> bool:
     return not _conversion_dangereuse(de)
 
 # Jours de vivres en réserve (pour les décisions du clan de l'ordinateur).
+# ---------- Danger des greniers (v0.4) ----------
+const SEUIL_VITAL_JOURS := 60.0
+
+# Règle 6 (exception causale) : une crise immédiate bloque la réparation, sauf si elle
+# vient de la capacité perdue : la capacité actuelle ne permet plus de garder une réserve
+# normale (nourriture : une saison, 90 jours ; eau : RESERVE_EAU_JOURS).
+const SAISON_JOURS := 90.0
+# Renvoie {"bloque": crise indépendante de la ruine, "causes": ressources en crise par manque de capacité}.
+func crise_reparation() -> Dictionary:
+    var causes: Array = []
+    var bloque := false
+    var cn: float = _conso("nourriture")
+    if reserve_vivres_jours() < ROUGE_JOURS or _famine_imminente():
+        if cn > 0.0 and _res.capacite("nourriture") / cn < SAISON_JOURS:
+            causes.append("nourriture")
+        else:
+            bloque = true
+    var ce: float = _conso("eau")
+    if ce > 0.0 and float(_res.stocks["eau"]) / ce < 10.0:
+        if _res.capacite("eau") / ce < RESERVE_EAU_JOURS:
+            causes.append("eau")
+        else:
+            bloque = true
+    return {"bloque": bloque, "causes": causes}
+
+# Le changement de postes ne met pas l'eau ni la nourriture en danger : leur tenue ne baisse
+# pas, ou reste au-dessus de SEUIL_VITAL_JOURS. On applique le changement pour de vrai, le
+# temps du calcul (un adulte libre aide déjà à nourrir le clan : le delta seul ne le voit pas).
+func _vital_sauf(d: Dictionary) -> bool:
+    var avant := {"eau": _jours("eau", {}), "nourriture": _jours("nourriture", {})}
+    var sv: Dictionary = _pop.postes.duplicate()
+    for m in d:
+        _pop.postes[m] = int(_pop.postes.get(m, 0)) + int(d[m])
+    _cache.clear()
+    var sur := true
+    for r in ["eau", "nourriture"]:
+        if _jours(r, {}) < minf(float(avant[r]), SEUIL_VITAL_JOURS):
+            sur = false
+    _pop.postes = sv
+    _cache.clear()
+    return sur
+
+# Réaction à l'alerte J-10 (règle 4 bis) : un bâtisseur de plus seulement s'il arrive à temps,
+# suffit à combler le manque, et ne met pas l'eau ni la nourriture en danger. Ne touche à
+# aucune personne protégée. Explique toujours ce qu'il fait ou pourquoi il ne fait rien.
+func reagir_entretien(population, ressources, construction, jour: int, pluie: bool, chantier_actif: bool, prev: Dictionary, jours_restants: int) -> bool:
+    var manque := float(prev["manque"])
+    if manque <= 0.0:
+        return false
+    _contexte(population, ressources, construction, jour, pluie, chantier_actif)
+    var debut := "Le Premier ministre prévient : l'entretien du mois demandera %d kg de bois ; au rythme actuel, il en manquera %d." % [int(ceil(float(prev["entretien"]))), int(ceil(manque))]
+    if mode != "auto":
+        evenement.emit(debut + " Ajoutez un bâtisseur ou changez l'ordre d'entretien (Construire).")
+        return false
+    var gain: float = _rendement("bâtisseur", "bois") * jours_restants
+    if gain < manque:
+        evenement.emit(debut + " Un bâtisseur de plus ne donnerait que %d kg d'ici là : il ne déplace personne. Changez l'ordre d'entretien ou suspendez un bâtiment (Construire)." % int(gain))
+        return false
+    var de := ""
+    if _libres() > 0 and not _vital_sauf({"bâtisseur": 1}):
+        evenement.emit(debut + " Un adulte libre pourrait devenir bâtisseur, mais il aide déjà à nourrir le clan : il ne le déplace pas.")
+        return false
+    if _libres() <= 0:
+        var meilleur := -1.0e18
+        for m in _pop.postes:
+            if m == "bâtisseur" or int(_pop.postes[m]) <= 0 or _garde_porteur(m) or _tout_protege(m):
+                continue
+            var d := {m: -1, "bâtisseur": 1}
+            if not _vital_sauf(d):
+                continue
+            var v := minf(_jours("eau", d), _jours("nourriture", d))
+            if v > meilleur:
+                meilleur = v
+                de = m
+        if de == "":
+            evenement.emit(debut + " Il ne peut déplacer personne sans mettre en danger l'eau ou la nourriture, ou sans toucher à vos affectations protégées.")
+            return false
+        _pop.postes[de] = int(_pop.postes[de]) - 1
+    _pop.postes["bâtisseur"] = int(_pop.postes.get("bâtisseur", 0)) + 1
+    # Ne relance pas le délai de 60 jours : sinon le Premier ministre ne pourrait plus
+    # réagir au reste du mois (constat des audits v0.3 et de ce test).
+    evenement.emit(debut + (" Il ouvre un poste de bâtisseur." if de == "" else " Un %s devient bâtisseur." % de))
+    return true
+
 func reserve_vivres_jours() -> float:
     return _res.total_aliments() / maxf(0.1, _conso("nourriture"))
 

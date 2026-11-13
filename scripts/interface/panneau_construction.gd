@@ -53,6 +53,67 @@ func remplir() -> void:
         boite.add_child(ligne)
     etiquette_chantiers = _label("", 28)
     boite.add_child(etiquette_chantiers)
+    _remplir_entretien(cons, res)
+
+# Danger des greniers (v0.4) : état de chaque bâtiment, ordre d'entretien, suspension, réparation.
+func _remplir_entretien(cons, res) -> void:
+    boite.add_child(HSeparator.new())
+    var e: float = cons.entretien_mois()
+    var t := _label("Entretien du mois : %d kg de bois (stock : %d kg)" % [int(ceil(e)), int(res.stocks["bois"])], 30)
+    if float(res.stocks["bois"]) < e:
+        t.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+    boite.add_child(t)
+    boite.add_child(_label("Payé dans cet ordre, du haut vers le bas :", 24))
+    var types: Array = cons.ordre_types()
+    for type in types:
+        if cons.nombre(type) == 0:
+            continue
+        var ligne := HBoxContainer.new()
+        var l := _label(cons.definitions[type]["nom"], 28)
+        l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        ligne.add_child(l)
+        ligne.add_child(_bouton("Monter", true, _deplacer.bind(type, -1)))
+        ligne.add_child(_bouton("Descendre", true, _deplacer.bind(type, 1)))
+        boite.add_child(ligne)
+        for i in cons.batiments.size():
+            var b: Dictionary = cons.batiments[i]
+            if b["type"] != type:
+                continue
+            var niv: Dictionary = cons.definitions[type]["niveaux"][int(b["niveau"]) - 1]
+            var lb := HBoxContainer.new()
+            var etat := int(b["etat"])
+            var texte := "    %s : état %d (%s), %s/mois" % [niv["nom"], etat, cons.palier(etat), cons.texte_cout(niv["entretien"])]
+            if bool(b.get("suspendu", false)):
+                texte += ", entretien suspendu"
+            if cons.en_reparation(i):
+                texte += ", en réparation"
+            var lab := _label(texte, 24)
+            lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            if etat <= 0:
+                lab.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3))
+            elif etat < cons.ETAT_FRAGILE:
+                lab.add_theme_color_override("font_color", Color(1.0, 0.55, 0.3))
+            elif etat < cons.ETAT_USE:
+                lab.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+            lb.add_child(lab)
+            if etat <= 0:
+                var rep: Dictionary = cons.cout_reparation(i)
+                lb.add_child(_bouton("Réparer (%s, %d j)" % [cons.texte_cout(rep["cout"]), int(rep["travail"])], not cons.en_reparation(i) and cons.peut_payer(rep["cout"], res), _reparer.bind(i)))
+            else:
+                lb.add_child(_bouton("Reprendre" if bool(b.get("suspendu", false)) else "Suspendre", true, _suspendre.bind(i)))
+            boite.add_child(lb)
+
+func _deplacer(type: String, sens: int) -> void:
+    Civilisation.construction.deplacer_type(type, sens)
+    remplir()
+
+func _suspendre(index: int) -> void:
+    Civilisation.construction.basculer_suspension(index)
+    remplir()
+
+func _reparer(index: int) -> void:
+    Civilisation.construction.lancer_reparation(index, Civilisation.ressources)
+    remplir()
 
 func _agir(type: String, index: int) -> void:
     Civilisation.construction.lancer(type, index, Civilisation.ressources)

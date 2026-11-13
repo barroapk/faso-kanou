@@ -190,6 +190,11 @@ func jour_passe(jour: int, pluie: bool) -> void:
     var chantier: bool = not construction.chantiers.is_empty()
     if jour % 7 == 0:
         besoins.controle_hebdo(population, ressources, construction, jour, pluie, chantier)
+    # Règle 4 bis : réaction du Premier ministre à l'alerte d'entretien (J-10).
+    if jour % 30 == 20:
+        var prev: Dictionary = construction.prevision_entretien(ressources, 10)
+        if besoins.reagir_entretien(population, ressources, construction, jour, pluie, chantier, prev, 10):
+            population.repartir(jour)
     recettes.jour_passe(population, ressources, jour)
     decouvertes.jour_passe(population, recettes, jour, pression)
     gisements.jour_passe(population, ressources, routes, jour, _rng_sol)
@@ -217,6 +222,9 @@ func mois_passe(jour: int, pluie: bool) -> void:
     if not vivant():
         return
     construction.mois_passe(ressources)
+    if construction.premiere_ruine() >= 0:
+        besoins._contexte(population, ressources, construction, jour, pluie, not construction.chantiers.is_empty())
+        construction.reparation_auto(ressources, besoins.crise_reparation())
     clotures.mois_passe(ressources, (jour / 30) % 12)
     routes.mois_passe(ressources, (jour / 30) % 12)
     flotte.mois_passe(ressources, (jour / 30) % 12)

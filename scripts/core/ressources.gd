@@ -97,6 +97,10 @@ var travail                        # journal du travail (travail.gd), branché p
 var couverture_nourriture := 1.0   # nourriture réellement distribuée / besoin théorique avant rationnement (0 à 1)
 var soif := false
 var jours_sans_sel := 0
+# Danger des greniers (v0.4) : stock au-dessus de la capacité (bâtiment fragile ou en ruine).
+const PERTE_EXCEDENT := 0.1        # part de l'excédent perdue chaque jour (règle 3)
+var hist_prod_bois: Array = []     # production de bois des 7 derniers jours (prévision d'entretien, règle 4)
+var bois_brule_jour := 0.0
 var richesse := {}   # richesse naturelle de l'île (data/iles.json), 1 = normal
 var routes = null    # routes.gd : une route vers l'eau ou la forêt rend le travail plus efficace
 var objets := {}   # tout ce qui n'est ni nourriture, ni eau, ni bois, ni sel (argile, canari...)
@@ -262,11 +266,11 @@ func ajouter(id: String, q: float, motif := "transfert") -> void:
     if _lieu(id) != "outils":
         var reel := q
         if _lieu(id) == "stocks":
-            reel = minf(float(stocks.get(id, 0.0)) + q, capacite(id)) - float(stocks.get(id, 0.0))
+            reel = maxf(float(stocks.get(id, 0.0)), minf(float(stocks.get(id, 0.0)) + q, capacite(id))) - float(stocks.get(id, 0.0))
         noter(motif, _cle_compte(id), _q_compte(id, reel))
     match _lieu(id):
         "stocks":
-            stocks[id] = minf(float(stocks.get(id, 0.0)) + q, capacite(id))
+            stocks[id] = maxf(float(stocks.get(id, 0.0)), minf(float(stocks.get(id, 0.0)) + q, capacite(id)))
         "aliments":
             aliments[id] = float(aliments.get(id, 0.0)) + q
             stocks["nourriture"] = total_aliments()
@@ -434,6 +438,8 @@ func apercu_metier(h: Dictionary, metier: String, population, pluie: bool) -> Di
 func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> void:
     _synchroniser()
     var avant: float = total_aliments()
+    var debut := {"eau": float(stocks["eau"]), "bois": float(stocks["bois"])}
+    var prod_bois := 0.0
     var s := 1 if pluie else 0
     var mois := (jour / 30) % 12
     var variation := {"eau": 0.0, "bois": 0.0}
@@ -488,6 +494,8 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
             else:
                 variation[r] += q
                 noter("production", r, q)
+                if r == "bois":
+                    prod_bois += q
     if pluie:
         variation["eau"] += 20.0
         noter("production", "eau", 20.0)
@@ -501,7 +509,15 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     besoin_nourriture *= ration
     var manque := _retirer(besoin_nourriture)
     noter("consommation", "nourriture", -(besoin_nourriture - manque))
-    var trop := total_aliments() - capacite("nourriture")
+    # Trop-plein (règle 3) : ce qui dépasse la capacité est perdu, sauf le stock qui y
+    # était déjà au début du jour (capacité qui vient de baisser) : de cet excédent,
+    # recalculé après les repas, on perd 10 % par jour. La récolte n'agrandit jamais l'excédent.
+    var cap_n: float = capacite("nourriture")
+    var limite_n: float = maxf(cap_n, avant)
+    var trop := maxf(0.0, total_aliments() - limite_n)
+    var excedent := minf(total_aliments(), limite_n) - cap_n
+    if excedent > 0.0:
+        trop += excedent * PERTE_EXCEDENT
     if trop > 0.0:
         _retirer(trop)
         noter("trop_plein", "nourriture", -trop)
@@ -514,11 +530,19 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
     var bois_brule := 0.0
     for h in population.habitants:
         bois_brule += (CONSO_ENFANT if population.age(h, jour) < 14 else CONSO_ADULTE)["bois"]
+    bois_brule_jour = bois_brule    # besoin du jour (avant la limite du stock) : sert à la prévision
     if stocks["bois"] + variation["bois"] + bois_brule < bois_brule:
         bois_brule = maxf(0.0, stocks["bois"] + variation["bois"] + bois_brule)
+    hist_prod_bois.append(prod_bois)
+    if hist_prod_bois.size() > 7:
+        hist_prod_bois.pop_front()
     for r in variation:
         var brut: float = stocks[r] + variation[r]
-        stocks[r] = clampf(brut, 0.0, capacite(r))
+        var cap: float = capacite(r)
+        var v: float = clampf(brut, 0.0, maxf(cap, float(debut[r])))
+        if v > cap:
+            v -= (v - cap) * PERTE_EXCEDENT    # règle 3 : 10 % de l'excédent par jour
+        stocks[r] = v
         bilan[r] = variation[r]
         if r == "eau":
             couverture_eau = clampf(1.0 - maxf(0.0, -brut) / besoin_eau, 0.0, 1.0) if besoin_eau > 0.0 else 1.0

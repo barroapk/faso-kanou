@@ -237,12 +237,29 @@ func _creer_panneau_fin() -> void:
 func _process(delta: float) -> void:
     etiquette_pop.text = "Habitants : %d" % Civilisation.population.habitants.size()
     etiquette_date.text = Civilisation.temps.texte()
-    etiquette_res.text = Civilisation.ressources.texte() + "\n" + Civilisation.ressources.texte_aliments() + "   Richesse du clan : %d" % int(Civilisation.economie.valeur_stocks(Civilisation.ressources) + Civilisation.economie.patrimoine(Civilisation.construction, Civilisation.equipement) + Civilisation.economie.tresorerie(Civilisation.ressources))
+    etiquette_res.text = Civilisation.ressources.texte() + "\n" + Civilisation.ressources.texte_aliments() + "   Richesse du clan : %d" % int(Civilisation.economie.valeur_stocks(Civilisation.ressources) + Civilisation.economie.patrimoine(Civilisation.construction, Civilisation.equipement) + Civilisation.economie.tresorerie(Civilisation.ressources)) + _texte_entretien()
     panneau_fin.visible = Civilisation.population.habitants.is_empty()
     if temps_message > 0.0:
         temps_message -= delta
         if temps_message <= 0.0:
             message.text = ""
+
+# Ligne d'entretien (danger des greniers, v0.4).
+func _texte_entretien() -> String:
+    var cons = Civilisation.construction
+    var t := "\nEntretien du mois : %d kg de bois" % int(ceil(cons.entretien_mois()))
+    var fragile := 0
+    var ruine := 0
+    for b in cons.batiments:
+        if int(b["etat"]) <= 0:
+            ruine += 1
+        elif int(b["etat"]) < cons.ETAT_FRAGILE:
+            fragile += 1
+    if ruine > 0:
+        t += "   ALERTE : %d bâtiment(s) en ruine" % ruine
+    if fragile > 0:
+        t += "   ALERTE : %d bâtiment(s) fragile(s)" % fragile
+    return t
 
 func _basculer_travail() -> void:
     var ouvrir := not panneau_travail.visible

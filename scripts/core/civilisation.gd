@@ -651,6 +651,11 @@ func ignorer_alerte(cle: String) -> String:
 func _jour_passe() -> void:
     finances.jour_passe(self, temps.jour_total)
     var chantier_actif: bool = not construction.chantiers.is_empty()
+    # Règle 4 : dix jours avant la fin du mois, prévision de l'entretien (une estimation, pas une garantie).
+    if temps.jour_total % 30 == 20:
+        var prev: Dictionary = construction.prevision_entretien(ressources, 10)
+        if besoins.reagir_entretien(population, ressources, construction, temps.jour_total, temps.saison_des_pluies(), chantier_actif, prev, 10):
+            population.repartir(temps.jour_total)
     guerre.bonus_gouv = institutions.bonus("defense", self)
     ressources.travail_du_jour = {}    # qui a réellement travaillé aujourd'hui (rempli par tous les producteurs)
     if temps.jour_total % 7 == 0:
@@ -702,6 +707,11 @@ func _jour_passe() -> void:
 
 func _mois_passe() -> void:
     construction.mois_passe(ressources)
+    # Règle 6 (clan du joueur) : le Premier ministre propose la réparation, il ne la lance pas.
+    var ruine: int = construction.premiere_ruine()
+    if ruine >= 0:
+        var rep: Dictionary = construction.cout_reparation(ruine)
+        besoins.evenement.emit("Le Premier ministre propose de réparer : %s (%s, %d jours de travail). Voir Construire." % [construction.definitions[construction.batiments[ruine]["type"]]["nom"], construction.texte_cout(rep["cout"]), int(rep["travail"])])
     clotures.mois_passe(ressources, temps.mois())
     routes.mois_passe(ressources, temps.mois())
     flotte.mois_passe(ressources, temps.mois())
