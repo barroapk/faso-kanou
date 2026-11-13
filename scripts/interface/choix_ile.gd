@@ -41,6 +41,7 @@ func _ready() -> void:
     carte.custom_minimum_size = Vector2(0, 520)
     carte.draw.connect(_dessiner_carte)
     carte.gui_input.connect(_toucher_carte)
+    carte.mouse_filter = Control.MOUSE_FILTER_PASS
     boite.add_child(carte)
     liste = VBoxContainer.new()
     liste.add_theme_constant_override("separation", 8)

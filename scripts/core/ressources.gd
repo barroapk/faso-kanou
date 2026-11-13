@@ -408,6 +408,29 @@ func _conso_jour(population, jour: int, r: String) -> float:
 
 # ---------- Journée ----------
 
+# Efficacité d'une personne pour une compétence donnée (v0.4 : partagée avec l'aperçu
+# d'affectation, pour qu'il n'y ait qu'une seule formule).
+func efficacite_de(h: Dictionary, competence: float, population) -> float:
+    return (0.6 + competence / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * population.part_libre(h) * (float(budget.facteur_productivite()) if budget != null else 1.0) * facteur_stabilite
+
+# Quantité produite en un jour par un métier pour une ressource (s : 1 pluie, 0 sec).
+func quantite_jour(metier: String, r: String, base: Array, s: int, efficacite: float) -> float:
+    return float(base[s]) * efficacite * _richesse(metier, r) * _acces(metier, r)
+
+# Production par jour d'une personne dans un métier (aperçu du joueur) :
+# {ressource: quantité}. Même formule que le jeu ; "sans métier" ne produit rien.
+func apercu_metier(h: Dictionary, metier: String, population, pluie: bool) -> Dictionary:
+    var res := {}
+    var p: Dictionary = PRODUCTION.get(metier, {})
+    if p.is_empty():
+        return res
+    # Déjà dans ce métier : sa compétence actuelle ; sinon celle que lui donnerait le changement.
+    var comp: float = float(h["competence"]) if h["metier"] == metier else population.savoir(h, population.savoir_du_metier(metier))
+    var eff: float = efficacite_de(h, comp, population)
+    for r in p:
+        res[r] = quantite_jour(metier, r, p[r], 1 if pluie else 0, eff)
+    return res
+
 func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> void:
     _synchroniser()
     var avant: float = total_aliments()
@@ -435,11 +458,11 @@ func jour_passe(population, jour: int, pluie: bool, chantier_actif: bool) -> voi
             p = PRODUCTION["aide"] if population.age(h, jour) >= AGE_AIDE else {}
         if not p.is_empty():
             travail_du_jour[int(h["id"])] = true
-        var efficacite: float = (0.6 + float(h["competence"]) / 100.0 * 0.8) * outils * float(h.get("bonus_outil", 1.0)) * population.part_libre(h) * (float(budget.facteur_productivite()) if budget != null else 1.0) * facteur_stabilite
+        var efficacite: float = efficacite_de(h, float(h["competence"]), population)
         if travail != null and not p.is_empty():
             travail.noter_travail(str(h["metier"]), 1.0, efficacite, efficacite / facteur_stabilite - efficacite)
         for r in p:
-            var q: float = p[r][s] * efficacite * _richesse(h["metier"], r) * _acces(h["metier"], r)
+            var q: float = quantite_jour(h["metier"], r, p[r], s, efficacite)
             if travail != null:
                 travail.noter_prod(str(h["metier"]), r, q, q / facteur_stabilite - q)
             if r == "nourriture":

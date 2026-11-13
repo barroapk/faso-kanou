@@ -33,6 +33,7 @@ var _pop
 var _res
 var _cons
 var _jour := 0
+var _dernier_avis_protege := -9999
 var _s := 0
 # Stabilité (v0.3.33) : pas de changement de métier ordinaire moins de 60 jours
 # après le précédent ; exception : urgence vitale (danger à moins de 20 jours).
@@ -394,7 +395,7 @@ func _equilibrer() -> void:
         var meilleur := {}
         var gain := base
         for de in _pop.postes:
-            if int(_pop.postes[de]) <= 0 or (_verrouille(de) and base > 40.0) or _garde_porteur(de):
+            if int(_pop.postes[de]) <= 0 or (_verrouille(de) and base > 40.0) or _garde_porteur(de) or _tout_protege(de):
                 continue
             for vers in _pop.postes:
                 if vers == de or not _res.PRODUCTION.has(vers):
@@ -509,7 +510,15 @@ func _libres() -> int:
     var occupes := 0
     for m in _pop.postes:
         occupes += int(_pop.postes[m])
+    for h in _pop.habitants:
+        if h["metier"] == "sans métier" and _pop.est_protege(h, _jour):
+            occupes += 1    # laissé sans métier par le joueur : le chef n'y touche pas
     return maxi(0, _adultes() - occupes)
+
+# Tous les travailleurs de ce métier sont protégés par une décision du joueur
+# (v0.4) : le chef automatique ne peut y prendre personne.
+func _tout_protege(m: String) -> bool:
+    return _pop.nombre(m) > 0 and _pop.libres_dans(m, _jour) <= 0
 
 # Consommation prévue par jour, bêtes comprises (v0.3.76) : ce que les humains ET
 # les animaux prélèvent dans les réserves. C'est elle qui juge les réserves, la
@@ -791,7 +800,7 @@ func _planifier() -> void:
                 gain = v
                 meilleur = d
             for de in metiers:
-                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or _bloque(de, base) or _garde_porteur(de) or (vers == "cultivateur" and _conversion_dangereuse(de)):
+                if de == vers or int(_pop.postes.get(de, 0)) <= 0 or _bloque(de, base) or _garde_porteur(de) or _tout_protege(de) or (vers == "cultivateur" and _conversion_dangereuse(de)):
                     continue
                 d = {de: -1, vers: 1}
                 v = _score(d)
@@ -954,13 +963,16 @@ func _ajouter_porteur() -> bool:
     var meilleur := ""
     var gain := -1.0e18
     for de in _pop.postes:
-        if de == PORTEUR or int(_pop.postes[de]) <= 0:
+        if de == PORTEUR or int(_pop.postes[de]) <= 0 or _tout_protege(de):
             continue
         var v := _score({de: -1, PORTEUR: 1})
         if v > gain:
             gain = v
             meilleur = de
     if meilleur == "":
+        if _jour - _dernier_avis_protege >= 30:
+            _dernier_avis_protege = _jour
+            evenement.emit("Réserve d'eau insuffisante, mais le Premier ministre ne peut déplacer personne : vos affectations protègent tous les adultes.")
         return false
     _pop.postes[meilleur] = int(_pop.postes[meilleur]) - 1
     _pop.postes[PORTEUR] = int(_pop.postes.get(PORTEUR, 0)) + 1

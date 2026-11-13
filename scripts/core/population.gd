@@ -5,9 +5,11 @@ signal deces(habitant)
 signal union(mari, femme)
 signal entree(habitant)
 signal sortie(habitant)
+signal protection_expiree(habitant)
 
 const JOURS_PAR_AN := 360
 const AGE_ADULTE := 14
+const PROTECTION_JOURS := 90         # une affectation du joueur n'est pas défaite par le jeu pendant ce temps
 const AGE_TRAVAIL_MAX := 60          # au-delà : ancien, compté parmi les dépendants
 # Mortalité liée à la santé (v0.3.65) : le risque de référence vaut pour une santé >= SANTE_REF.
 # En dessous, il augmente progressivement ; la faim n'est pas comptée une seconde fois,
@@ -460,14 +462,18 @@ func _naissances(jour: int, logement: int) -> void:
 func repartir(jour: int) -> void:
     for m in postes:
         var travailleurs := []
+        var total := 0
         for h in habitants:
             if h["metier"] == m:
-                travailleurs.append(h)
+                total += 1
+                if not est_protege(h, jour):
+                    travailleurs.append(h)
         travailleurs.sort_custom(func(a, b): return float(a["competence"]) > float(b["competence"]))
-        while travailleurs.size() > int(postes[m]):
+        while total > int(postes[m]) and not travailleurs.is_empty():
             var h = travailleurs.pop_back()
             h["metier"] = "sans métier"
             maj_competence(h)
+            total -= 1
     for m in postes:
         var manque := int(postes[m]) - nombre(m)
         while manque > 0:
@@ -482,7 +488,7 @@ func _meilleur_candidat(m: String, jour: int):
     var meilleur = null
     var score_max := -1.0
     for h in habitants:
-        if h["metier"] != "sans métier" or age(h, jour) < AGE_ADULTE or h.has("expedition"):
+        if h["metier"] != "sans métier" or age(h, jour) < AGE_ADULTE or h.has("expedition") or est_protege(h, jour):
             continue
         var score := savoir(h, savoir_du_metier(m)) + (100.0 if h.get("initie", "") == m else 0.0)
         if score > score_max:
@@ -504,6 +510,9 @@ func jour_passe(faim: bool, soif: bool, jours_sans_sel := 0, jour := -1) -> void
     var morts := []
     var plafond := plafond_sante(jours_sans_sel)
     for h in habitants:
+        if jour >= 0 and h.has("protege_jusqu") and jour >= int(h["protege_jusqu"]):
+            h.erase("protege_jusqu")
+            protection_expiree.emit(h)
         var s := int(h["sante"])
         if soif:
             s -= 4
@@ -756,8 +765,50 @@ func changer_metier(h: Dictionary, m: String) -> void:
         postes[ancien] = maxi(0, int(postes[ancien]) - 1)
     if postes.has(m):
         postes[m] = int(postes[m]) + 1
+    elif m != "sans métier":
+        postes[m] = 1    # métier encore sans poste (pêcheur...) : il en ouvre un, sinon la personne échappe à la répartition
     h["metier"] = m
     maj_competence(h)
+
+# ---------- Affectation individuelle par le joueur (v0.4) ----------
+
+# Vrai tant que la décision du joueur protège cette personne de la répartition automatique.
+func est_protege(h: Dictionary, jour: int) -> bool:
+    return h.has("protege_jusqu") and (jour < 0 or jour < int(h["protege_jusqu"]))
+
+# Combien de travailleurs de ce métier le chef automatique peut encore déplacer.
+func libres_dans(m: String, jour: int) -> int:
+    var n := 0
+    for h in habitants:
+        if h["metier"] == m and not est_protege(h, jour):
+            n += 1
+    return n
+
+# "" si l'affectation est possible, sinon la raison du refus (affichée au joueur).
+func raison_affectation(h: Dictionary, m: String, jour: int) -> String:
+    if h["metier"] == "chef":
+        return "Le Premier ministre ne peut pas être réaffecté."
+    if age(h, jour) < AGE_ADULTE:
+        return "Trop jeune pour travailler."
+    if age(h, jour) >= AGE_TRAVAIL_MAX:
+        return "Trop âgé pour changer de métier."
+    if h.has("expedition"):
+        return "En expédition."
+    if h["metier"] == m:
+        return "Déjà dans ce métier."
+    if m != "sans métier" and not metiers_choisis().has(m):
+        return "Métier inconnu."
+    return ""
+
+# Applique la décision : la personne et les postes changent ensemble, puis la
+# personne est protégée PROTECTION_JOURS jours. Retourne "" si fait, sinon la raison.
+func affecter(h: Dictionary, m: String, jour: int) -> String:
+    var raison := raison_affectation(h, m, jour)
+    if raison != "":
+        return raison
+    changer_metier(h, m)
+    h["protege_jusqu"] = jour + PROTECTION_JOURS
+    return ""
 
 func vers_dict() -> Dictionary:
     return {"habitants": habitants, "prochain_id": prochain_id, "postes": postes, "couples": couples, "prochain_couple": prochain_couple, "archives": _archives.values(), "graine": str(rng.seed), "etat": str(rng.state), "bilan": bilan}
@@ -772,6 +823,8 @@ func depuis_dict(d: Dictionary) -> void:
         if h.has("consanguin"):
             h["consanguin"] = bool(h["consanguin"])
         h["competence"] = float(h.get("competence", 50.0))
+        if h.has("protege_jusqu"):
+            h["protege_jusqu"] = int(h["protege_jusqu"])
         h["metier"] = _migrer_metier(h["metier"])
         h["initie"] = _migrer_metier(h.get("initie", ""))
         _migrer_savoirs(h)

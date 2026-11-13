@@ -408,7 +408,7 @@ func _postes_cultivateurs(pop, jour: int, peut_convertir := Callable()) -> void:
     while int(pop.postes.get("cultivateur", 0)) < voulu:
         if occupes < adultes:
             occupes += 1
-        elif int(pop.postes.get("cueilleur", 0)) > 1 and (peut_convertir.is_null() or bool(peut_convertir.call("cueilleur"))):
+        elif int(pop.postes.get("cueilleur", 0)) > 1 and not (pop.nombre("cueilleur") > 0 and pop.libres_dans("cueilleur", jour) <= 0) and (peut_convertir.is_null() or bool(peut_convertir.call("cueilleur"))):
             pop.postes["cueilleur"] = int(pop.postes["cueilleur"]) - 1
         else:
             break

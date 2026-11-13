@@ -9,6 +9,7 @@ var panneau: PanelContainer
 var liste: VBoxContainer
 var panneau_fin: PanelContainer
 var panneau_travail: PanelContainer
+var fiche: PanelContainer
 var panneau_construction: PanelContainer
 var panneau_chef: PanelContainer
 
@@ -93,6 +94,11 @@ func _ready() -> void:
     Civilisation.population.deces.connect(func(h): _afficher_message("Décès : %s %s" % [h["prenom"], h["nom"]]))
     Civilisation.ressources.penurie.connect(func(r): _afficher_message("Pénurie de %s !" % r))
     _creer_panneau_fin()
+    fiche = preload("res://scripts/interface/fiche_habitant.gd").new()
+    fiche.visible = false
+    fiche.fermee.connect(_fermer_fiche)
+    add_child(fiche)
+    Civilisation.population.protection_expiree.connect(func(h): _afficher_message("La protection de %s %s a expiré : son métier ne change pas, mais le chef peut de nouveau le déplacer." % [h["prenom"], h["nom"]]))
     panneau_travail = preload("res://scripts/interface/panneau_travail.gd").new()
     panneau_travail.visible = false
     add_child(panneau_travail)
@@ -102,6 +108,8 @@ func _ready() -> void:
     panneau_chef = preload("res://scripts/interface/panneau_chef.gd").new()
     panneau_chef.visible = false
     add_child(panneau_chef)
+    for p in [panneau, panneau_travail, panneau_chef, panneau_construction]:
+        _rendre_opaque(p)
     Civilisation.construction.evenement.connect(_afficher_message)
     Civilisation.besoins.evenement.connect(_afficher_message)
     Civilisation.conseil.evenement.connect(_afficher_message)
@@ -151,9 +159,23 @@ func _afficher_message(texte: String) -> void:
     if panneau.visible:
         _remplir_liste()
 
+# Un seul panneau ouvert à la fois, sur fond opaque : sinon les textes se mélangent.
+func _fermer_panneaux() -> void:
+    for p in [panneau, fiche, panneau_travail, panneau_chef, panneau_construction]:
+        p.visible = false
+
+func _rendre_opaque(p: PanelContainer) -> void:
+    var fond := StyleBoxFlat.new()
+    fond.bg_color = Color(0.07, 0.09, 0.12, 1.0)
+    fond.set_corner_radius_all(12)
+    fond.set_content_margin_all(20)
+    p.add_theme_stylebox_override("panel", fond)
+
 func _basculer_panneau() -> void:
-    panneau.visible = not panneau.visible
-    if panneau.visible:
+    var ouvrir := not panneau.visible
+    _fermer_panneaux()
+    panneau.visible = ouvrir
+    if ouvrir:
         _remplir_liste()
 
 func _remplir_liste() -> void:
@@ -169,33 +191,25 @@ func _remplir_liste() -> void:
         l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         l.add_theme_font_size_override("font_size", 28)
         ligne.add_child(l)
-        if pop.peut_changer(h, jour):
-            var choix := OptionButton.new()
-            choix.add_theme_font_size_override("font_size", 28)
-            var actuel := -1
-            for i in choix_possibles.size():
-                var m: String = choix_possibles[i]
-                choix.add_item(pop.nom_metier({"metier": m, "sexe": h["sexe"]}), i)
-                if m == h["metier"]:
-                    actuel = i
-            if actuel == -1:
-                actuel = choix_possibles.size()
-                choix.add_item(pop.nom_metier(h), actuel)
-            choix.select(actuel)
-            choix.item_selected.connect(_choisir_metier.bind(h))
-            ligne.add_child(choix)
-        else:
-            var m := Label.new()
-            m.text = pop.nom_metier(h)
-            m.add_theme_font_size_override("font_size", 28)
-            ligne.add_child(m)
+        var m := Label.new()
+        m.text = pop.nom_metier(h) + ("  [protégé %d j]" % (int(h["protege_jusqu"]) - jour) if pop.est_protege(h, jour) else "")
+        m.add_theme_font_size_override("font_size", 28)
+        ligne.add_child(m)
+        var fiche := Button.new()
+        fiche.text = "Fiche"
+        fiche.add_theme_font_size_override("font_size", 28)
+        fiche.pressed.connect(_ouvrir_fiche.bind(h))
+        ligne.add_child(fiche)
         liste.add_child(ligne)
 
-func _choisir_metier(index: int, h: Dictionary) -> void:
-    var pop = Civilisation.population
-    var choix_possibles: Array = pop.metiers_choisis()
-    if index < choix_possibles.size():
-        pop.changer_metier(h, choix_possibles[index])
+func _ouvrir_fiche(h: Dictionary) -> void:
+    panneau.visible = false
+    fiche.visible = true
+    fiche.ouvrir(h)
+
+func _fermer_fiche() -> void:
+    fiche.visible = false
+    panneau.visible = true
     _remplir_liste()
 
 func _creer_panneau_fin() -> void:
@@ -231,21 +245,20 @@ func _process(delta: float) -> void:
             message.text = ""
 
 func _basculer_travail() -> void:
-    panneau_travail.visible = not panneau_travail.visible
-    if panneau_travail.visible:
-        panneau.visible = false
+    var ouvrir := not panneau_travail.visible
+    _fermer_panneaux()
+    panneau_travail.visible = ouvrir
 
 func _basculer_chef() -> void:
-    panneau_chef.visible = not panneau_chef.visible
-    if panneau_chef.visible:
-        panneau.visible = false
-        panneau_travail.visible = false
-        panneau_construction.visible = false
+    var ouvrir := not panneau_chef.visible
+    _fermer_panneaux()
+    panneau_chef.visible = ouvrir
+    if ouvrir:
         panneau_chef.remplir()
 
 func _basculer_construction() -> void:
-    panneau_construction.visible = not panneau_construction.visible
-    if panneau_construction.visible:
-        panneau.visible = false
-        panneau_travail.visible = false
+    var ouvrir := not panneau_construction.visible
+    _fermer_panneaux()
+    panneau_construction.visible = ouvrir
+    if ouvrir:
         panneau_construction.remplir()
